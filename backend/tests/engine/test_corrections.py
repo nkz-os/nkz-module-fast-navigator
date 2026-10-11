@@ -47,3 +47,12 @@ def test_corrections_reject_non_finite():
         organic_available_n([OrganicInput(float("inf"), 0.5)])
     with pytest.raises(ValueError):
         soil_mineral_n([MineralNLayer(0, 30, float("nan"), 1, 1.4)])
+
+
+def test_irrigation_uptake_fraction_can_be_overridden():
+    # Technician override (with a recorded reason, plan 05) or a regional rule value.
+    assert irrigation_n(50, 3000, uptake=1.0) == pytest.approx(33.870967741935484)
+    with pytest.raises(ValueError):
+        irrigation_n(50, 3000, uptake=1.2)
+    with pytest.raises(ValueError):
+        irrigation_n(50, 3000, uptake=float("nan"))

@@ -60,12 +60,19 @@ def organic_available_n(inputs: list[OrganicInput]) -> float:
     return total
 
 
-def irrigation_n(no3_mg_l: float, water_m3_ha: float) -> float:
-    """N the crop takes from the irrigation water, kg N/ha (70 % of the N applied with it)."""
-    _check_finite(no3_mg_l, water_m3_ha)
+def irrigation_n(no3_mg_l: float, water_m3_ha: float,
+                 uptake: float = C.IRRIGATION_N_UPTAKE) -> float:
+    """N the crop takes from the irrigation water, kg N/ha.
+
+    `uptake` is the share of the water N the crop absorbs: 0.7 by default (paper l. 268-270);
+    a regional rule or a technician override (with its reason) may set another value.
+    """
+    _check_finite(no3_mg_l, water_m3_ha, uptake)
     if no3_mg_l < 0 or water_m3_ha < 0:
         raise ValueError("nitrate and water volume must be >= 0")
-    return no3_mg_l * water_m3_ha * _N_PER_NO3 / 1000 * C.IRRIGATION_N_UPTAKE
+    if not 0 <= uptake <= 1:
+        raise ValueError("uptake must be in [0, 1]")
+    return no3_mg_l * water_m3_ha * _N_PER_NO3 / 1000 * uptake
 
 
 def apply_credits(result: NResult, credits: NCredits) -> NAdjusted:

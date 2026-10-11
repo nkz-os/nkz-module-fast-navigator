@@ -2,7 +2,7 @@
   "name": "fast-navigator-module",
   "version": "1.0.0",
   "description": "FaST Navigator — Nekazari Platform Module",
-  "license": "Apache-2.0",
+  "license": "AGPL-3.0-or-later",
   "packageManager": "pnpm@9.0.0",
   "type": "module",
   "main": "./src/moduleEntry.ts",

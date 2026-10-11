@@ -228,4 +228,10 @@ When the bundle calls a platform API, the gateway validates the requested NGSI-L
 
 ## License
 
-Apache-2.0 — you are free to license your derived module under any terms.
+AGPL-3.0-or-later (see `LICENSE`).
+
+The nutrient engine in `backend/app/engine` is a Python port, with modifications, of the
+FertiliCalc reference script by F. J. Villalobos (Universidad de Córdoba), distributed under the
+GNU GPL v3. The unmodified script and its licence are kept in
+`backend/tests/engine/fixtures/fertilicalc_reference/` as the test oracle. GPLv3 section 13
+allows combining it with AGPL-3.0 code.

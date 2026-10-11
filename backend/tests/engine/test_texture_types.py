@@ -43,9 +43,11 @@ def test_invalid_crop_type_rejected():
 
 def test_soil_state_validates_class_and_ph():
     with pytest.raises(ValueError):
-        SoilState(texture_class=7, clay_pct=18, ph=7, organic_matter_pct=2, p_olsen_mg_kg=10, k_mg_kg=100)
+        SoilState(texture_class=7, clay_pct=18, ph=7, organic_matter_pct=2,
+                  p_olsen_mg_kg=10, k_mg_kg=100)
     with pytest.raises(ValueError):
-        SoilState(texture_class=3, clay_pct=18, ph=15, organic_matter_pct=2, p_olsen_mg_kg=10, k_mg_kg=100)
+        SoilState(texture_class=3, clay_pct=18, ph=15, organic_matter_pct=2,
+                  p_olsen_mg_kg=10, k_mg_kg=100)
 
 
 def test_management_strategy_range():

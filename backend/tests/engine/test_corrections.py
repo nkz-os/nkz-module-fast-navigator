@@ -23,8 +23,8 @@ def test_soil_mineral_n_rejects_inverted_depths():
 
 
 def test_irrigation_n_from_nitrate():
-    # 50 mg NO3/L × 3000 m3/ha × 14/62 / 1000 = 33.87 kg N/ha
-    assert irrigation_n(50, 3000) == pytest.approx(33.870967741935484)
+    # 50 mg NO3/L × 3000 m3/ha × 14/62 / 1000 = 33.87 kg N/ha, × 0.7 absorbed (paper l. 268-270)
+    assert irrigation_n(50, 3000) == pytest.approx(23.709677419354836)
 
 
 def test_organic_available_n():
@@ -38,3 +38,12 @@ def test_apply_credits_never_negative():
     assert (adj.n_min, adj.n_avg, adj.n_max) == (0.0, 10.0, 30.0)
 
 
+
+
+def test_corrections_reject_non_finite():
+    with pytest.raises(ValueError):
+        irrigation_n(float("nan"), 3000)
+    with pytest.raises(ValueError):
+        organic_available_n([OrganicInput(float("inf"), 0.5)])
+    with pytest.raises(ValueError):
+        soil_mineral_n([MineralNLayer(0, 30, float("nan"), 1, 1.4)])

@@ -1,6 +1,7 @@
 """Split of the N requirement into applications and product rates (paper l. 240-248)."""
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from . import constants as C
@@ -15,8 +16,13 @@ class PlannedApplication:
     n_pct: float                # % N of the product
     p2o5_pct: float
     k2o_pct: float
+    organic: bool = False       # organic N is credited through corrections.organic_available_n
 
     def __post_init__(self) -> None:
+        for name in ("product_rate_kg_ha", "n_pct", "p2o5_pct", "k2o_pct"):
+            v = getattr(self, name)
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
+                raise ValueError(f"{name} must be a finite number")
         if self.product_rate_kg_ha < 0:
             raise ValueError("product_rate_kg_ha must be >= 0")
         for name in ("n_pct", "p2o5_pct", "k2o_pct"):
@@ -55,14 +61,17 @@ def totals(apps: list[PlannedApplication]) -> tuple[float, float, float]:
 
 def n_split_issues(n_min: float, n_max: float, apps: list[PlannedApplication],
                    tol: float = 1e-6) -> list[str]:
-    """Agronomic checks of the N split; legal limits live in the rules layer.
+    """Agronomic checks of the mineral N split; legal limits live in the rules layer.
 
+    N_min/N_max are the requirement after credits (corrections.apply_credits), which already
+    subtract the available N of organic inputs, so organic applications are left out here.
     - pre-plant N must not exceed N_min (the farmer tops up later in good years)
     - the planned total must lie in [N_min, N_max]
     """
     issues: list[str] = []
-    pre = sum(a.n_kg_ha for a in apps if a.stage == PRE_PLANT)
-    total = sum(a.n_kg_ha for a in apps)
+    mineral = [a for a in apps if not a.organic]
+    pre = sum(a.n_kg_ha for a in mineral if a.stage == PRE_PLANT)
+    total = sum(a.n_kg_ha for a in mineral)
     if pre > n_min + tol:
         issues.append("pre_plant_above_n_min")
     if total < n_min - tol:

@@ -15,6 +15,16 @@ F_NR = 0.2                  # ratio N in roots / N in shoots
 N_OTHER_KG_HA = 10.0        # atmospheric deposition (irrigation water is added on top)
 N_LOSS_FRACTION = 0.0       # the reference script does not model losses (spec D2)
 SOIL_NMIN_EFFICIENCY = 0.9  # efficiency of measured soil mineral N (paper, l. 255-259)
+# Share of the irrigation-water N taken up by the crop: the paper's correction guidance
+# (l. 268-270, "assuming that a fraction (i.e. 70%) is absorbed by the crop").
+IRRIGATION_N_UPTAKE = 0.7
+
+# Share of legume N from symbiotic fixation, by SOM < 3 % / >= 3 %. Values of the reference
+# script (2nd ed., 2024), which the oracle reproduces; the 2020 paper's Table 4 gives
+# 0.95 (low SOM) / 0.7 annual / 0.8 perennial instead.
+FIXATION_GRAIN_LEGUME = (0.80, 0.50)
+FIXATION_FORAGE_LEGUME = (0.90, 0.60)
+FIXATION_SOM_THRESHOLD_PCT = 3.0
 
 # Student t values of the 9 yield probability levels (script `t_i`, index 1..9).
 T_LEVELS = (-1.29, -0.84, -0.525, -0.25, 0.0, 0.25, 0.525, 0.84, 1.29)

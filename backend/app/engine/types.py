@@ -1,12 +1,21 @@
 """Engine inputs and outputs. Immutable; every number in kg/ha unless the name says otherwise."""
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 CROP_TYPES = (
     "cereal", "industrial", "tuber_root", "forage_legume", "grain_legume",
     "tree", "vegetable", "forage",
 )
+
+
+def _finite(obj: object, *names: str) -> None:
+    for name in names:
+        value = getattr(obj, name)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) \
+                or not math.isfinite(value):
+            raise ValueError(f"{name} must be a finite number")
 
 
 @dataclass(frozen=True)
@@ -27,6 +36,9 @@ class CropParams:
     n_fixing: bool
 
     def __post_init__(self) -> None:
+        _finite(self, "dm_product_pct", "n_product_pct", "n_min_product_pct", "p_product_pct",
+                "k_product_pct", "n_residue_pct", "p_residue_pct", "k_residue_pct",
+                "harvest_index_pct", "residue_left_pct")
         if self.crop_type not in CROP_TYPES:
             raise ValueError(f"unknown crop_type {self.crop_type!r}")
         if not 0 < self.harvest_index_pct <= 100:
@@ -49,6 +61,7 @@ class CropSeason:
     previous_residues_burned: bool = False   # residues of the preceding crop burned before this one
 
     def __post_init__(self) -> None:
+        _finite(self, "yield_kg_ha", "yield_cv_pct")
         if self.yield_kg_ha <= 0:
             raise ValueError("yield_kg_ha must be > 0")
         if not 0 <= self.yield_cv_pct <= 100:
@@ -65,8 +78,13 @@ class SoilState:
     k_mg_kg: float
 
     def __post_init__(self) -> None:
+        _finite(self, "clay_pct", "ph", "organic_matter_pct", "p_olsen_mg_kg", "k_mg_kg")
         if self.texture_class not in range(1, 7):
             raise ValueError("texture_class must be 1..6")
+        if not 0 <= self.clay_pct <= 100:
+            raise ValueError("clay_pct must be 0..100")
+        if not 0 <= self.organic_matter_pct <= 100:
+            raise ValueError("organic_matter_pct must be 0..100")
         if not 0 <= self.ph <= 14:
             raise ValueError("ph must be 0..14")
         if self.p_olsen_mg_kg < 0 or self.k_mg_kg < 0:

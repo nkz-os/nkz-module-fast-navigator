@@ -40,3 +40,16 @@ def test_product_composition_over_100_rejected():
 
 def test_to_oxides():
     assert to_oxides(10, 10) == pytest.approx((22.9, 12.047))
+
+
+def test_organic_applications_do_not_count_against_mineral_n_range():
+    # Available N of organic inputs is already subtracted from N_min/N_max (credits).
+    apps = [PlannedApplication(PRE_PLANT, 20000, 0.6, 0.3, 0.6, organic=True),  # 120 kg N
+            PlannedApplication("tillering", 100, 46, 0, 0)]                       # 46 kg N
+    assert n_split_issues(n_min=40, n_max=80, apps=apps) == []
+    assert totals(apps)[0] == pytest.approx(166)
+
+
+def test_application_rejects_nan_rate():
+    with pytest.raises(ValueError):
+        PlannedApplication(PRE_PLANT, float("nan"), 46, 0, 0)

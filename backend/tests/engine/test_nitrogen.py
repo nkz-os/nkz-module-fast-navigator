@@ -64,3 +64,21 @@ def test_rate_never_negative():
     big_prev = CropSeason(DURUM, 9000, 0)
     res = n_requirement(tiny, big_prev, SOIL, MGMT)
     assert min(res.levels) >= 0.0
+
+
+def test_tree_irrigation_n_is_credited():
+    from tests.engine.oracle_cases import OLIVE, season
+    olive = season(OLIVE, 5000, 25, 50, 100, 1.0, 0.12, 1.3)
+    mgmt = Management(strategy=2, tillage=True, irrigated=True)
+    base = n_requirement(olive, olive, SOIL, mgmt)
+    watered = n_requirement(olive, olive, SOIL, mgmt, irrigation_n_kg_ha=10)
+    assert base.n_avg - watered.n_avg == pytest.approx(10)
+    assert watered.terms.n_other == pytest.approx(-10)
+
+
+def test_fallow_or_no_previous_crop():
+    cur = CropSeason(DURUM, 3000, 20)
+    res = n_requirement(cur, None, SOIL, MGMT)
+    t = res.terms
+    assert t.previous_residues == 0 and t.previous_roots == 0
+    assert res.n_avg == pytest.approx(t.n_end + t.crop_uptake + t.n_other)

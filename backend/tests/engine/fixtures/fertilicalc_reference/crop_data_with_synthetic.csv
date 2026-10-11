@@ -1,0 +1,7 @@
+ES,Name,Type,Harvest_product,DM%,N typical,P (% dm),K (% dm),Residue_product,DM%,N typical,P (% dm),K (% dm),Nfix_code,N min,N max,HI,Fres(%)
+Girasol (aceite),Helianthus annuus ,Industrial,seed,91.5,2.95,0.63,0.72,residues,87,0.8,0.14,2.52,0,2.2,3.2,35,100
+Trigo duro,Triticum turgidum ,Cereals,grain,87.5,2.4,0.42,0.5,straw,90.5,0.65,0.06,1.2,0,2.05,2.7,40,10
+Haba (sintetica),Vicia faba,Legumes,seed,88,4.0,0.45,1.1,straw,90,1.0,0.1,1.5,1,3.6,4.4,40,100
+Alfalfa (sintetica),Medicago sativa,Forage_legume,hay,90,3.0,0.25,2.2,stubble,90,2.0,0.2,1.5,1,2.6,3.4,80,10
+Olivo (sintetico),Olea europaea,Trees,fruit,50,1.0,0.12,1.3,pruning,55,0.8,0.08,0.6,0,0.9,1.2,50,100
+Patata (sintetica),Solanum tuberosum,Tubers_roots,tuber,21,1.5,0.25,2.2,haulm,15,2.5,0.3,3.0,0,1.3,1.8,75,100

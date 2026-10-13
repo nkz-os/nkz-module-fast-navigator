@@ -188,3 +188,12 @@ def test_an_impossible_previous_yield_does_not_raise():
     r = calculate(replace(base, previous_yield=bad))
     assert r.status == INCOMPLETE and r.n is None
     assert any(m.field == "previous_yield.kg_ha" and "error" in m.params for m in r.missing)
+
+
+def test_an_uncreditable_nmin_analysis_blocks_n_and_is_listed():
+    soil = build_soil([{"id": "a1", "samplingDate": "2026-09-01", "horizons": [H]}], [],
+                      None, "nope", {})
+    r = calculate(assembled(soil=soil))
+    assert r.n is None and r.status == INCOMPLETE
+    assert r.p2o5 is not None and r.k2o is not None
+    assert MissingInput("soil.nmin_analysis", "soil", {"analysis": "nope"}) in r.missing

@@ -204,6 +204,7 @@ def calculate(a: AssembledInputs) -> SheetResult:
         missing.extend(parcel.missing)
     missing.extend(a.organic.missing)
     missing.extend(a.irrigation.missing)
+    missing.extend(a.soil.nmin_missing)
 
     current = None
     if a.crop.params is not None and a.yield_target.yield_kg_ha.known:
@@ -219,7 +220,8 @@ def calculate(a: AssembledInputs) -> SheetResult:
 
     n = None
     if (current is not None and a.yield_target.cv_pct.known and previous_ok
-            and not a.organic.missing and not a.irrigation.missing):
+            and not a.organic.missing and not a.irrigation.missing
+            and not a.soil.nmin_missing):
         needed = ("organic_matter_pct",) if a.crop.params.n_fixing else ()
         try:
             n = _nitrogen(a, current, previous, _soil_state(a.soil, needed))

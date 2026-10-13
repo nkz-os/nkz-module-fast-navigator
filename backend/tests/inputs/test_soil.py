@@ -2,7 +2,15 @@ import pytest
 
 from app.engine import constants as C
 from app.engine.texture import texture_class
-from app.inputs.provenance import ENTERED, ESTIMATED, MEASURED, MISSING, Notice, Override
+from app.inputs.provenance import (
+    ENTERED,
+    ESTIMATED,
+    MEASURED,
+    MISSING,
+    MissingInput,
+    Notice,
+    Override,
+)
 from app.inputs.soil import build_soil, topsoil_mean
 
 H = {"depthFrom": 0, "depthTo": 30, "sand": 40.0, "clay": 25.0, "ph": 7.8,
@@ -134,3 +142,35 @@ def test_an_nmin_only_analysis_is_not_the_representative_one():
                   "2026-10-01")
     s = build_soil([n1, analysis("a1", [H], "2025-09-01")], [], None, None, {})
     assert s.analysis_id == "a1"
+
+
+def test_no_chosen_nmin_analysis_is_not_blocking():
+    s = build_soil([analysis("a1", [H])], [], None, None, {})
+    assert s.nmin_missing == () and s.values["mineral_n_kg_ha"].note == "no_nmin_analysis"
+
+
+def test_a_chosen_nmin_analysis_that_does_not_exist_blocks():
+    s = build_soil([analysis("a1", [H])], [], None, "nope", {})
+    assert MissingInput("soil.nmin_analysis", "soil", {"analysis": "nope"}) in s.nmin_missing
+    assert Notice("nmin_analysis_not_found", {"analysis": "nope"}) in s.notices
+
+
+def test_a_chosen_nmin_analysis_without_values_blocks():
+    n1 = analysis("n1", [{"depthFrom": 0, "depthTo": 30, "sand": 40.0}])
+    s = build_soil([analysis("a1", [H]), n1], [], None, "n1", {})
+    assert MissingInput("soil.mineral_n", "soil", {"analysis": "n1"}) in s.nmin_missing
+    assert any(n.code == "nmin_no_values" for n in s.notices)
+
+
+def test_a_chosen_nmin_analysis_without_a_bulk_density_blocks():
+    h = {k: v for k, v in H.items() if k not in ("sand", "clay")}
+    n1 = analysis("n1", [{"depthFrom": 0, "depthTo": 30, "nitrateN": 8.0, "ammoniumN": 2.0}])
+    s = build_soil([analysis("a1", [h]), n1], [], None, "n1", {})
+    assert MissingInput("soil.bulk_density_g_cm3", "soil", {"analysis": "n1"}) in s.nmin_missing
+    assert any(n.code == "nmin_bulk_density_unknown" for n in s.notices)
+
+
+def test_a_credited_nmin_analysis_blocks_nothing():
+    n1 = analysis("n1", [{"depthFrom": 0, "depthTo": 30, "nitrateN": 8.0, "ammoniumN": 2.0,
+                          "bulkDensity": 1.4}])
+    assert build_soil([analysis("a1", [H]), n1], [], None, "n1", {}).nmin_missing == ()

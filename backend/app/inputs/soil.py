@@ -36,6 +36,8 @@ class SoilInputs:
     provisional: bool
     notices: tuple[Notice, ...]
     missing: tuple[MissingInput, ...]
+    # A chosen mineral-N analysis that cannot be credited: blocks N (silence would credit 0).
+    nmin_missing: tuple[MissingInput, ...] = ()
 
 
 def _num(value) -> float | None:
@@ -230,14 +232,24 @@ def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | N
         values["bulk_density_g_cm3"] = missing()   # only the mineral N needs it
 
     nmin = None
+    nmin_missing: list[MissingInput] = []
     if nmin_analysis_id:
         nmin = next((a for a in analyses if a.get("id") == nmin_analysis_id), None)
         if nmin is None:
             notices.append(Notice("nmin_analysis_not_found", {"analysis": nmin_analysis_id}))
+            nmin_missing.append(MissingInput("soil.nmin_analysis", "soil",
+                                             {"analysis": nmin_analysis_id}))
     bd = values["bulk_density_g_cm3"]
     values["mineral_n_kg_ha"], nmin_notices = _mineral_n(nmin, bd.value if bd.known else None)
     notices.extend(nmin_notices)
+    blocked = {"no_nmin_values": ("soil.mineral_n", "nmin_no_values"),
+               "nmin_bulk_density_unknown": ("soil.bulk_density_g_cm3",
+                                             "nmin_bulk_density_unknown")}
+    if nmin is not None and values["mineral_n_kg_ha"].note in blocked:
+        field_name, code = blocked[values["mineral_n_kg_ha"].note]
+        nmin_missing.append(MissingInput(field_name, "soil", {"analysis": nmin_analysis_id}))
+        notices.append(Notice(code, {"analysis": nmin_analysis_id}))
 
     provisional = any(v.provenance == ESTIMATED for v in values.values())
     return SoilInputs(chosen_id, (chosen or {}).get("samplingDate"), values, provisional,
-                      tuple(notices), tuple(absent))
+                      tuple(notices), tuple(absent), tuple(nmin_missing))

@@ -15,3 +15,9 @@ CREATE CONSTRAINT TRIGGER plans_superseded_successor AFTER UPDATE ON fast.plans
     DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
     WHEN (NEW.state = 'superseded' AND OLD.state IS DISTINCT FROM 'superseded')
     EXECUTE FUNCTION fast.check_superseded_successor();
+-- The same guard for a plan inserted already superseded.
+DROP TRIGGER IF EXISTS plans_superseded_successor_insert ON fast.plans;
+CREATE CONSTRAINT TRIGGER plans_superseded_successor_insert AFTER INSERT ON fast.plans
+    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+    WHEN (NEW.state = 'superseded')
+    EXECUTE FUNCTION fast.check_superseded_successor();

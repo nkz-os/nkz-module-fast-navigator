@@ -161,6 +161,17 @@ async def test_a_superseded_plan_without_a_signed_successor_cannot_commit(pool):
         assert (await repo.get_plan(c, T, plan.id)).state == "signed"
 
 
+async def test_a_plan_inserted_as_superseded_needs_a_signed_successor(pool):
+    async with pool.acquire() as c:
+        with pytest.raises(asyncpg.RaiseError, match="without a signed successor"):
+            await c.execute(
+                "INSERT INTO fast.plans (id, tenant_id, farm, campaign, version, state, "
+                "created_by, signature, snapshot, snapshot_sha256, signed_at) VALUES "
+                "(gen_random_uuid(), $1, 'ghost', 2027, 1, 'superseded', 'u', '{}'::jsonb, "
+                "'{}'::jsonb, 'ab', now())",
+                T)
+
+
 async def test_a_superseded_plan_with_a_signed_successor_commits(pool):
     async with pool.acquire() as c:
         plan = await _signed(c)

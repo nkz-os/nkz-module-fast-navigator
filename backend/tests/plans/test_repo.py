@@ -86,9 +86,9 @@ async def test_results_and_findings_replace_the_previous_ones(pool):
         plan = await _plan(c)
         await repo.replace_sheets(c, plan.id, [_sheet("a")])
         (a,) = await repo.get_sheets(c, plan.id)
-        await repo.save_results(c, plan.id, [(a.id, {"status": "complete"}, {"mineral_n_kg_ha": 1})],
+        await repo.save_results(c, plan.id, [(a.id, {"status": "complete"}, {"mineral_n_kg_ha": 1}, {})],
                                 [{"rule_id": "X", "severity": "warn", "params": {}, "sheet_id": a.id}])
-        await repo.save_results(c, plan.id, [(a.id, {"status": "incomplete"}, {"mineral_n_kg_ha": 2})],
+        await repo.save_results(c, plan.id, [(a.id, {"status": "incomplete"}, {"mineral_n_kg_ha": 2}, {})],
                                 [{"rule_id": "Y", "severity": "block", "params": {"k": 1}}])
         results = await repo.get_results(c, plan.id)
         assert results[a.id]["result"] == {"status": "incomplete"}
@@ -102,7 +102,7 @@ async def test_dropping_a_sheet_drops_its_results(pool):
         plan = await _plan(c)
         await repo.replace_sheets(c, plan.id, [_sheet("a")])
         (a,) = await repo.get_sheets(c, plan.id)
-        await repo.save_results(c, plan.id, [(a.id, {}, {})], [])
+        await repo.save_results(c, plan.id, [(a.id, {}, {}, {})], [])
         await repo.replace_sheets(c, plan.id, [_sheet("b")])
         assert await repo.get_results(c, plan.id) == {}
 

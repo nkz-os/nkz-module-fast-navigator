@@ -11,6 +11,7 @@ import asyncpg
 
 from app.calc.assemble import SheetRequest, assemble, fetch_rain_normal
 from app.calc.sheet import calculate
+from app.calc.snapshot import assembled_to_dict
 from app.inputs.organic import OrganicApplication
 from app.inputs.overrides import check_override, farmer_may_override
 from app.inputs.provenance import Override
@@ -212,14 +213,15 @@ async def calculate_plan(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uui
 
     rows, findings, statuses, versions = [], [], {}, {}
     for sheet in sheets:
-        result = calculate(await assemble(_request(plan.campaign, sheet), sources, today)).to_dict()
+        assembled = await assemble(_request(plan.campaign, sheet), sources, today)
+        result = calculate(assembled).to_dict()
         organic = [OrganicApplication(**o) for o in sheet.inputs.get("organic") or []]
         apps = [ApplicationIn.model_validate(a) for a in sheet.applications]
         summary = summarize(apps, organic)
         if result["n"] is not None:
             findings += [{**f, "sheet_id": sheet.id} for f in split_findings(
                 apps, organic, result["n"]["min_kg_ha"], result["n"]["max_kg_ha"])]
-        rows.append((sheet.id, result, summary))
+        rows.append((sheet.id, result, summary, assembled_to_dict(assembled)))
         statuses[sheet.key] = result["status"]
         versions[sheet.key] = result["versions"]
 

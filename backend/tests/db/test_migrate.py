@@ -3,7 +3,7 @@ import pytest
 
 from app.db.migrate import MIGRATIONS_DIR, apply_migrations
 
-TABLES = {"plans", "crop_sheets", "sheet_parcels", "applications", "results", "findings",
+TABLES = {"advisors", "plans", "crop_sheets", "sheet_parcels", "applications", "results", "findings",
           "audit_log", "schema_migrations"}
 
 

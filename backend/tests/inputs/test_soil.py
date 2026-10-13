@@ -109,3 +109,28 @@ def test_a_missing_n_form_counts_zero_and_is_reported():
     bd = C.CLASS_BULK_DENSITY[texture_class(40.0, 25.0)]
     assert s.values["mineral_n_kg_ha"].value == pytest.approx(10.0 * bd * 30 * 0.1 * 0.9)
     assert Notice("nmin_form_not_measured", {"analysis": "n1", "missing": "ammoniumN"}) in s.notices
+
+
+def test_a_p_value_without_its_method_makes_the_method_unknown():
+    top = dict(H, depthTo=15)
+    bottom = {k: v for k, v in H.items() if k != "phosphorusMethod"}
+    bottom["depthFrom"] = 15
+    s = build_soil([analysis("a1", [top, bottom])], [], None, None, {})
+    assert not s.values["p_olsen_mg_kg"].known
+    assert Notice("soil_p_method_unknown", {"analysis": "a1"}) in s.notices
+
+
+def test_a_k_value_without_its_method_makes_the_method_unknown():
+    top = dict(H, depthTo=15)
+    bottom = {k: v for k, v in H.items() if k != "potassiumMethod"}
+    bottom["depthFrom"] = 15
+    s = build_soil([analysis("a1", [top, bottom])], [], None, None, {})
+    assert not s.values["k_mg_kg"].known
+    assert Notice("soil_k_method_unknown", {"analysis": "a1"}) in s.notices
+
+
+def test_an_nmin_only_analysis_is_not_the_representative_one():
+    n1 = analysis("n1", [{"depthFrom": 0, "depthTo": 30, "nitrateN": 10.0, "ammoniumN": 2.0}],
+                  "2026-10-01")
+    s = build_soil([n1, analysis("a1", [H], "2025-09-01")], [], None, None, {})
+    assert s.analysis_id == "a1"

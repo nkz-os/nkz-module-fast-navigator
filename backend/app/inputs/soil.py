@@ -24,8 +24,8 @@ from .provenance import (
 TOPSOIL_CM = 30.0
 # The FertiliCalc K thresholds are for ammonium-acetate K; other extractions are not comparable.
 K_METHODS_SUPPORTED = frozenset({"ammonium_acetate"})
-_FERTILITY_KEYS = ("organicMatter", "phosphorusAvailable", "potassiumExchangeable",
-                   "nitrateN", "ammoniumN")
+# Mineral N has its own selector (nmin_analysis_id), so an N-only analysis is not representative.
+_FERTILITY_KEYS = ("organicMatter", "phosphorusAvailable", "potassiumExchangeable")
 
 
 @dataclass(frozen=True)
@@ -64,9 +64,16 @@ def topsoil_mean(horizons: list[dict], key: str) -> float | None:
     return total / weight if weight > 0 else None
 
 
-def _method(horizons: list[dict], key: str) -> tuple[str | None, bool]:
-    """(the single method of `key` in the topsoil, whether several were found)."""
-    methods = {h.get(key) for h in _topsoil(horizons)} - {None}
+def _method(horizons: list[dict], value_key: str, method_key: str) -> tuple[str | None, bool]:
+    """(the single method of `method_key` in the topsoil, whether several were found).
+
+    A topsoil horizon that carries the value but not its method leaves the method unknown:
+    the value must not be averaged in as if it had the other horizons' method.
+    """
+    topsoil = _topsoil(horizons)
+    if any(h.get(value_key) is not None and h.get(method_key) is None for h in topsoil):
+        return None, False
+    methods = {h.get(method_key) for h in topsoil} - {None}
     if len(methods) == 1:
         return methods.pop(), False
     return None, len(methods) > 1
@@ -87,7 +94,7 @@ def _lab_p(hz: list[dict], src: str | None, analysis_id: str | None,
     raw = topsoil_mean(hz, "phosphorusAvailable")
     if raw is None:
         return None
-    method, mixed = _method(hz, "phosphorusMethod")
+    method, mixed = _method(hz, "phosphorusAvailable", "phosphorusMethod")
     if method is None:
         notices.append(Notice("soil_p_methods_mixed" if mixed else "soil_p_method_unknown",
                               {"analysis": analysis_id}))
@@ -104,7 +111,7 @@ def _lab_k(hz: list[dict], src: str | None, analysis_id: str | None,
     raw = topsoil_mean(hz, "potassiumExchangeable")
     if raw is None:
         return None
-    method, mixed = _method(hz, "potassiumMethod")
+    method, mixed = _method(hz, "potassiumExchangeable", "potassiumMethod")
     if method is None:
         notices.append(Notice("soil_k_methods_mixed" if mixed else "soil_k_method_unknown",
                               {"analysis": analysis_id}))

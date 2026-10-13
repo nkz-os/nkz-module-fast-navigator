@@ -6,6 +6,8 @@ Main entry point for the backend service.
 
 import logging
 from contextlib import asynccontextmanager
+
+import asyncpg
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,10 +35,16 @@ async def lifespan(app: FastAPI):
     logger.info("%s v%s starting — prefix=%s debug=%s",
                 settings.app_name, settings.app_version,
                 settings.api_prefix, settings.debug)
-    app.state.pool = await create_pool(require_postgres_url())
+    dsn = require_postgres_url()
+    # Own connection, no command timeout: another replica may hold the migration lock for longer
+    # than the pool's 30 s, and waiting for it is the point.
+    conn = await asyncpg.connect(dsn)
     try:
-        async with app.state.pool.acquire() as conn:
-            await apply_migrations(conn)
+        await apply_migrations(conn)
+    finally:
+        await conn.close()
+    app.state.pool = await create_pool(dsn)
+    try:
         yield
     finally:
         await app.state.pool.close()

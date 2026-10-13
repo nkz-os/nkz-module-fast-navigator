@@ -67,9 +67,8 @@ def require_postgres_url() -> str:
 
     Call this from any code path that opens a PostgreSQL connection — do NOT
     hardcode a fallback DSN (platform rule: "POSTGRES_URL is MANDATORY —
-    services must fail at startup if not set"). Not called anywhere by
-    default: this template is Orion-LD-only out of the box. Wire it in once
-    your module actually needs direct PostgreSQL access.
+    services must fail at startup if not set"). The application lifespan calls
+    it at start-up, before migrating and opening the pool.
     """
     settings = get_settings()
     if not settings.postgres_url:

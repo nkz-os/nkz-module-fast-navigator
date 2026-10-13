@@ -21,10 +21,52 @@ async def test_migrations_create_the_schema(pg_url):
 async def test_migrations_are_idempotent(pg_url):
     conn = await asyncpg.connect(pg_url)
     try:
-        assert await apply_migrations(conn) == sorted(p.name for p in MIGRATIONS_DIR.glob("*.sql"))
+        assert await apply_migrations(conn) == []     # the fixture applied them all
+        assert await apply_migrations(conn) == []
+        await conn.execute("DELETE FROM fast.schema_migrations")
         assert await apply_migrations(conn) == sorted(p.name for p in MIGRATIONS_DIR.glob("*.sql"))
     finally:
         await conn.close()
+
+
+async def test_a_recorded_migration_is_not_run_again(pg_url, tmp_path, monkeypatch):
+    (tmp_path / "900_probe.sql").write_text(
+        "CREATE TABLE IF NOT EXISTS fast.mig_probe (n INTEGER); "
+        "INSERT INTO fast.mig_probe VALUES (1);", encoding="utf-8")
+    monkeypatch.setattr("app.db.migrate.MIGRATIONS_DIR", tmp_path)
+    conn = await asyncpg.connect(pg_url)
+    try:
+        assert await apply_migrations(conn) == ["900_probe.sql"]
+        assert await apply_migrations(conn) == []
+        assert await conn.fetchval("SELECT count(*) FROM fast.mig_probe") == 1
+    finally:
+        await conn.execute("DROP TABLE IF EXISTS fast.mig_probe")
+        await conn.execute("DELETE FROM fast.schema_migrations WHERE name = '900_probe.sql'")
+        await conn.close()
+
+
+def test_start_up_migrates_on_a_connection_without_a_command_timeout(pg_url, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app import main
+    from app.config import get_settings
+
+    seen = []
+    real = main.apply_migrations
+
+    async def spy(conn):
+        seen.append(conn._config.command_timeout)
+        return await real(conn)
+
+    monkeypatch.setenv("POSTGRES_URL", pg_url)
+    monkeypatch.setattr(main, "apply_migrations", spy)
+    get_settings.cache_clear()
+    try:
+        with TestClient(main.app):
+            pass
+    finally:
+        get_settings.cache_clear()
+    assert seen == [None]
 
 
 async def test_one_open_plan_per_farm_and_campaign(pool):

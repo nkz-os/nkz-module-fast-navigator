@@ -269,7 +269,7 @@ async def _in_review(pool):
 
 
 async def test_in_review_only_the_technician_stores_the_rain_normal(pool):
-    pid, plan = await _in_review(pool)
+    pid, _ = await _in_review(pool)
     with pytest.raises(TransitionError) as err:
         await service.store_rain_normal(pool, FakeSources(**complete_data()), FARMER, pid)
     assert err.value.code == "forbidden"

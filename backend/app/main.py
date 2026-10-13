@@ -10,7 +10,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.config import get_settings
+from app.config import get_settings, require_postgres_url
+from app.db.migrate import apply_migrations
+from app.db.pool import create_pool
 from app.logging_setup import configure_logging
 from app.api import router as api_router
 from app.api.internal import router as internal_router
@@ -21,13 +23,19 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan handler for startup/shutdown events."""
+    """Open the database (POSTGRES_URL is mandatory) and migrate before serving."""
     settings = get_settings()
     logger.info("%s v%s starting — prefix=%s debug=%s",
                 settings.app_name, settings.app_version,
                 settings.api_prefix, settings.debug)
-    yield
-    logger.info("%s shutting down", settings.app_name)
+    app.state.pool = await create_pool(require_postgres_url())
+    try:
+        async with app.state.pool.acquire() as conn:
+            await apply_migrations(conn)
+        yield
+    finally:
+        await app.state.pool.close()
+        logger.info("%s shutting down", settings.app_name)
 
 
 def create_app() -> FastAPI:

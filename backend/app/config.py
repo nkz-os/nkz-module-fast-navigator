@@ -5,6 +5,8 @@ Environment-based configuration using pydantic-settings.
 """
 
 from functools import lru_cache
+
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings
 
 
@@ -38,11 +40,12 @@ class Settings(BaseSettings):
     weather_api_url: str = "http://weather-api-service:8000"
     entity_manager_url: str = "http://entity-manager-service:5000"
 
-    # Database (optional). Only set this if your module writes admin/metadata
-    # to PostgreSQL directly (tenants, credentials, non-timeseries state) —
-    # NEVER for time-series/telemetry, which must flow through Orion-LD
-    # subscriptions. No hardcoded fallback: see require_postgres_url() below.
-    postgres_url: str = ""
+    # PostgreSQL: FaST keeps its plans here, in its own `fast` schema (spec §9).
+    # Never time-series/telemetry — that flows through Orion-LD subscriptions.
+    # Kubernetes injects DATABASE_URL; POSTGRES_URL is the canonical name.
+    # No hardcoded fallback: see require_postgres_url() below.
+    postgres_url: str = Field(default="",
+                              validation_alias=AliasChoices("POSTGRES_URL", "DATABASE_URL"))
 
     # Redis (for caching/celery - optional)
     # redis_url: str = ""

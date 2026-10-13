@@ -200,9 +200,9 @@ def test_bad_organic_inputs_are_rejected_and_nothing_is_stored(client, organic):
 
 def test_a_nan_organic_rate_is_a_422_not_a_500(client):
     plan = _new(client)
-    body = ('{"row_version": %d, "sheets": [%s]}' % (
-        plan["row_version"], json.dumps(SHEET | {"organic": [GOOD_ORGANIC | {"rate_t_ha": 1}]})
-        .replace('"rate_t_ha": 1', '"rate_t_ha": NaN')))
+    sheet = json.dumps(SHEET | {"organic": [GOOD_ORGANIC | {"rate_t_ha": 1}]})
+    body = f'{{"row_version": {plan["row_version"]}, "sheets": [{sheet}]}}'.replace(
+        '"rate_t_ha": 1', '"rate_t_ha": NaN')
     r = client.put(f"{BASE}/{plan['id']}/sheets", headers=FARMER | {"Content-Type": "application/json"},
                    content=body)
     assert r.status_code == 422, r.text

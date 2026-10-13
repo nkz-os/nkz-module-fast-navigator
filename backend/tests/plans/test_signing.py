@@ -106,6 +106,7 @@ async def test_closing_needs_an_advisor_once_the_law_requires_it(pool):
         await signing.close(pool, FARMER, pid, plan["row_version"], "titular_sin_obligacion",
                             "Juan", LATE)
     assert err.value.code == "advice_required"
+    await signing.put_holder_qualification(pool, TECH, "Juan", "Ingeniero Agronomo", "COIA 1")
     closed = await signing.close(pool, FARMER, pid, plan["row_version"], "titular_cualificado",
                                  "Juan", LATE)
     assert closed["signature"]["closure_basis"] == "titular_cualificado"
@@ -160,7 +161,7 @@ async def test_revising_creates_the_next_version(pool):
     assert new["version"] == 2 and new["supersedes"] == str(pid) and new["state"] == "draft"
     assert [s["key"] for s in new["sheets"]] == ["wheat"]
     old = await service.get(pool, FARMER, pid)
-    assert old["state"] == "superseded"
+    assert old["state"] == "signed"           # stays in force until the revision is signed
     with pytest.raises(TransitionError):
         await service.edit_sheets(pool, FARMER, pid, old["row_version"], [good_sheet()])
 
@@ -379,7 +380,7 @@ async def test_a_signed_plan_shows_its_sealed_verdict(pool, monkeypatch):
                snapshot["split_findings"])
     new = await signing.revise(pool, FARMER, pid, closed["row_version"])
     old = await service.get(pool, FARMER, pid)
-    assert old["state"] == "superseded" and old["findings"] == view["findings"]
+    assert old["state"] == "signed" and old["findings"] == view["findings"]
     assert new["rules_version"] == "es-later"
 
 

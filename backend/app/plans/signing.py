@@ -24,7 +24,7 @@ from app.plans.service import (
     _view,
     build_context,
 )
-from app.plans.states import TECHNICIAN, Action, Guard, TransitionError, next_state
+from app.plans.states import TECHNICIAN, Action, Guard, State, TransitionError, next_state
 from app.rules import BLOCK, count_blocking, evaluate
 from app.rules.es.advice import advice_required
 from app.rules.registry import RULES_VERSION, all_rules
@@ -48,6 +48,22 @@ async def put_advisor(pool: asyncpg.Pool, actor: Actor, name: str,
         return await repo.put_advisor(conn, actor.tenant_id, actor.user_id, name, number)
 
 
+async def get_holder_qualification(pool: asyncpg.Pool, actor: Actor) -> dict | None:
+    async with pool.acquire() as conn:
+        return await repo.get_holder_qualification(conn, actor.tenant_id)
+
+
+async def put_holder_qualification(pool: asyncpg.Pool, actor: Actor, holder_name: str,
+                                   qualification: str, reference: str) -> dict:
+    if TECHNICIAN not in actor.roles:
+        raise TransitionError("forbidden", f"recording the qualification needs {TECHNICIAN}")
+    values = [(v or "").strip() for v in (holder_name, qualification, reference)]
+    if not all(values):
+        raise Invalid("the holder's name, qualification and reference are all required")
+    async with pool.acquire() as conn:
+        return await repo.put_holder_qualification(conn, actor.tenant_id, *values, actor.user_id)
+
+
 async def _freeze(conn, plan: repo.PlanRow, ctx, sheets, stored, signature: dict) -> dict:
     findings = [f.to_dict() for f in evaluate(all_rules(), ctx)]
     split = [f for f in await repo.get_findings(conn, plan.id)
@@ -56,13 +72,15 @@ async def _freeze(conn, plan: repo.PlanRow, ctx, sheets, stored, signature: dict
     return {
         "judged_at": ctx.at.isoformat(),
         "plan": {"id": str(plan.id), "campaign": plan.campaign, "farm": plan.farm,
-                 "version": plan.version},
+                 "version": plan.version,
+                 "supersedes": str(plan.supersedes) if plan.supersedes else None},
         "declarations": {"vulnerable_zone": plan.vulnerable_zone,
                          "vulnerable_zone_source": plan.vulnerable_zone_source,
                          "voluntary_digital_notebook": plan.voluntary_digital_notebook},
         "rain": plan.rain,
         "sheets": [{"key": s.key, "inputs": s.inputs, "overrides": s.overrides,
                     "parcels": s.parcels, "applications": s.applications,
+                    "n_adjustment": s.n_adjustment,
                     "result": (stored.get(s.id) or {}).get("result"),
                     "applications_summary": (stored.get(s.id) or {}).get("applications_summary"),
                     "assembled": (stored.get(s.id) or {}).get("assembled"),
@@ -92,6 +110,12 @@ async def _finish(conn, actor, plan, action: Action, guard_extra: dict, signatur
         raise TransitionError("blocking_findings", f"blocking findings: {blocking}") from exc
     signed_at = datetime.now(UTC).replace(microsecond=0)      # one clock: seal and column
     signature = {**signature, "signed_at": signed_at.isoformat(timespec="seconds")}
+    if plan.supersedes is not None:
+        old = await repo.get_plan(conn, plan.tenant_id, plan.supersedes, for_update=True)
+        if old is None or old.state != "signed":
+            raise Conflict("the version this plan revises is no longer the signed one")
+        await repo.update_plan(conn, old.id, state="superseded")
+        await repo.append_audit(conn, old.id, actor.user_id, "superseded", {"by": str(plan.id)})
     snapshot = await _freeze(conn, plan, ctx, sheets, stored, signature)
     # Seal the copy as the database stores it (jsonb turns -0.0 into 0.0, 1e20 into an integer).
     snapshot = await conn.fetchval("SELECT $1::jsonb", snapshot)
@@ -130,9 +154,15 @@ async def close(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID, row_versio
         _same_version(plan, row_version)
         ctx, _, _ = await build_context(conn, plan, today)
         allowed = basis == "titular_cualificado" or not advice_required(ctx)
+        signature = {"kind": "holder", "user_id": actor.user_id, "name": name,
+                     "closure_basis": basis}
+        if basis == "titular_cualificado":
+            qualification = await repo.get_holder_qualification(conn, actor.tenant_id)
+            if qualification is None:
+                raise Invalid("record the holder's qualification first (art. 21.3)")
+            signature["qualification"] = qualification
         return await _finish(conn, actor, plan, Action.CLOSE, {"close_allowed": allowed},
-                             {"kind": "holder", "user_id": actor.user_id, "name": name,
-                              "closure_basis": basis}, today)
+                             signature, today)
 
 
 async def revise(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID, row_version: int) -> dict:
@@ -140,7 +170,8 @@ async def revise(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID, row_versi
         plan = await _load(conn, actor, plan_id, for_update=True)
         _same_version(plan, row_version)
         target = next_state(plan.state, Action.REVISE, actor.roles, Guard(calc_fresh=True))
-        await repo.update_plan(conn, plan.id, state=target)
+        if target != State(plan.state):
+            await repo.update_plan(conn, plan.id, state=target)
         try:
             new = await repo.create_plan(
                 conn, tenant_id=plan.tenant_id, farm=plan.farm, campaign=plan.campaign,

@@ -41,7 +41,7 @@ TRANSITIONS = MappingProxyType({
     (State.IN_REVIEW, Action.RETURN): (State.DRAFT, frozenset({TECHNICIAN})),
     (State.IN_REVIEW, Action.SIGN): (State.SIGNED, frozenset({TECHNICIAN})),
     (State.CALCULATED, Action.CLOSE): (State.SIGNED, frozenset({FARMER})),
-    (State.SIGNED, Action.REVISE): (State.SUPERSEDED, _BOTH),
+    (State.SIGNED, Action.REVISE): (State.SIGNED, _BOTH),
 })
 
 

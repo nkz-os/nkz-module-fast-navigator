@@ -17,9 +17,11 @@ from app.inputs.overrides import check_override, farmer_may_override
 from app.inputs.provenance import Override
 from app.plans import repo
 from app.plans.applications import ApplicationIn, split_findings, summarize
+from app.plans.clock import legal_today
 from app.plans.states import TECHNICIAN, Action, Guard, State, TransitionError, next_state
 from app.rules import evaluate
 from app.rules.context import PlanContext, SheetContext
+from app.rules.es.annex3 import valid_adjustment
 from app.rules.registry import RULES_VERSION, all_rules
 
 logger = logging.getLogger(__name__)
@@ -82,7 +84,7 @@ async def build_context(conn: asyncpg.Connection, plan: repo.PlanRow, at: date, 
         key=s.key, inputs=s.inputs, parcels=tuple(s.parcels), applications=tuple(s.applications),
         result=(stored.get(s.id) or {}).get("result"),
         summary=(stored.get(s.id) or {}).get("applications_summary"),
-        history=_history(s.parcels, snapshots)) for s in sheets)
+        history=_history(s.parcels, snapshots), n_adjustment=s.n_adjustment) for s in sheets)
     ctx = PlanContext(campaign=plan.campaign, sheets=contexts, rain=plan.rain,
                       vulnerable_zone=plan.vulnerable_zone,
                       voluntary_digital_notebook=plan.voluntary_digital_notebook, at=at)
@@ -105,6 +107,7 @@ async def _view(conn: asyncpg.Connection, plan: repo.PlanRow) -> dict:
         out_sheets.append({
             "key": s.key, "seq": s.seq, "inputs": s.inputs, "overrides": s.overrides,
             "parcels": s.parcels, "applications": s.applications,
+            "n_adjustment": s.n_adjustment,
             "result": stored["result"] if stored else None,
             "applications_summary": stored["applications_summary"] if stored else None,
         })
@@ -249,6 +252,34 @@ async def delete_override(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID,
         return kept, {"action": "delete_override"}
 
     return await _edit_overrides(pool, actor, plan_id, row_version, key, param, change)
+
+
+async def set_n_adjustment(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID,
+                           row_version: int, key: str, adjustment: dict | None) -> dict:
+    """The technician's justified N adjustment for one sheet (annex III-I.3); None removes it."""
+    if TECHNICIAN not in actor.roles:
+        raise TransitionError("forbidden", f"only a technical consultant may adjust N "
+                                           f"(needs {TECHNICIAN})")
+    stamped = None
+    if adjustment is not None:
+        if valid_adjustment(adjustment, legal_today()) is None:
+            raise Invalid("incomplete or future-dated justification")
+        stamped = {**adjustment, "user": actor.user_id,
+                   "at": datetime.now(UTC).isoformat(timespec="seconds")}
+    async with pool.acquire() as conn, conn.transaction():
+        plan = await _load(conn, actor, plan_id, for_update=True)
+        _same_version(plan, row_version)
+        target = next_state(plan.state, Action.EDIT, actor.roles, Guard(calc_fresh=plan.calc_fresh))
+        sheet = next((s for s in await repo.get_sheets(conn, plan.id) if s.key == key), None)
+        if sheet is None:
+            raise NotFound(f"sheet {key}")
+        await repo.set_n_adjustment(conn, sheet.id, stamped)
+        plan = await repo.update_plan(conn, plan.id, state=target, inputs_changed=True)
+        detail = ({"sheet": key, "removed": True} if stamped is None else
+                  {"sheet": key, "basis": stamped["basis"],
+                   "justified_n_kg_ha": stamped["justified_n_kg_ha"]})
+        await repo.append_audit(conn, plan.id, actor.user_id, "n_adjustment", detail)
+        return await _view(conn, plan)
 
 
 def _request(campaign: int, sheet: repo.SheetRow) -> SheetRequest:

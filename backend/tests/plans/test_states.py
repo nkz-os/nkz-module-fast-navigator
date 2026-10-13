@@ -27,7 +27,7 @@ ALLOWED = {
     (State.IN_REVIEW, Action.RETURN): (State.DRAFT, {TECHNICIAN}),
     (State.IN_REVIEW, Action.SIGN): (State.SIGNED, {TECHNICIAN}),
     (State.CALCULATED, Action.CLOSE): (State.SIGNED, {FARMER}),
-    (State.SIGNED, Action.REVISE): (State.SUPERSEDED, ALL),
+    (State.SIGNED, Action.REVISE): (State.SIGNED, ALL),
 }
 
 

@@ -254,6 +254,9 @@ async def delete_override(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID,
     return await _edit_overrides(pool, actor, plan_id, row_version, key, param, change)
 
 
+_ADJUSTMENT_FIELDS = ("basis", "date", "reference", "description", "justified_n_kg_ha")
+
+
 async def set_n_adjustment(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID,
                            row_version: int, key: str, adjustment: dict | None) -> dict:
     """The technician's justified N adjustment for one sheet (annex III-I.3); None removes it."""
@@ -262,9 +265,12 @@ async def set_n_adjustment(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID,
                                            f"(needs {TECHNICIAN})")
     stamped = None
     if adjustment is not None:
+        if not isinstance(adjustment, dict):
+            raise Invalid("the adjustment must be an object")
         if valid_adjustment(adjustment, legal_today()) is None:
             raise Invalid("incomplete or future-dated justification")
-        stamped = {**adjustment, "user": actor.user_id,
+        known = {k: adjustment.get(k) for k in _ADJUSTMENT_FIELDS}
+        stamped = {**known, "user": actor.user_id,
                    "at": datetime.now(UTC).isoformat(timespec="seconds")}
     async with pool.acquire() as conn, conn.transaction():
         plan = await _load(conn, actor, plan_id, for_update=True)

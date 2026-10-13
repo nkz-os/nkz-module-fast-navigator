@@ -94,6 +94,14 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=503, content={"error": "source_unavailable",
                                                       "source": exc.source, "detail": exc.detail})
 
+    @app.exception_handler(asyncpg.exceptions.DeadlockDetectedError)
+    async def deadlock(request, exc):
+        """Two plan use cases locked the same rows in opposite order: one lost, the client retries."""
+        logger.warning("deadlock path=%s tenant=%s", request.url.path,
+                       request.headers.get("X-Tenant-ID"))
+        return JSONResponse(status_code=409, content={"error": "conflict",
+                                                      "detail": "concurrent change, retry"})
+
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc: RequestValidationError):
         """422 without echoing the input: a NaN in it cannot be serialised (and would be a 500)."""

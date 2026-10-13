@@ -48,6 +48,10 @@ async def put_advisor(pool: asyncpg.Pool, actor: Actor, name: str,
         return await repo.put_advisor(conn, actor.tenant_id, actor.user_id, name, number)
 
 
+def _norm(value: str) -> str:
+    return " ".join(value.casefold().split())
+
+
 async def get_holder_qualification(pool: asyncpg.Pool, actor: Actor) -> dict | None:
     async with pool.acquire() as conn:
         return await repo.get_holder_qualification(conn, actor.tenant_id)
@@ -160,6 +164,8 @@ async def close(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID, row_versio
             qualification = await repo.get_holder_qualification(conn, actor.tenant_id)
             if qualification is None:
                 raise Invalid("record the holder's qualification first (art. 21.3)")
+            if _norm(name) != _norm(qualification["holder_name"]):
+                raise Invalid("the signer must be the qualified holder recorded for this farm")
             signature["qualification"] = qualification
         return await _finish(conn, actor, plan, Action.CLOSE, {"close_allowed": allowed},
                              signature, today)

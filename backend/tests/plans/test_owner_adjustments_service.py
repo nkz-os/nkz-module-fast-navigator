@@ -1,8 +1,11 @@
 import uuid
 from datetime import date
 
+import asyncpg
 import pytest
+from fastapi.testclient import TestClient
 
+from app.main import create_app
 from app.plans import repo, service, signing
 from app.plans.states import TransitionError
 from tests.fakes import URN
@@ -93,3 +96,41 @@ async def test_a_2028_plan_closed_before_the_deadline_still_needs_advice(pool):
         await signing.close(pool, FARMER, nid, p["row_version"], "titular_sin_obligacion",
                             "Juan", date(2027, 8, 31))
     assert err.value.code == "advice_required"
+
+
+async def test_n_adjustment_stores_only_the_known_fields(pool):
+    pid, plan = await ready(pool)
+    with pytest.raises(service.Invalid):
+        await service.set_n_adjustment(pool, TECH, pid, plan["row_version"], "wheat", [ADJ])
+    done = await service.set_n_adjustment(pool, TECH, pid, plan["row_version"], "wheat",
+                                          {**ADJ, "extra": "x", "user": "spoof"})
+    stored = done["sheets"][0]["n_adjustment"]
+    assert set(stored) == {"basis", "date", "reference", "description", "justified_n_kg_ha",
+                           "user", "at"}
+    assert stored["user"] == "u-tech"
+
+
+async def test_the_signer_must_be_the_recorded_qualified_holder(pool):
+    pid, plan = await ready(pool)
+    await signing.put_holder_qualification(pool, TECH, "Juan  Pérez", "Ingeniero Agrónomo",
+                                           "COIA 123")
+    before = (await service.get(pool, FARMER, pid))["row_version"]
+    with pytest.raises(service.Invalid):
+        await signing.close(pool, FARMER, pid, plan["row_version"], "titular_cualificado",
+                            "Pedro Gómez", EARLY)
+    assert (await service.get(pool, FARMER, pid))["row_version"] == before
+    closed = await signing.close(pool, FARMER, pid, plan["row_version"], "titular_cualificado",
+                                 " juan pérez ", EARLY)
+    assert closed["state"] == "signed"
+
+
+def test_a_deadlock_is_a_409_conflict():
+    app = create_app()
+
+    @app.get("/boom")
+    async def boom():
+        raise asyncpg.exceptions.DeadlockDetectedError("deadlock detected")
+
+    r = TestClient(app).get("/boom", headers={"X-Tenant-ID": "tenant-a"})
+    assert r.status_code == 409
+    assert r.json() == {"error": "conflict", "detail": "concurrent change, retry"}

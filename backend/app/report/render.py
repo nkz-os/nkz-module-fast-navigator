@@ -7,7 +7,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.plans.applications import ANNEX_V
-from app.report.i18n import LANGS, TEXTS
+from app.report.i18n import ANNEX_V_ES, LANGS, TEXTS, label
 
 _ENV = Environment(loader=FileSystemLoader(Path(__file__).parent / "templates"),
                    autoescape=select_autoescape(["html"]),
@@ -37,7 +37,7 @@ def plan_html(document: dict, lang: str = "es") -> str:
         raise ValueError(f"lang must be one of {', '.join(LANGS)}")
     return _ENV.get_template("plan.html").render(
         d=document, t=TEXTS[lang], lang=lang, value=_value, item=_item, kg=_kg, num=_num,
-        annex_v=ANNEX_V)
+        annex_v=ANNEX_V_ES if lang == "es" else ANNEX_V, label=lambda g, v: label(lang, g, v))
 
 
 def plan_pdf(document: dict, lang: str = "es") -> bytes:

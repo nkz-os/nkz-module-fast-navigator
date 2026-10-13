@@ -78,3 +78,37 @@ def test_unknown_language_is_refused():
 def test_pdf_bytes():
     pdf = plan_pdf(document())
     assert pdf.startswith(b"%PDF") and len(pdf) > 2000
+
+
+def _localised_doc():
+    doc = document()
+    doc["sheets"][0]["applications"][0]["method"] = "broadcast"
+    doc["sheets"][0]["applications"][0]["stage"] = "pre_plant"
+    return doc
+
+
+def test_spanish_labels_and_no_raw_codes():
+    html = plan_html(_localised_doc())
+    for text in ("firmado", "a voleo", "medido", "fondo (presiembra)",
+                 "Dosis y momento de aplicación ajustados"):
+        assert text in html, text
+    for raw in ("broadcast", "measured", "pre_plant"):
+        assert raw not in html, raw
+
+
+def test_english_labels():
+    html = plan_html(_localised_doc(), "en")
+    assert "signed" in html and "broadcast" in html and "measured" in html
+    assert "dose and timing matched" in html
+
+
+def test_label_fallbacks_and_tables():
+    from app.report.i18n import label
+    assert label("es", "provenance", "table:abc") == "tabla (abc)"
+    assert label("es", "stage", "top dressing") == "top dressing"
+
+
+def test_spanish_annex_v_has_the_same_keys():
+    from app.plans.applications import ANNEX_V
+    from app.report.i18n import ANNEX_V_ES
+    assert set(ANNEX_V_ES) == set(ANNEX_V)

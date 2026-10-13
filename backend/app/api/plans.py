@@ -1,11 +1,12 @@
 """Plans API (spec §9): plans, crop sheets, overrides, calculation and review round."""
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, Response
 from pydantic import BaseModel, Field, model_validator
 
 from app.api import PLAN_ROLES, SheetIn, _urn, get_sources_factory
@@ -16,7 +17,9 @@ from app.middleware import AuthContext, require_auth
 from app.plans import compliance_service, repo, service, signing
 from app.plans.applications import ApplicationIn
 from app.plans.clock import legal_today
+from app.plans.document import plan_document
 from app.plans.states import Action
+from app.report import render
 
 router = APIRouter(prefix="/plans", tags=["FaST plans"])
 
@@ -196,6 +199,18 @@ async def plan_compliance(plan_id: uuid.UUID, auth: AuthContext = require_auth(P
     async with sources_factory(auth.tenant_id) as sources:
         return await compliance_service.compliance(pool, sources, _actor(auth), plan_id,
                                                    legal_today())
+
+
+@router.get("/{plan_id}/pdf")
+async def plan_pdf(plan_id: uuid.UUID, lang: Literal["es", "en"] = Query(default="es"),
+                   auth: AuthContext = require_auth(PLAN_ROLES), pool=Depends(get_db)) -> Response:
+    async with pool.acquire() as conn:
+        plan = await service._load(conn, _actor(auth), plan_id)
+        doc = await plan_document(conn, plan)
+    pdf = await asyncio.to_thread(render.plan_pdf, doc, lang)
+    name = f"fast-plan-{doc['plan']['campaign']}-v{doc['plan']['version']}.pdf"
+    return Response(pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 
 @router.post("/{plan_id}/rain-normal")

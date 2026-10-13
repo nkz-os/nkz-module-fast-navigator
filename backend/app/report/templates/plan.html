@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<title>{{ t.title }} {{ d.plan.campaign }}</title>
+<style>
+  @page { size: A4; margin: 18mm 15mm 20mm 15mm;
+          @bottom-center { content: "{{ t.footer }} · " counter(page) "/" counter(pages);
+                           font-size: 8pt; color: #555; } }
+  body { font-family: "DejaVu Sans", sans-serif; font-size: 9.5pt; color: #111; }
+  h1 { font-size: 16pt; margin: 0; } h2 { font-size: 12pt; margin: 14px 0 4px; }
+  h3 { font-size: 10.5pt; margin: 10px 0 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 4px 0 8px; }
+  th, td { border: 0.5pt solid #999; padding: 3px 4px; text-align: left; vertical-align: top; }
+  th { background: #eee; }
+  .mark { border: 2pt solid #b00; color: #b00; font-weight: bold; padding: 6px;
+          text-align: center; margin: 8px 0; }
+  .muted { color: #555; font-size: 8.5pt; } .seal { font-family: "DejaVu Sans Mono", monospace;
+          font-size: 8pt; word-break: break-all; }
+</style>
+</head>
+<body>
+<h1>{{ t.title }} — {{ t.campaign }} {{ d.plan.campaign }}</h1>
+<div class="muted">{{ t.law }} · {{ t.farm }}: {{ d.plan.farm }} · {{ t.version }} {{ d.plan.version }} · {{ t.state }}: {{ d.state }}</div>
+{% if d.live or d.state not in ("signed", "superseded") %}<div class="mark">{{ t.draft }}</div>{% endif %}
+{% if d.state == "superseded" %}<div class="mark">{{ t.superseded }}</div>{% endif %}
+
+<h2>{{ t.declarations }}</h2>
+{% set dec = d.declarations or {} %}
+<table>
+<tr><th>{{ t.vulnerable }}</th><td>{% if dec.vulnerable_zone is none %}{{ t.not_declared }}{% elif dec.vulnerable_zone %}{{ t.yes }}{% else %}{{ t.no }}{% endif %}{% if dec.vulnerable_zone_source %} ({{ t.vulnerable_source }}: {{ dec.vulnerable_zone_source }}){% endif %}</td></tr>
+<tr><th>{{ t.notebook }}</th><td>{{ t.yes if dec.voluntary_digital_notebook else t.no }}</td></tr>
+<tr><th>{{ t.spring_2026 }}</th><td>{% if dec.irrigated_spring_2026 is none %}{{ t.not_declared }}{% elif dec.irrigated_spring_2026 %}{{ t.yes }}{% else %}{{ t.no }}{% endif %}</td></tr>
+</table>
+
+<h2>{{ t.water }}</h2>
+<table><tr><th>{{ t.rain }}</th><td>{{ (d.rain or {}).annual_mm }}</td><th>{{ t.years }}</th><td>{{ ((d.rain or {}).years or []) | join(", ") }}</td></tr></table>
+
+{% for s in d.sheets %}
+<h2>{{ t.sheet }}: {{ s.key }}</h2>
+<table>
+<tr><th>{{ t.crop }}</th><td>{{ value(s, "crop.eppo") }}</td><th>{{ t.previous }}</th><td>{{ value(s, "previous_crop.eppo") }}</td></tr>
+<tr><th>{{ t.yield }}</th><td>{{ num(value(s, "yield.kg_ha")) }}</td><th>{{ t.irrigated }}</th><td>{{ t.yes if (s.inputs or {}).irrigated else t.no }}</td></tr>
+</table>
+
+<h3>{{ t.recintos }}</h3>
+<table><tr><th>{{ t.parcel }}</th><th>{{ t.identifier }}</th><th>{{ t.area }}</th></tr>
+{% for p in s.parcels %}<tr><td>{{ p.urn }}</td><td>{{ p.sigpac or value(s, "parcel." ~ p.urn ~ ".identifier") or "—" }}</td><td>{{ value(s, "parcel." ~ p.urn ~ ".area_ha") }}</td></tr>{% endfor %}
+</table>
+
+<h3>{{ t.soil }}</h3>
+{% set a = item(s, "soil.analysis_id") %}
+<table>
+<tr><th>{{ t.analysis }}</th><td>{{ a.value or "—" }}</td><th>{{ t.sampled }}</th><td>{{ a.sampling_date or "—" }}</td></tr>
+<tr><th>{{ t.ph }}</th><td>{{ value(s, "soil.ph") }} <span class="muted">{{ item(s, "soil.ph").provenance }}</span></td>
+    <th>{{ t.om }}</th><td>{{ value(s, "soil.organic_matter_pct") }} <span class="muted">{{ item(s, "soil.organic_matter_pct").provenance }}</span></td></tr>
+<tr><th>{{ t.p }}</th><td>{{ value(s, "soil.p_olsen_mg_kg") }} <span class="muted">{{ item(s, "soil.p_olsen_mg_kg").provenance }}</span></td>
+    <th>{{ t.k }}</th><td>{{ value(s, "soil.k_mg_kg") }} <span class="muted">{{ item(s, "soil.k_mg_kg").provenance }}</span></td></tr>
+</table>
+
+<h3>{{ t.needs }}</h3>
+{% set r = s.result or {} %}
+<table>
+<tr><th>{{ t.n_range }}</th><td>{{ num((r.n or {}).min_kg_ha) }} / {{ num((r.n or {}).avg_kg_ha) }} / {{ num((r.n or {}).max_kg_ha) }}</td></tr>
+<tr><th>{{ t.p2o5 }}</th><td>{{ num((r.p2o5 or {}).rate_kg_ha) }}</td></tr>
+<tr><th>{{ t.k2o }}</th><td>{{ num((r.k2o or {}).rate_kg_ha) }}</td></tr>
+</table>
+
+<h3>{{ t.applications }}</h3>
+<table><tr><th>{{ t.stage }}</th><th>{{ t.date }}</th><th>{{ t.product }}</th><th>{{ t.rate }}</th><th>{{ t.nutrients }}</th><th>{{ t.method }}</th><th>{{ t.machine }}</th><th>{{ t.measures }}</th></tr>
+{% for ap in s.applications %}<tr>
+<td>{{ ap.stage }}</td><td>{{ ap.planned_date or "—" }}</td><td>{{ ap.product_name }}</td><td>{{ num(ap.product_rate_kg_ha) }}</td>
+<td>{{ kg(ap, "n_pct") }} / {{ kg(ap, "p2o5_pct") }} / {{ kg(ap, "k2o_pct") }}</td><td>{{ ap.method }}</td><td>{{ ap.machine }}</td>
+<td>{% for code in ap.annex_v or [] %}{{ code }} — {{ annex_v.get(code, "") }}<br>{% endfor %}{% if ap.other_measure %}{{ t.other_measure }}: {{ ap.other_measure }}{% endif %}</td>
+</tr>{% endfor %}
+</table>
+
+{% if s.n_adjustment %}<h3>{{ t.adjustment }}</h3>
+<table><tr><td>{{ s.n_adjustment.basis }} · {{ s.n_adjustment.date }} · {{ s.n_adjustment.reference or "—" }} · {{ s.n_adjustment.justified_n_kg_ha }} kg N/ha<br>{{ s.n_adjustment.description }}</td></tr></table>{% endif %}
+{% endfor %}
+
+<h2>{{ t.findings }}</h2>
+<table>{% for f in (d.findings or []) + (d.split_findings or []) %}<tr><td>{{ f.severity }}</td><td>{{ f.rule_id }}</td><td>{{ f.citation or (f.params or {}).citation or "" }}</td><td>{{ f.sheet_key or "" }}</td></tr>{% endfor %}</table>
+
+<h2>{{ t.signature }}</h2>
+{% set sig = d.signature or {} %}
+<table>
+{% if sig.kind == "advisor" %}<tr><th>{{ t.advisor }}</th><td>{{ sig.name }}</td><th>{{ t.registration }}</th><td>{{ sig.registration_number }}</td></tr>{% endif %}
+{% if sig.kind == "holder" %}<tr><th>{{ t.holder }}</th><td>{{ sig.name }}</td><th>{{ t.basis }}</th><td>{{ sig.closure_basis }}</td></tr>
+{% if sig.qualification %}<tr><th>{{ t.qualification }}</th><td colspan="3">{{ sig.qualification.qualification }} · {{ sig.qualification.reference }}</td></tr>{% endif %}{% endif %}
+<tr><th>{{ t.signed_at }}</th><td colspan="3">{{ d.signed_at or "—" }}</td></tr>
+<tr><th>{{ t.seal }}</th><td colspan="3" class="seal">{{ d.snapshot_sha256 or "—" }}</td></tr>
+<tr><th>{{ t.versions }}</th><td colspan="3">{{ (d.versions or {}).engine }} · {{ (d.versions or {}).calc }} · {{ (d.versions or {}).rules }} · {{ (d.versions or {}).organic_table }}</td></tr>
+</table>
+</body>
+</html>

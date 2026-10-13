@@ -86,3 +86,13 @@ def test_a_down_source_is_503(pg_url, monkeypatch):
     app.dependency_overrides.clear()
     get_settings.cache_clear()
     asyncio.run(_truncate(pg_url))
+
+
+def test_pdf_route(client_with_ops, pg_url):
+    pid, _ = _calculated(client_with_ops, pg_url)
+    r = client_with_ops.get(f"{BASE}/plans/{pid}/pdf", headers=FARMER)
+    assert r.status_code == 200 and r.headers["content-type"] == "application/pdf"
+    assert r.content.startswith(b"%PDF")
+    assert "fast-plan-2027-v1.pdf" in r.headers["content-disposition"]
+    assert client_with_ops.get(f"{BASE}/plans/{pid}/pdf", params={"lang": "xx"},
+                               headers=FARMER).status_code == 422

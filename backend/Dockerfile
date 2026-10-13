@@ -18,6 +18,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# PDF rendering (WeasyPrint): pango + a font with the accents and subscripts
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create non-root user first
 RUN useradd -m -u 1000 appuser
 

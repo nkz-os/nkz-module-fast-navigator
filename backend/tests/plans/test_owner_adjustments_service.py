@@ -1,3 +1,4 @@
+import copy
 import uuid
 from datetime import date
 
@@ -8,8 +9,18 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 from app.plans import repo, service, signing
 from app.plans.states import TransitionError
-from tests.fakes import URN
-from tests.plans.test_signing import EARLY, FARMER, TECH, good_sheet, ready, sources
+from tests.fakes import URN, FakeSources, complete_data
+from tests.plans.test_signing import (
+    APP,
+    EARLY,
+    FARMER,
+    OTHER,
+    TECH,
+    blocking,
+    good_sheet,
+    ready,
+    sources,
+)
 
 ADJ = {"basis": "foliar_analysis", "date": "2026-10-01", "reference": "LAB-77",
        "description": "N deficiency", "justified_n_kg_ha": 400.0}
@@ -75,9 +86,11 @@ async def test_qualified_holder_needs_a_recorded_qualification(pool):
     assert (await signing.get_holder_qualification(pool, FARMER))["reference"] == "COIA 123"
     closed = await signing.close(pool, FARMER, pid, plan["row_version"], "titular_cualificado",
                                  "Juan Pérez", EARLY)
-    assert closed["signature"]["qualification"] == {
+    q = closed["signature"]["qualification"]
+    assert {k: q[k] for k in ("holder_name", "qualification", "reference")} == {
         "holder_name": "Juan Pérez", "qualification": "Ingeniero Agrónomo",
         "reference": "COIA 123"}
+    assert q["updated_by"] == "u-tech" and q["updated_at"]
 
 
 async def test_a_2028_plan_closed_before_the_deadline_still_needs_advice(pool):
@@ -106,7 +119,8 @@ async def test_n_adjustment_stores_only_the_known_fields(pool):
                                           {**ADJ, "extra": "x", "user": "spoof"})
     stored = done["sheets"][0]["n_adjustment"]
     assert set(stored) == {"basis", "date", "reference", "description", "justified_n_kg_ha",
-                           "user", "at"}
+                           "scope", "user", "at"}
+    assert stored["scope"]["parcels"] == [URN]
     assert stored["user"] == "u-tech"
 
 
@@ -134,3 +148,127 @@ def test_a_deadlock_is_a_409_conflict():
     r = TestClient(app).get("/boom", headers={"X-Tenant-ID": "tenant-a"})
     assert r.status_code == 409
     assert r.json() == {"error": "conflict", "detail": "concurrent change, retry"}
+
+
+URN2 = "urn:ngsi-ld:AgriParcel:p2"
+HEAVY = {**APP, "n_pct": 27, "n_form": "nitric", "product_rate_kg_ha": 1500}   # far over the limit
+
+
+def two_parcel_sources():
+    data = complete_data()
+    data["parcels"][URN]["area"] = 12.0
+    data["parcels"][URN2] = {**copy.deepcopy(data["parcels"][URN]), "id": URN2}
+    data["timelines"][URN2] = copy.deepcopy(data["timelines"][URN])
+    data["analyses"][URN2] = copy.deepcopy(data["analyses"][URN])
+    return FakeSources(**data)
+
+
+def sheet_of(parcels, apps=(HEAVY,)):
+    base = good_sheet(apps)
+    return repo.SheetData(base.key, base.inputs, tuple((u, "31201A00100123") for u in parcels),
+                          base.applications)
+
+
+async def _recalc(pool, pid, src):
+    cur = await service.get(pool, FARMER, pid)
+    return await service.calculate_plan(pool, src, FARMER, pid, cur["row_version"], EARLY)
+
+
+async def _over_limit_plan(pool, parcels=(URN,)):
+    plan = await service.create(pool, FARMER, 2027, "tenant")
+    pid = uuid.UUID(plan["id"])
+    await service.edit_sheets(pool, FARMER, pid, plan["row_version"], [sheet_of(parcels)])
+    async with pool.acquire() as c:
+        await repo.set_rain(c, pid, {"annual_mm": 600.0, "years": [2016]})
+    return pid, await _recalc(pool, pid, two_parcel_sources())
+
+
+async def test_an_adjustment_does_not_follow_a_rewritten_sheet(pool):
+    pid, plan = await _over_limit_plan(pool)
+    assert "ES-RD1051-AIII-3-N" in blocking(plan)
+    huge = {**ADJ, "justified_n_kg_ha": 5000.0}
+    plan = await service.set_n_adjustment(pool, TECH, pid, plan["row_version"], "wheat", huge)
+    assert plan["sheets"][0]["n_adjustment"]["scope"]["parcels"] == [URN]
+    plan = await _recalc(pool, pid, two_parcel_sources())
+    assert "ES-RD1051-AIII-3-N" not in blocking(plan)
+    assert any(f["rule_id"] == "ES-RD1051-AIII-3-N-adjusted" for f in plan["findings"])
+    # the farmer adds a parcel the technician never saw: the justification no longer counts
+    plan = await service.edit_sheets(pool, FARMER, pid, plan["row_version"],
+                                     [sheet_of((URN, URN2))])
+    assert plan["sheets"][0]["n_adjustment"] is not None        # kept in storage…
+    plan = await _recalc(pool, pid, two_parcel_sources())
+    assert "ES-RD1051-AIII-3-N" in blocking(plan)               # …but the rule ignores it
+    assert all(f["rule_id"] != "ES-RD1051-AIII-3-N-adjusted" for f in plan["findings"])
+
+
+async def test_an_adjustment_needs_a_calculated_sheet(pool):
+    plan = await service.create(pool, FARMER, 2027, "tenant")
+    pid = uuid.UUID(plan["id"])
+    plan = await service.edit_sheets(pool, FARMER, pid, plan["row_version"], [sheet_of((URN,))])
+    with pytest.raises(service.Invalid, match="calculate the plan"):
+        await service.set_n_adjustment(pool, TECH, pid, plan["row_version"], "wheat", ADJ)
+
+
+async def test_an_adjustment_from_another_campaign_is_refused(pool):
+    pid, plan = await ready(pool)
+    with pytest.raises(service.Invalid):
+        await service.set_n_adjustment(pool, TECH, pid, plan["row_version"], "wheat",
+                                       {**ADJ, "date": "2019-05-01"})
+
+
+async def test_removing_a_missing_adjustment_is_not_found_and_writes_nothing(pool):
+    pid, plan = await ready(pool)
+    with pytest.raises(service.NotFound, match="no N adjustment on sheet wheat"):
+        await service.set_n_adjustment(pool, TECH, pid, plan["row_version"], "wheat", None)
+    after = await service.get(pool, FARMER, pid)
+    assert after["row_version"] == plan["row_version"]
+
+
+async def test_another_tenants_technician_cannot_adjust(pool):
+    pid, plan = await ready(pool)
+    stranger = service.Actor("tenant-b", "u-x", frozenset({"TechnicalConsultant"}))
+    with pytest.raises(service.NotFound):
+        await service.set_n_adjustment(pool, stranger, pid, plan["row_version"], "wheat", ADJ)
+    assert OTHER.tenant_id == "tenant-b"
+
+
+async def test_a_refused_close_of_a_revision_changes_nothing(pool):
+    pid, _ = await _closed(pool)
+    v1 = await service.get(pool, FARMER, pid)
+    new = await signing.revise(pool, FARMER, pid, v1["row_version"])
+    nid = uuid.UUID(new["id"])
+    v1 = await service.get(pool, FARMER, pid)
+    new = await service.get(pool, FARMER, nid)
+    # an ureic application over 12.3's limit blocks the close
+    bad = {**APP, "n_pct": 46, "n_ureic_pct": 46, "n_form": "ureic"}
+    new = await service.edit_sheets(pool, FARMER, nid, new["row_version"],
+                                    [good_sheet((bad,))])
+    new = await service.calculate_plan(pool, sources(), FARMER, nid, new["row_version"], EARLY)
+    assert blocking(new)
+    with pytest.raises(TransitionError):
+        await signing.close(pool, FARMER, nid, new["row_version"], "titular_sin_obligacion",
+                            "Juan", EARLY)
+    v1_after = await service.get(pool, FARMER, pid)
+    new_after = await service.get(pool, FARMER, nid)
+    assert v1_after["state"] == "signed" and v1_after["row_version"] == v1["row_version"]
+    assert new_after["state"] == new["state"] and new_after["row_version"] == new["row_version"]
+
+
+async def test_p_and_k_history_reads_the_signed_version_while_a_revision_is_open(pool):
+    pid, plan = await _closed(pool)
+    await signing.revise(pool, FARMER, pid, plan["row_version"])
+    async with pool.acquire() as c:
+        snaps = await repo.signed_snapshots(c, "tenant-a", "tenant", [2027])
+    assert snaps[2027]["plan"]["id"] == str(pid)
+
+
+async def test_a_revision_whose_base_is_no_longer_signed_is_a_conflict(pool):
+    pid, plan = await _closed(pool)
+    new = await signing.revise(pool, FARMER, pid, plan["row_version"])
+    nid = uuid.UUID(new["id"])
+    new = await service.calculate_plan(pool, sources(), FARMER, nid, new["row_version"], EARLY)
+    async with pool.acquire() as c:
+        await c.execute("UPDATE fast.plans SET state = 'superseded' WHERE id = $1", pid)
+    with pytest.raises(service.Conflict):
+        await signing.close(pool, FARMER, nid, new["row_version"], "titular_sin_obligacion",
+                            "Juan", EARLY)

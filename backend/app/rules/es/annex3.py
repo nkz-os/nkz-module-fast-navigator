@@ -38,10 +38,15 @@ def effective_n(result: dict | None, summary: dict | None) -> float | None:
 ADJUSTMENT_BASES = ("foliar_analysis", "other_technique", "year_evolution")
 
 
-def valid_adjustment(adj: dict | None, at: date) -> dict | None:
+def valid_adjustment(adj: dict | None, at: date, sheet=None, campaign: int | None = None
+                     ) -> dict | None:
     """Annex III-I.3: N may exceed the limit when plant-need determinations (foliar analysis or
     another accepted technique) or the course of the agricultural year justify it. Incomplete,
-    future-dated or unreferenced (except year evolution) justifications do not count."""
+    future-dated or unreferenced (except year evolution) justifications do not count.
+
+    With a campaign, the justification must date from its agricultural year (from 1 September of
+    the previous year). With a sheet, it counts only for the crop and parcels the technician
+    justified (the scope stamped when it was recorded): a rewritten sheet is new content."""
     if not adj or adj.get("basis") not in ADJUSTMENT_BASES:
         return None
     try:
@@ -50,6 +55,14 @@ def valid_adjustment(adj: dict | None, at: date) -> dict | None:
         return None
     if day > at or not (adj.get("description") or "").strip():
         return None
+    if campaign is not None and day < date(campaign - 1, 9, 1):
+        return None
+    if sheet is not None:
+        scope = adj.get("scope")
+        if (not isinstance(scope, dict)
+                or scope.get("parcels") != sorted(p["urn"] for p in sheet.parcels)
+                or scope.get("crop_eppo") != sheet.value("crop.eppo")):
+            return None
     if adj["basis"] != "year_evolution" and not (adj.get("reference") or "").strip():
         return None
     n = adj.get("justified_n_kg_ha")
@@ -69,12 +82,15 @@ def _n_findings(ctx: PlanContext):
             continue
         params = {"effective_n_kg_ha": round(eff, 1), "calculated_n_kg_ha": round(calc, 1),
                   "limit_kg_ha": round(limit, 1)}
-        adj = valid_adjustment(sheet.n_adjustment, ctx.at)
+        adj = valid_adjustment(sheet.n_adjustment, ctx.at, sheet, ctx.campaign)
         if adj is not None and eff <= adj["justified_n_kg_ha"] + _EPS:
             adjusted.append(({**params, "justified_n_kg_ha": adj["justified_n_kg_ha"],
                               "basis": adj["basis"], "date": adj["date"],
                               "reference": adj.get("reference")}, sheet.key))
         else:
+            if adj is not None:
+                params = {**params, "justified_n_kg_ha": adj["justified_n_kg_ha"],
+                          "basis": adj["basis"]}
             blocks.append((params, sheet.key))
     return blocks, adjusted
 

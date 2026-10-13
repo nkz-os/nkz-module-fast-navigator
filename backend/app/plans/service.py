@@ -263,15 +263,8 @@ async def set_n_adjustment(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID,
     if TECHNICIAN not in actor.roles:
         raise TransitionError("forbidden", f"only a technical consultant may adjust N "
                                            f"(needs {TECHNICIAN})")
-    stamped = None
-    if adjustment is not None:
-        if not isinstance(adjustment, dict):
-            raise Invalid("the adjustment must be an object")
-        if valid_adjustment(adjustment, legal_today()) is None:
-            raise Invalid("incomplete or future-dated justification")
-        known = {k: adjustment.get(k) for k in _ADJUSTMENT_FIELDS}
-        stamped = {**known, "user": actor.user_id,
-                   "at": datetime.now(UTC).isoformat(timespec="seconds")}
+    if adjustment is not None and not isinstance(adjustment, dict):
+        raise Invalid("the adjustment must be an object")
     async with pool.acquire() as conn, conn.transaction():
         plan = await _load(conn, actor, plan_id, for_update=True)
         _same_version(plan, row_version)
@@ -279,6 +272,22 @@ async def set_n_adjustment(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID,
         sheet = next((s for s in await repo.get_sheets(conn, plan.id) if s.key == key), None)
         if sheet is None:
             raise NotFound(f"sheet {key}")
+        stamped = None
+        if adjustment is None:
+            if sheet.n_adjustment is None:
+                raise NotFound(f"no N adjustment on sheet {key}")
+        else:
+            stored = (await repo.get_results(conn, plan.id)).get(sheet.id)
+            if stored is None:
+                raise Invalid("calculate the plan before justifying an N adjustment")
+            if valid_adjustment(adjustment, legal_today(), campaign=plan.campaign) is None:
+                raise Invalid("incomplete, future-dated or out-of-campaign justification")
+            known = {k: adjustment.get(k) for k in _ADJUSTMENT_FIELDS}
+            crop = (((stored["result"] or {}).get("inputs") or {}).get("crop.eppo") or {})
+            scope = {"crop_eppo": crop.get("value"),
+                     "parcels": sorted(p["urn"] for p in sheet.parcels)}
+            stamped = {**known, "scope": scope, "user": actor.user_id,
+                       "at": datetime.now(UTC).isoformat(timespec="seconds")}
         await repo.set_n_adjustment(conn, sheet.id, stamped)
         plan = await repo.update_plan(conn, plan.id, state=target, inputs_changed=True)
         detail = ({"sheet": key, "removed": True} if stamped is None else

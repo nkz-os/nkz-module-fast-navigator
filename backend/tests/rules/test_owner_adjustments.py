@@ -107,13 +107,16 @@ def test_declared_ureic_n_falls_under_12_3(app, ureic):
 
 # 5. justified N adjustment (annex III-I.3)
 ADJ = {"basis": "foliar_analysis", "date": "2026-10-01", "reference": "LAB-77",
-       "description": "N deficiency in flag leaf", "justified_n_kg_ha": 200.0}
+       "description": "N deficiency in flag leaf", "justified_n_kg_ha": 200.0,
+       "scope": {"crop_eppo": "TRZAX", "parcels": [P1]}}
 
 
 def over_limit(adjustment):
     # calculated 130 (150 − 20 soil), limit 156; effective 180
+    res = result()
+    res["inputs"]["crop.eppo"] = {"value": "TRZAX", "provenance": "declared"}
     return sheet(summary={"mineral_n_kg_ha": 180.0, "p2o5_kg_ha": 40.0, "k2o_kg_ha": 30.0},
-                 n_adjustment=adjustment)
+                 n_adjustment=adjustment, result=res)
 
 
 def test_a_justified_adjustment_lifts_the_n_limit_up_to_the_justified_value():
@@ -132,11 +135,31 @@ def test_a_justified_adjustment_lifts_the_n_limit_up_to_the_justified_value():
     {**ADJ, "description": ""},
     {**ADJ, "justified_n_kg_ha": float("inf")},       # non-finite never justifies anything
     {**ADJ, "justified_n_kg_ha": float("nan")},
+    {**ADJ, "scope": {**ADJ["scope"], "crop_eppo": "HORVX"}},       # another crop
+    {**ADJ, "scope": {**ADJ["scope"], "parcels": [P1, "urn:ngsi-ld:AgriParcel:p2"]}},
+    {**ADJ, "scope": None},
+    {k: v for k, v in ADJ.items() if k != "scope"},
+    {**ADJ, "date": "2019-05-01"},                    # not this campaign's year
 ])
 def test_an_insufficient_adjustment_still_blocks(bad):
     c = ctx(over_limit(bad))
     assert found(c, "ES-RD1051-AIII-3-N")[0].severity == "block"
     assert found(c, "ES-RD1051-AIII-3-N-adjusted") == []
+
+
+def test_a_block_names_the_justification_it_exceeded():
+    c = ctx(over_limit({**ADJ, "justified_n_kg_ha": 170.0}))
+    (b,) = found(c, "ES-RD1051-AIII-3-N")
+    assert b.params["justified_n_kg_ha"] == 170.0 and b.params["basis"] == "foliar_analysis"
+    assert "justified_n_kg_ha" not in found(ctx(over_limit(None)), "ES-RD1051-AIII-3-N")[0].params
+
+
+def test_an_adjustment_belongs_to_the_campaign_year():
+    at = date(2026, 10, 20)
+    old = {**ADJ, "date": "2025-08-31"}
+    first_day = {**ADJ, "date": "2026-09-01"}
+    assert valid_adjustment(old, at, campaign=2027) is None
+    assert valid_adjustment(first_day, at, campaign=2027) is not None
 
 
 def test_year_evolution_needs_no_reference():

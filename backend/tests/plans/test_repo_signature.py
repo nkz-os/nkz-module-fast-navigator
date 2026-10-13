@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import asyncpg
 import pytest
 
@@ -16,7 +18,8 @@ async def _signed(c, campaign=2027, farm="tenant"):
                                           {"campaign": campaign})], [])
     return await repo.sign_plan(c, plan.id, signature={"kind": "advisor", "name": "A"},
                                 snapshot={"campaign": campaign, "sheets": [{"key": "wheat"}]},
-                                sha256="ab" * 32)
+                                sha256="ab" * 32,
+                                signed_at=datetime.now(UTC))
 
 
 async def test_declarations_are_stored_and_mark_inputs_changed(pool):

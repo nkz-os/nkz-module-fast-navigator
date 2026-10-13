@@ -23,7 +23,7 @@ from app.plans.service import (
     _view,
     build_context,
 )
-from app.plans.states import Action, Guard, TransitionError, next_state
+from app.plans.states import TECHNICIAN, Action, Guard, TransitionError, next_state
 from app.rules import BLOCK, count_blocking, evaluate
 from app.rules.es.advice import advice_required
 from app.rules.registry import RULES_VERSION, all_rules
@@ -83,10 +83,12 @@ async def _finish(conn, actor, plan, action: Action, guard_extra: dict, signatur
             raise
         blocking = sorted({f.rule_id for f in findings if f.severity == BLOCK})
         raise TransitionError("blocking_findings", f"blocking findings: {blocking}") from exc
-    signature = {**signature, "signed_at": datetime.now(UTC).isoformat(timespec="seconds")}
+    signed_at = datetime.now(UTC).replace(microsecond=0)      # one clock: seal and column
+    signature = {**signature, "signed_at": signed_at.isoformat(timespec="seconds")}
     snapshot = await _freeze(conn, plan, ctx, sheets, stored, signature)
     seal = sha256_of(snapshot)
-    plan = await repo.sign_plan(conn, plan.id, signature=signature, snapshot=snapshot, sha256=seal)
+    plan = await repo.sign_plan(conn, plan.id, signature=signature, snapshot=snapshot, sha256=seal,
+                                signed_at=signed_at)
     await repo.append_audit(conn, plan.id, actor.user_id, str(action),
                             {"sha256": seal, "rules": RULES_VERSION,
                              "findings": {s: sum(1 for f in findings if f.severity == s)
@@ -100,6 +102,8 @@ async def sign(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID, row_version
     async with pool.acquire() as conn, conn.transaction():
         plan = await _load(conn, actor, plan_id, for_update=True)
         _same_version(plan, row_version)
+        if TECHNICIAN not in actor.roles:
+            raise TransitionError("forbidden", f"sign needs one of {[TECHNICIAN]}")
         advisor = await repo.get_advisor(conn, actor.tenant_id, actor.user_id)
         if advisor is None:
             raise Invalid("set your advisor profile (name and registration number) first")

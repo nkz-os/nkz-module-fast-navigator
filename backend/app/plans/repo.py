@@ -253,11 +253,12 @@ async def set_declarations(conn: asyncpg.Connection, plan_id: uuid.UUID, *,
 
 
 async def sign_plan(conn: asyncpg.Connection, plan_id: uuid.UUID, *, signature: dict,
-                    snapshot: dict, sha256: str) -> PlanRow:
+                    snapshot: dict, sha256: str, signed_at: datetime) -> PlanRow:
     row = await conn.fetchrow(
         f"UPDATE plans SET state = 'signed', signature = $2, snapshot = $3, snapshot_sha256 = $4, "
-        f"signed_at = clock_timestamp(), row_version = row_version + 1, updated_at = now() "
-        f"WHERE id = $1 RETURNING {_PLAN_COLUMNS}", plan_id, signature, snapshot, sha256)
+        f"signed_at = $5, row_version = row_version + 1, updated_at = now() "
+        f"WHERE id = $1 RETURNING {_PLAN_COLUMNS}", plan_id, signature, snapshot, sha256,
+        signed_at)
     return _plan(row)
 
 

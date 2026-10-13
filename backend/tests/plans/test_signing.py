@@ -202,3 +202,134 @@ async def test_advisor_profile_round_trip(pool):
     assert await signing.get_advisor(pool, TECH) == {"name": "Ana", "registration_number": "NA-1"}
     with pytest.raises(service.Invalid):
         await signing.put_advisor(pool, TECH, " ", "NA-1")
+
+
+async def _audit_count(pool, pid):
+    async with pool.acquire() as c:
+        return len(await repo.get_audit(c, pid))
+
+
+async def _assert_untouched(pool, pid, before, audits):
+    after = await service.get(pool, FARMER, pid)
+    assert after["state"] == before["state"] and after["row_version"] == before["row_version"]
+    assert after["snapshot_sha256"] is None and after["signed_at"] is None
+    assert await _audit_count(pool, pid) == audits
+    async with pool.acquire() as c:
+        assert await repo.get_snapshot(c, pid) is None
+
+
+async def test_one_clock_for_the_signature_time(pool):
+    from datetime import datetime
+    pid, plan = await ready(pool)
+    closed = await signing.close(pool, FARMER, pid, plan["row_version"],
+                                 "titular_sin_obligacion", "Juan", EARLY)
+    async with pool.acquire() as c:
+        snapshot = await repo.get_snapshot(c, pid)
+    assert datetime.fromisoformat(closed["signed_at"]) == \
+        datetime.fromisoformat(snapshot["signature"]["signed_at"])
+
+
+async def test_a_farmer_cannot_sign_even_without_a_profile_check(pool):
+    pid, plan = await ready(pool)
+    plan = await service.transition(pool, FARMER, pid, plan["row_version"],
+                                    service.Action.SUBMIT)
+    with pytest.raises(TransitionError) as err:
+        await signing.sign(pool, FARMER, pid, plan["row_version"], EARLY)
+    assert err.value.code == "forbidden"
+
+
+async def test_a_blocked_sign_changes_nothing(pool):
+    pid, plan = await ready(pool, apps=())
+    plan = await service.transition(pool, FARMER, pid, plan["row_version"],
+                                    service.Action.SUBMIT)
+    await signing.put_advisor(pool, TECH, "Ana", "NA-1")
+    audits = await _audit_count(pool, pid)
+    with pytest.raises(TransitionError):
+        await signing.sign(pool, TECH, pid, plan["row_version"], EARLY)
+    await _assert_untouched(pool, pid, plan, audits)
+
+
+async def test_a_blocked_close_changes_nothing(pool):
+    pid, plan = await ready(pool)
+    audits = await _audit_count(pool, pid)
+    with pytest.raises(TransitionError) as err:
+        await signing.close(pool, FARMER, pid, plan["row_version"], "titular_sin_obligacion",
+                            "Juan", LATE)
+    assert err.value.code == "advice_required"
+    await _assert_untouched(pool, pid, plan, audits)
+
+
+async def test_a_stale_calculation_cannot_be_signed_or_closed_after_an_edit(pool):
+    pid, plan = await ready(pool)
+    plan = await service.edit_sheets(pool, FARMER, pid, plan["row_version"], [good_sheet()])
+    with pytest.raises(TransitionError) as err:
+        await signing.close(pool, FARMER, pid, plan["row_version"], "titular_sin_obligacion",
+                            "Juan", EARLY)
+    assert err.value.code == "not_allowed"     # an edit sends a calculated plan back to draft
+    await service.calculate_plan(pool, sources(), FARMER, pid, plan["row_version"], EARLY)
+    plan = await service.get(pool, FARMER, pid)
+    plan = await service.transition(pool, FARMER, pid, plan["row_version"],
+                                    service.Action.SUBMIT)
+    await signing.put_advisor(pool, TECH, "Ana", "NA-1")
+    plan = await service.edit_sheets(pool, TECH, pid, plan["row_version"], [good_sheet()])
+    with pytest.raises(TransitionError) as err:
+        await signing.sign(pool, TECH, pid, plan["row_version"], EARLY)
+    assert err.value.code == "stale_calculation"
+
+
+async def test_another_tenant_sees_no_plan(pool):
+    pid, plan = await ready(pool)
+    rv = plan["row_version"]
+    with pytest.raises(service.NotFound):
+        await signing.sign(pool, OTHER, pid, rv, EARLY)
+    with pytest.raises(service.NotFound):
+        await signing.close(pool, OTHER, pid, rv, "titular_sin_obligacion", "Juan", EARLY)
+    with pytest.raises(service.NotFound):
+        await signing.revise(pool, OTHER, pid, rv)
+
+
+async def test_revising_copies_everything_the_plan_holds(pool):
+    pid, plan = await ready(pool)
+    plan = await service.set_override(pool, TECH, pid, plan["row_version"], "wheat", "soil.ph",
+                                      7.2, "lab")
+    plan = await service.set_declarations(pool, FARMER, pid, plan["row_version"],
+                                          vulnerable_zone=False, vulnerable_zone_source="order",
+                                          voluntary_digital_notebook=True)
+    plan = await service.calculate_plan(pool, sources(), FARMER, pid, plan["row_version"], EARLY)
+    closed = await signing.close(pool, FARMER, pid, plan["row_version"],
+                                 "titular_sin_obligacion", "Juan", EARLY)
+    new = await signing.revise(pool, FARMER, pid, closed["row_version"])
+    (sheet,) = new["sheets"]
+    assert sheet["applications"] == [APP]
+    assert [o["param"] for o in sheet["overrides"]] == ["soil.ph"]
+    assert new["declarations"] == {"vulnerable_zone": False, "vulnerable_zone_source": "order",
+                                   "voluntary_digital_notebook": True}
+    assert new["rain_normal"] == closed["rain_normal"] and new["rain_normal"] is not None
+
+
+async def test_history_values_come_from_the_signed_plan(pool):
+    pid, plan = await ready(pool)
+    closed = await signing.close(pool, FARMER, pid, plan["row_version"],
+                                 "titular_sin_obligacion", "Juan", EARLY)
+    (old,) = closed["sheets"]
+    nxt = await service.create(pool, FARMER, 2028, "tenant")
+    nid = uuid.UUID(nxt["id"])
+    base = good_sheet()
+    mine = repo.SheetData("wheat", {**base.inputs, "campaign": 2028}, base.parcels,
+                          base.applications)
+    other = repo.SheetData("other", {**base.inputs, "campaign": 2028},
+                           (("urn:ngsi-ld:AgriParcel:other", None),), base.applications)
+    await service.edit_sheets(pool, FARMER, nid, nxt["row_version"], [mine, other])
+    async with pool.acquire() as c:
+        ctx, _, _ = await service.build_context(c, await repo.get_plan(c, "tenant-a", nid), EARLY)
+    by_key = {s.key: s.history for s in ctx.sheets}
+    (entry,) = by_key["wheat"]
+    assert set(entry) == {"campaign", "p2o5_planned_kg_ha", "p2o5_calculated_kg_ha",
+                          "k2o_planned_kg_ha", "k2o_calculated_kg_ha"}
+    summary = old["applications_summary"]
+    assert entry["campaign"] == 2027
+    assert entry["p2o5_planned_kg_ha"] == summary["p2o5_kg_ha"] and summary["p2o5_kg_ha"] > 0
+    assert entry["k2o_planned_kg_ha"] == summary["k2o_kg_ha"]
+    assert entry["p2o5_calculated_kg_ha"] == old["result"]["p2o5"]["before_organic_kg_ha"]
+    assert entry["k2o_calculated_kg_ha"] == old["result"]["k2o"]["before_organic_kg_ha"]
+    assert by_key["other"] == ()

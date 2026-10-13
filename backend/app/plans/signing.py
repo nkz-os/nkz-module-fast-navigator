@@ -13,6 +13,7 @@ from app.calc.snapshot import assembled_from_dict, sha256_of
 from app.engine import ENGINE_VERSION
 from app.inputs.organic import ORGANIC_TABLE_VERSION
 from app.plans import repo
+from app.plans.applications import SPLIT_RULE_PREFIX
 from app.plans.service import (
     Actor,
     Conflict,
@@ -49,7 +50,11 @@ async def put_advisor(pool: asyncpg.Pool, actor: Actor, name: str,
 
 async def _freeze(conn, plan: repo.PlanRow, ctx, sheets, stored, signature: dict) -> dict:
     findings = [f.to_dict() for f in evaluate(all_rules(), ctx)]
+    split = [f for f in await repo.get_findings(conn, plan.id)
+             if f["rule_id"].startswith(SPLIT_RULE_PREFIX)]
+    history = {c.key: list(c.history) for c in ctx.sheets}
     return {
+        "judged_at": ctx.at.isoformat(),
         "plan": {"id": str(plan.id), "campaign": plan.campaign, "farm": plan.farm,
                  "version": plan.version},
         "declarations": {"vulnerable_zone": plan.vulnerable_zone,
@@ -60,8 +65,10 @@ async def _freeze(conn, plan: repo.PlanRow, ctx, sheets, stored, signature: dict
                     "parcels": s.parcels, "applications": s.applications,
                     "result": (stored.get(s.id) or {}).get("result"),
                     "applications_summary": (stored.get(s.id) or {}).get("applications_summary"),
-                    "assembled": (stored.get(s.id) or {}).get("assembled")} for s in sheets],
+                    "assembled": (stored.get(s.id) or {}).get("assembled"),
+                    "history": history.get(s.key, [])} for s in sheets],
         "findings": findings,
+        "split_findings": split,
         "versions": {"engine": ENGINE_VERSION, "calc": CALC_VERSION, "rules": RULES_VERSION,
                      "organic_table": ORGANIC_TABLE_VERSION,
                      "coefficients": {s.key: ((stored.get(s.id) or {}).get("result") or {})
@@ -86,6 +93,8 @@ async def _finish(conn, actor, plan, action: Action, guard_extra: dict, signatur
     signed_at = datetime.now(UTC).replace(microsecond=0)      # one clock: seal and column
     signature = {**signature, "signed_at": signed_at.isoformat(timespec="seconds")}
     snapshot = await _freeze(conn, plan, ctx, sheets, stored, signature)
+    # Seal the copy as the database stores it (jsonb turns -0.0 into 0.0, 1e20 into an integer).
+    snapshot = await conn.fetchval("SELECT $1::jsonb", snapshot)
     seal = sha256_of(snapshot)
     plan = await repo.sign_plan(conn, plan.id, signature=signature, snapshot=snapshot, sha256=seal,
                                 signed_at=signed_at)

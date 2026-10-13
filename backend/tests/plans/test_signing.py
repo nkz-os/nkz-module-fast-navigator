@@ -333,3 +333,77 @@ async def test_history_values_come_from_the_signed_plan(pool):
     assert entry["p2o5_calculated_kg_ha"] == old["result"]["p2o5"]["before_organic_kg_ha"]
     assert entry["k2o_calculated_kg_ha"] == old["result"]["k2o"]["before_organic_kg_ha"]
     assert by_key["other"] == ()
+
+
+async def _closed_with_split(pool):
+    pid, plan = await ready(pool)
+    closed = await signing.close(pool, FARMER, pid, plan["row_version"],
+                                 "titular_sin_obligacion", "Juan", EARLY)
+    async with pool.acquire() as c:
+        return pid, closed, await repo.get_snapshot(c, pid)
+
+
+async def test_the_copy_holds_what_reproduces_the_verdict(pool):
+    pid, _, snapshot = await _closed_with_split(pool)
+    assert snapshot["judged_at"] == EARLY.isoformat()
+    assert snapshot["sheets"][0]["history"] == []
+    split = snapshot["split_findings"]
+    assert {f["rule_id"] for f in split} >= {"FAST-split-total_below_n_min"}
+    assert all(f["rule_id"].startswith("FAST-split-") and f["sheet_key"] == "wheat"
+               for f in split)
+
+
+async def test_the_copy_keeps_the_history_the_rules_saw(pool, monkeypatch):
+    seen = ({"campaign": 2026, "p2o5_planned_kg_ha": 30.0, "p2o5_calculated_kg_ha": 40.0,
+             "k2o_planned_kg_ha": 20.0, "k2o_calculated_kg_ha": 25.0},)
+    monkeypatch.setattr(service, "_history", lambda parcels, snapshots: seen)
+    pid, plan = await ready(pool)
+    await signing.close(pool, FARMER, pid, plan["row_version"], "titular_sin_obligacion",
+                        "Juan", EARLY)
+    async with pool.acquire() as c:
+        snapshot = await repo.get_snapshot(c, pid)
+    assert snapshot["sheets"][0]["history"] == list(seen)
+
+
+async def test_a_signed_plan_shows_its_sealed_verdict(pool, monkeypatch):
+    pid, closed, snapshot = await _closed_with_split(pool)
+    monkeypatch.setattr(service, "RULES_VERSION", "es-later")
+    view = await service.get(pool, FARMER, pid)
+    assert view["rules_version"] == snapshot["versions"]["rules"] != "es-later"
+    rules = [{"rule_id": f["rule_id"], "severity": f["severity"],
+              "params": {**f["params"], "citation": f["citation"]}, "sheet_key": f["sheet_key"]}
+             for f in snapshot["findings"]]
+    assert view["findings"] == snapshot["split_findings"] + rules
+    assert any(f["rule_id"].startswith("FAST-split-") for f in view["findings"])
+    assert all("citation" in f["params"] for f in view["findings"] if f not in
+               snapshot["split_findings"])
+    new = await signing.revise(pool, FARMER, pid, closed["row_version"])
+    old = await service.get(pool, FARMER, pid)
+    assert old["state"] == "superseded" and old["findings"] == view["findings"]
+    assert new["rules_version"] == "es-later"
+
+
+async def test_the_generic_transition_cannot_sign_close_or_revise(pool):
+    pid, plan = await ready(pool)
+    for action in (service.Action.SIGN, service.Action.CLOSE, service.Action.REVISE):
+        with pytest.raises(TransitionError) as err:
+            await service.transition(pool, TECH, pid, plan["row_version"], action)
+        assert err.value.code == "not_allowed"
+    after = await service.get(pool, FARMER, pid)
+    assert after["state"] == plan["state"] and after["row_version"] == plan["row_version"]
+
+
+async def test_the_seal_is_taken_over_what_jsonb_stores(pool, monkeypatch):
+    from app.calc.snapshot import sha256_of
+    real = signing._freeze
+
+    async def odd(*args):                # the engine does produce -0.0; jsonb stores 0.0
+        return {**await real(*args), "odd": {"zero": -0.0, "big": 1e20}}
+
+    monkeypatch.setattr(signing, "_freeze", odd)
+    pid, plan = await ready(pool)
+    closed = await signing.close(pool, FARMER, pid, plan["row_version"],
+                                 "titular_sin_obligacion", "Juan", EARLY)
+    async with pool.acquire() as c:
+        stored = await repo.get_snapshot(c, pid)
+    assert sha256_of(stored) == closed["snapshot_sha256"]

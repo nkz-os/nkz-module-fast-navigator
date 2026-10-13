@@ -108,18 +108,28 @@ async def _view(conn: asyncpg.Connection, plan: repo.PlanRow) -> dict:
             "result": stored["result"] if stored else None,
             "applications_summary": stored["applications_summary"] if stored else None,
         })
+    findings = await repo.get_findings(conn, plan.id)
+    rules_version = RULES_VERSION
+    if plan.state in (State.SIGNED, State.SUPERSEDED) and plan.snapshot_sha256:
+        # a signed plan shows the verdict it was sealed with, not today's rules
+        sealed = await repo.get_snapshot(conn, plan.id) or {}
+        rules_version = (sealed.get("versions") or {}).get("rules", rules_version)
+        findings = [*(sealed.get("split_findings") or []),
+                    *({"rule_id": f["rule_id"], "severity": f["severity"],
+                       "params": {**f["params"], "citation": f["citation"]},
+                       "sheet_key": f["sheet_key"]} for f in sealed.get("findings") or [])]
     return {
         "id": str(plan.id), "farm": plan.farm, "campaign": plan.campaign,
         "version": plan.version, "state": plan.state, "row_version": plan.row_version,
         "supersedes": str(plan.supersedes) if plan.supersedes else None,
         "calc_fresh": plan.calc_fresh, "calculated_at": _iso(plan.calculated_at),
         "rain_normal": plan.rain, "sheets": out_sheets,
-        "findings": await repo.get_findings(conn, plan.id),
+        "findings": findings,
         "declarations": {"vulnerable_zone": plan.vulnerable_zone,
                          "vulnerable_zone_source": plan.vulnerable_zone_source,
                          "voluntary_digital_notebook": plan.voluntary_digital_notebook},
         "signature": plan.signature, "signed_at": _iso(plan.signed_at),
-        "snapshot_sha256": plan.snapshot_sha256, "rules_version": RULES_VERSION,
+        "snapshot_sha256": plan.snapshot_sha256, "rules_version": rules_version,
     }
 
 
@@ -348,6 +358,8 @@ async def transition(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID, row_v
                      action: Action, comment: str | None = None) -> dict:
     if action == Action.RETURN and not (comment and comment.strip()):
         raise Invalid("returning a plan needs a comment")
+    if action in (Action.SIGN, Action.CLOSE, Action.REVISE):
+        raise TransitionError("not_allowed", "use the signing use cases")
     async with pool.acquire() as conn, conn.transaction():
         plan = await _load(conn, actor, plan_id, for_update=True)
         _same_version(plan, row_version)

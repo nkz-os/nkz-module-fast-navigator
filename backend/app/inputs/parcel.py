@@ -13,6 +13,12 @@ _CADASTRAL = re.compile(r"^[0-9A-Z]{14}([0-9A-Z]{6})?$")
 _INE = re.compile(r"^\d{5}$")
 
 
+def is_parcel_identifier(value: str) -> bool:
+    """A SIGPAC recinto code or a Spanish cadastral reference (art. 6.1)."""
+    v = value.strip().upper() if isinstance(value, str) else ""
+    return bool(v) and bool(_SIGPAC.match(v) or _CADASTRAL.match(v))
+
+
 @dataclass(frozen=True)
 class ParcelInfo:
     urn: str
@@ -69,7 +75,7 @@ def parcel_info(entity: dict) -> ParcelInfo:
         absent.append(MissingInput("parcel.area_ha", "broker", {"parcel": urn}))
     ref = entity.get("cadastralReference")
     ref = ref.strip().upper() if isinstance(ref, str) and ref.strip() else None
-    if ref and (_SIGPAC.match(ref) or _CADASTRAL.match(ref)):
+    if ref and is_parcel_identifier(ref):
         identifier = Sourced(ref, MEASURED, f"broker:{urn}", "sigpac" if ":" in ref else "cadastral")
     else:
         identifier = missing(f"broker:{urn}")

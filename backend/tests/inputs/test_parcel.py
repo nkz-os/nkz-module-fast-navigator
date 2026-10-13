@@ -1,6 +1,6 @@
 import pytest
 
-from app.inputs.parcel import SAREF_AREA, parcel_info
+from app.inputs.parcel import SAREF_AREA, is_parcel_identifier, parcel_info
 from app.inputs.provenance import MEASURED, MissingInput, Notice
 
 RING = [[-1.6, 42.8], [-1.5, 42.8], [-1.5, 42.9], [-1.6, 42.9], [-1.6, 42.8]]
@@ -66,3 +66,9 @@ def test_municipality_code_only_when_it_is_an_ine_code(value, code):
 def test_farm_from_either_relationship_name():
     assert parcel_info(_parcel(hasAgriFarm="urn:ngsi-ld:AgriFarm:f1")).farm == "urn:ngsi-ld:AgriFarm:f1"
     assert parcel_info(_parcel(refAgriFarm="urn:ngsi-ld:AgriFarm:f2")).farm == "urn:ngsi-ld:AgriFarm:f2"
+
+
+@pytest.mark.parametrize("value,ok", [("31201A00100123", True), ("31:201:0:0:1:123:1", True),
+                                      ("CATAST_Pol_ParcelaRusti.344737", False), ("", False)])
+def test_is_parcel_identifier(value, ok):
+    assert is_parcel_identifier(value) is ok

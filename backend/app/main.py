@@ -16,6 +16,10 @@ from app.db.pool import create_pool
 from app.logging_setup import configure_logging
 from app.api import router as api_router
 from app.api.internal import router as internal_router
+from app.api.plans import router as plans_router
+from app.calc.assemble import ParcelNotFound
+from app.plans.service import Conflict, Invalid, NotFound
+from app.plans.states import TransitionError
 from app.sources.errors import SourceUnavailable
 
 logger = logging.getLogger(__name__)
@@ -78,8 +82,31 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=503, content={"error": "source_unavailable",
                                                       "source": exc.source, "detail": exc.detail})
 
+    @app.exception_handler(NotFound)
+    async def not_found(request, exc: NotFound):
+        return JSONResponse(status_code=404, content={"error": "not_found", "detail": str(exc)})
+
+    @app.exception_handler(ParcelNotFound)
+    async def parcel_not_found(request, exc: ParcelNotFound):
+        return JSONResponse(status_code=404, content={"error": "parcel_not_found",
+                                                      "detail": exc.urn})
+
+    @app.exception_handler(Conflict)
+    async def conflict(request, exc: Conflict):
+        return JSONResponse(status_code=409, content={"error": "conflict", "detail": str(exc)})
+
+    @app.exception_handler(TransitionError)
+    async def transition_error(request, exc: TransitionError):
+        status = 403 if exc.code == "forbidden" else 409
+        return JSONResponse(status_code=status, content={"error": exc.code, "detail": exc.detail})
+
+    @app.exception_handler(Invalid)
+    async def invalid(request, exc: Invalid):
+        return JSONResponse(status_code=422, content={"error": "invalid", "detail": str(exc)})
+
     # Include API routes
     app.include_router(api_router, prefix=settings.api_prefix)
+    app.include_router(plans_router, prefix=settings.api_prefix)
 
     # Internal routes (entity-manager, other in-cluster callers) — authenticated
     # by X-Internal-Service-Secret, NOT gateway headers. See app/api/internal.py.

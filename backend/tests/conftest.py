@@ -13,7 +13,7 @@ import asyncpg
 import pytest
 
 TRUNCATE_ALL = ("TRUNCATE fast.audit_log, fast.findings, fast.results, fast.applications, "
-                "fast.sheet_parcels, fast.crop_sheets, fast.plans CASCADE")
+                "fast.sheet_parcels, fast.crop_sheets, fast.plans, fast.advisors CASCADE")
 
 
 async def _migrate(url: str) -> None:

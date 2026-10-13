@@ -287,7 +287,8 @@ async def test_split_findings_are_stored(pool):
     plan = await service.calculate_plan(pool, FakeSources(**complete_data()), FARMER, pid,
                                         plan["row_version"], TODAY)
     assert {f["rule_id"] for f in plan["findings"]} >= {"FAST-split-pre_plant_above_n_min"}
-    assert all(f["sheet_key"] == "wheat" for f in plan["findings"])
+    assert all(f["sheet_key"] == "wheat" for f in plan["findings"]
+               if f["rule_id"].startswith("FAST-split-"))
 
 
 async def test_rain_normal_is_stored(pool):

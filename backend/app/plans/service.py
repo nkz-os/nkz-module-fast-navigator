@@ -18,6 +18,9 @@ from app.inputs.provenance import Override
 from app.plans import repo
 from app.plans.applications import ApplicationIn, split_findings, summarize
 from app.plans.states import TECHNICIAN, Action, Guard, State, TransitionError, next_state
+from app.rules import evaluate
+from app.rules.context import PlanContext, SheetContext
+from app.rules.registry import RULES_VERSION, all_rules
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +50,52 @@ def _iso(value: datetime | None) -> str | None:
     return value.isoformat() if value else None
 
 
+HISTORY_CAMPAIGNS = 4
+
+
+def _history(sheet_parcels: list[dict], snapshots: dict[int, dict]) -> tuple[dict, ...]:
+    urns = {p["urn"] for p in sheet_parcels}
+    out = []
+    for campaign in sorted(snapshots):
+        for old in snapshots[campaign].get("sheets") or []:
+            if urns & {p["urn"] for p in old.get("parcels") or []}:
+                result, summary = old.get("result") or {}, old.get("applications_summary") or {}
+                out.append({
+                    "campaign": campaign,
+                    "p2o5_planned_kg_ha": summary.get("p2o5_kg_ha"),
+                    "p2o5_calculated_kg_ha": (result.get("p2o5") or {}).get("before_organic_kg_ha"),
+                    "k2o_planned_kg_ha": summary.get("k2o_kg_ha"),
+                    "k2o_calculated_kg_ha": (result.get("k2o") or {}).get("before_organic_kg_ha"),
+                })
+                break
+    return tuple(out)
+
+
+async def build_context(conn: asyncpg.Connection, plan: repo.PlanRow, at: date, *,
+                        fresh: dict | None = None):
+    """PlanContext from what the plan stores (or from `fresh` results, keyed by sheet id)."""
+    sheets = await repo.get_sheets(conn, plan.id)
+    stored = fresh if fresh is not None else await repo.get_results(conn, plan.id)
+    previous = list(range(plan.campaign - HISTORY_CAMPAIGNS, plan.campaign))
+    snapshots = await repo.signed_snapshots(conn, plan.tenant_id, plan.farm, previous)
+    contexts = tuple(SheetContext(
+        key=s.key, inputs=s.inputs, parcels=tuple(s.parcels), applications=tuple(s.applications),
+        result=(stored.get(s.id) or {}).get("result"),
+        summary=(stored.get(s.id) or {}).get("applications_summary"),
+        history=_history(s.parcels, snapshots)) for s in sheets)
+    ctx = PlanContext(campaign=plan.campaign, sheets=contexts, rain=plan.rain,
+                      vulnerable_zone=plan.vulnerable_zone,
+                      voluntary_digital_notebook=plan.voluntary_digital_notebook, at=at)
+    return ctx, sheets, stored
+
+
+def rule_findings(ctx: PlanContext, sheets: list[repo.SheetRow]) -> list[dict]:
+    ids = {s.key: s.id for s in sheets}
+    return [{"rule_id": f.rule_id, "severity": f.severity,
+             "params": {**f.params, "citation": f.citation},
+             "sheet_id": ids.get(f.sheet_key)} for f in evaluate(all_rules(), ctx)]
+
+
 async def _view(conn: asyncpg.Connection, plan: repo.PlanRow) -> dict:
     sheets = await repo.get_sheets(conn, plan.id)
     results = await repo.get_results(conn, plan.id)
@@ -66,6 +115,11 @@ async def _view(conn: asyncpg.Connection, plan: repo.PlanRow) -> dict:
         "calc_fresh": plan.calc_fresh, "calculated_at": _iso(plan.calculated_at),
         "rain_normal": plan.rain, "sheets": out_sheets,
         "findings": await repo.get_findings(conn, plan.id),
+        "declarations": {"vulnerable_zone": plan.vulnerable_zone,
+                         "vulnerable_zone_source": plan.vulnerable_zone_source,
+                         "voluntary_digital_notebook": plan.voluntary_digital_notebook},
+        "signature": plan.signature, "signed_at": _iso(plan.signed_at),
+        "snapshot_sha256": plan.snapshot_sha256, "rules_version": RULES_VERSION,
     }
 
 
@@ -228,12 +282,36 @@ async def calculate_plan(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uui
     async with pool.acquire() as conn, conn.transaction():
         plan = await _load(conn, actor, plan_id, for_update=True)
         _same_version(plan, row_version)
+        fresh = {sid: {"result": r, "applications_summary": s} for sid, r, s, _ in rows}
+        ctx, current, _ = await build_context(conn, plan, today, fresh=fresh)
+        findings += rule_findings(ctx, current)
         await repo.save_results(conn, plan.id, rows, findings)
         plan = await repo.update_plan(conn, plan.id, state=target, calculated=True)
         await repo.append_audit(conn, plan.id, actor.user_id, "calculate",
-                                {"status": statuses, "versions": versions})
+                                {"status": statuses, "versions": versions,
+                                 "rules": RULES_VERSION})
         logger.info("plan calculated tenant=%s plan=%s sheets=%d", actor.tenant_id, plan.id,
                     len(rows))
+        return await _view(conn, plan)
+
+
+async def set_declarations(pool, actor, plan_id, row_version, *, vulnerable_zone,
+                           vulnerable_zone_source, voluntary_digital_notebook) -> dict:
+    source = (vulnerable_zone_source or "").strip() or None
+    if vulnerable_zone is False and source is None:
+        raise Invalid("declaring the farm outside vulnerable zones needs its source")
+    async with pool.acquire() as conn, conn.transaction():
+        plan = await _load(conn, actor, plan_id, for_update=True)
+        _same_version(plan, row_version)
+        target = next_state(plan.state, Action.EDIT, actor.roles, Guard(calc_fresh=plan.calc_fresh))
+        plan = await repo.set_declarations(conn, plan.id, vulnerable_zone=vulnerable_zone,
+                                           vulnerable_zone_source=source,
+                                           voluntary_digital_notebook=voluntary_digital_notebook)
+        if target != State(plan.state):
+            plan = await repo.update_plan(conn, plan.id, state=target)
+        await repo.append_audit(conn, plan.id, actor.user_id, "declarations",
+                                {"vulnerable_zone": vulnerable_zone, "source": source,
+                                 "voluntary_digital_notebook": voluntary_digital_notebook})
         return await _view(conn, plan)
 
 

@@ -83,3 +83,33 @@ def test_split_findings():
         "rule_id": "FAST-split-pre_plant_above_n_min", "severity": "warn",
         "params": {"pre_plant_n_kg_ha": 80.0, "n_min_kg_ha": 60.0, "n_max_kg_ha": 150.0,
                    "planned_mineral_n_kg_ha": 80.0}}]
+
+
+MINERAL = {"stage": "pre_plant", "planned_date": "2026-10-20", "kind": "mineral",
+           "product_name": "NPK 8-15-15", "n_pct": 8, "p2o5_pct": 15, "k2o_pct": 15,
+           "n_form": "ammoniacal", "product_rate_kg_ha": 400, "method": "broadcast",
+           "machine": "centrifugal spreader"}
+
+
+@pytest.mark.parametrize("extra,ok", [
+    ({"n_form": "mixed", "n_pct": 32, "n_ureic_pct": 16}, True),
+    ({"n_form": "mixed", "n_pct": 32}, False),                       # mixed must declare it
+    ({"n_form": "mixed", "n_pct": 32, "n_ureic_pct": 40}, False),    # more than the N
+    ({"n_form": "nitric", "n_pct": 27, "n_ureic_pct": 5}, False),    # only ureic or mixed
+    ({"n_form": "ureic", "n_pct": 46, "n_ureic_pct": 46}, True),
+    ({"n_form": "mixed", "n_pct": 27, "n_ureic_pct": 0}, True),
+])
+def test_ureic_n_on_the_label(extra, ok):
+    data = {**MINERAL, "p2o5_pct": 0, "k2o_pct": 0, **extra}
+    if ok:
+        assert ApplicationIn.model_validate(data).n_ureic_pct == extra.get("n_ureic_pct")
+    else:
+        with pytest.raises(ValueError):
+            ApplicationIn.model_validate(data)
+
+
+def test_organic_applications_take_no_ureic_share():
+    with pytest.raises(ValueError):
+        ApplicationIn.model_validate({"stage": "pre_plant", "kind": "organic", "organic_index": 0,
+                                      "product_name": "pig slurry", "method": "broadcast",
+                                      "machine": "spreader", "n_ureic_pct": 1})

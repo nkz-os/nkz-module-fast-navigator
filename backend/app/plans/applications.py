@@ -55,6 +55,7 @@ class ApplicationIn(BaseModel):
     registry_ref: str | None = Field(default=None, max_length=100)
     organic_index: int | None = Field(default=None, ge=0)
     n_pct: float | None = Field(default=None, ge=0, le=100)
+    n_ureic_pct: float | None = Field(default=None, ge=0, le=100)  # label: ureic N, % of product
     p2o5_pct: float | None = Field(default=None, ge=0, le=100)
     k2o_pct: float | None = Field(default=None, ge=0, le=100)
     n_form: Literal["ureic", "ammoniacal", "nitric", "organic", "mixed"] | None = None
@@ -75,7 +76,7 @@ class ApplicationIn(BaseModel):
     def _consistent(self) -> ApplicationIn:
         if len(set(self.annex_v)) != len(self.annex_v):
             raise ValueError("annex V measures must not repeat")
-        own = (self.n_pct, self.p2o5_pct, self.k2o_pct, self.product_rate_kg_ha, self.n_form)
+        own = (self.n_pct, self.n_ureic_pct, self.p2o5_pct, self.k2o_pct, self.product_rate_kg_ha, self.n_form)
         if self.kind == "organic":
             if self.organic_index is None:
                 raise ValueError("an organic application points at the sheet's organic input")
@@ -92,6 +93,14 @@ class ApplicationIn(BaseModel):
             raise ValueError("N + P2O5 + K2O cannot exceed 100 % of the product")
         if n > 0 and self.n_form is None:
             raise ValueError("n_form is required when the product contains N")
+        if self.n_ureic_pct is not None:
+            if self.n_form not in ("ureic", "mixed"):
+                raise ValueError("n_ureic_pct only applies to ureic or mixed N forms")
+            if self.n_ureic_pct > n + 1e-9:
+                raise ValueError("n_ureic_pct cannot exceed n_pct")
+        elif self.n_form == "mixed" and n > 0:
+            raise ValueError("n_ureic_pct is required for mixed N forms (the label declares "
+                             "the ureic N, art. 12.3)")
         return self
 
 

@@ -259,7 +259,7 @@ def test_the_sigpac_map_is_bounded(client, sigpac):
 
 
 APP = {"stage": "pre_plant", "kind": "mineral", "product_name": "AN 27", "n_pct": 27,
-       "n_form": "mixed", "product_rate_kg_ha": 100, "method": "broadcast", "machine": "spreader"}
+       "n_form": "mixed", "n_ureic_pct": 0, "product_rate_kg_ha": 100, "method": "broadcast", "machine": "spreader"}
 
 
 @pytest.mark.parametrize("field", ["stage", "product_name", "machine"])

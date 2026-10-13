@@ -280,7 +280,7 @@ async def test_submit_return_and_review_edits(pool):
 
 async def test_split_findings_are_stored(pool):
     big = {"stage": "pre_plant", "kind": "mineral", "product_name": "AN 27", "n_pct": 27,
-           "n_form": "mixed", "product_rate_kg_ha": 1000, "method": "broadcast",
+           "n_form": "mixed", "n_ureic_pct": 0, "product_rate_kg_ha": 1000, "method": "broadcast",
            "machine": "spreader"}
     plan = await _ready(pool, [sheet(apps=[big])])
     pid = uuid.UUID(plan["id"])

@@ -68,7 +68,7 @@ def _soil_findings(ctx: PlanContext):
             years = MAX_AGE_IRRIGATED if sheet.inputs.get("irrigated") else MAX_AGE_RAINFED
             raw = analysis.get("sampling_date")
             try:
-                sampled = date.fromisoformat(str(raw))
+                sampled = date.fromisoformat(str(raw)[:10])
             except ValueError:
                 sampled = None
             if sampled is None:

@@ -123,6 +123,12 @@ def test_analysis_without_sampling_date_blocks():
     assert f.params["reasons"] == ["no_sampling_date"]
 
 
+def test_datetime_sampling_dates_are_accepted_and_garbage_blocks():
+    assert soil_findings(ctx(analysed("2026-09-01T00:00:00Z", False))) == []
+    (f,) = soil_findings(ctx(analysed("last spring", False)))
+    assert f.params["reasons"] == ["no_sampling_date"]
+
+
 def no_analysis_sheet(area):
     return sheet(result=result(inputs=inputs_with(**{
         "soil.analysis_id": {"value": None}, f"parcel.{P1}.area_ha": {"value": area}})))

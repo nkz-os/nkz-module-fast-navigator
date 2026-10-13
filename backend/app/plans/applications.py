@@ -96,6 +96,8 @@ class ApplicationIn(BaseModel):
         if self.n_ureic_pct is not None:
             if self.n_form not in ("ureic", "mixed"):
                 raise ValueError("n_ureic_pct only applies to ureic or mixed N forms")
+            if self.n_form == "ureic" and self.n_ureic_pct == 0:
+                raise ValueError("an ureic N form cannot declare 0 % ureic N")
             if self.n_ureic_pct > n + 1e-9:
                 raise ValueError("n_ureic_pct cannot exceed n_pct")
         elif self.n_form == "mixed" and n > 0:

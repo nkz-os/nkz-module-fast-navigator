@@ -103,11 +103,13 @@ def test_soil_gaps_only_warn_while_soil_data_are_not_mandatory():
     assert f.severity == WARN and f.params["reasons"] == ["no_analysis"]
 
 
-def test_estimated_texture_does_not_block_a_measured_analysis():
+def test_estimated_texture_does_not_block_a_measured_analysis(soil_mandatory):
     est = result(provisional=True, inputs=inputs_with(
         **{"soil.sand_pct": {"value": 40, "provenance": "estimated"},
            "soil.clay_pct": {"value": 25, "provenance": "estimated"}}))
-    assert soil_findings(ctx(sheet(result=est))) == []
+    c = ctx(sheet(result=est))
+    assert soil_findings(c) == []
+    assert soil_findings(c, "ES-RD1051-6.2-soil-transitional") == []
 
 
 def test_estimated_or_missing_legal_soil_values_block(soil_mandatory):
@@ -149,9 +151,10 @@ def no_analysis_sheet(area):
         "soil.analysis_id": {"value": None}, f"parcel.{P1}.area_ha": {"value": area}})))
 
 
-def test_small_sheet_of_a_small_unit_is_exempt_from_the_analysis():
+def test_small_sheet_of_a_small_unit_is_exempt_from_the_analysis(soil_mandatory):
     c = ctx(no_analysis_sheet(4.0))
     assert soil_findings(c) == []
+    assert soil_findings(c, "ES-RD1051-6.2-soil-transitional") == []
     (f,) = soil_findings(c, "ES-RD1051-6.2-analysis-exempt")
     assert f.severity == "info"
     assert f.params == {"sheet_area_ha": 4.0, "unit_area_ha": 4.0}

@@ -4,6 +4,7 @@ Owner decision 2026-10-13: the calculated N is the mean requirement (P50) after 
 mineral N credit; the effective N is the planned mineral N plus the available organic N."""
 from __future__ import annotations
 
+import math
 from datetime import date
 
 from app.rules import BLOCK, INFO, WARN, Rule
@@ -52,7 +53,7 @@ def valid_adjustment(adj: dict | None, at: date) -> dict | None:
     if adj["basis"] != "year_evolution" and not (adj.get("reference") or "").strip():
         return None
     n = adj.get("justified_n_kg_ha")
-    if isinstance(n, bool) or not isinstance(n, (int, float)) or n <= 0:
+    if isinstance(n, bool) or not isinstance(n, (int, float)) or not math.isfinite(n) or n <= 0:
         return None
     return adj
 

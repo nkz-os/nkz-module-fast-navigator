@@ -130,6 +130,8 @@ def test_a_justified_adjustment_lifts_the_n_limit_up_to_the_justified_value():
     {**ADJ, "reference": " "},                        # analysis without reference
     {**ADJ, "basis": "hunch"},
     {**ADJ, "description": ""},
+    {**ADJ, "justified_n_kg_ha": float("inf")},       # non-finite never justifies anything
+    {**ADJ, "justified_n_kg_ha": float("nan")},
 ])
 def test_an_insufficient_adjustment_still_blocks(bad):
     c = ctx(over_limit(bad))

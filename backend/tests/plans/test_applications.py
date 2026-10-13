@@ -97,6 +97,7 @@ MINERAL = {"stage": "pre_plant", "planned_date": "2026-10-20", "kind": "mineral"
     ({"n_form": "mixed", "n_pct": 32, "n_ureic_pct": 40}, False),    # more than the N
     ({"n_form": "nitric", "n_pct": 27, "n_ureic_pct": 5}, False),    # only ureic or mixed
     ({"n_form": "ureic", "n_pct": 46, "n_ureic_pct": 46}, True),
+    ({"n_form": "ureic", "n_pct": 46, "n_ureic_pct": 0}, False),     # contradictory label
     ({"n_form": "mixed", "n_pct": 27, "n_ureic_pct": 0}, True),
 ])
 def test_ureic_n_on_the_label(extra, ok):

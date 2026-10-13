@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Path, Query
 from pydantic import BaseModel, Field, model_validator
@@ -13,13 +13,14 @@ from app.db.pool import get_db
 from app.inputs.organic import OrganicApplication
 from app.inputs.parcel import is_parcel_identifier
 from app.middleware import AuthContext, require_auth
-from app.plans import repo, service
+from app.plans import repo, service, signing
 from app.plans.applications import ApplicationIn
 from app.plans.states import Action
 
 router = APIRouter(prefix="/plans", tags=["FaST plans"])
 
 WRITE_ROLES = ["Farmer", "TechnicalConsultant"]
+SIGN_ROLES = ["TechnicalConsultant"]
 FARM_PATTERN = r"^(tenant|urn:ngsi-ld:AgriFarm:[A-Za-z0-9._:-]+)$"
 KEY_PATTERN = r"^[a-z0-9-]{1,40}$"
 PARAM_PATTERN = r"^[a-z_]+(\.[a-z0-9_]+){1,2}$"
@@ -174,3 +175,67 @@ async def return_plan(plan_id: uuid.UUID, body: ReturnIn,
                       auth: AuthContext = require_auth(WRITE_ROLES), pool=Depends(get_db)) -> dict:
     return await service.transition(pool, _actor(auth), plan_id, body.row_version, Action.RETURN,
                                     comment=body.comment)
+
+
+class DeclarationsPut(BaseModel):
+    row_version: int
+    vulnerable_zone: bool | None = None
+    vulnerable_zone_source: str | None = Field(default=None, max_length=500)
+    voluntary_digital_notebook: bool = False
+
+
+class CloseIn(BaseModel):
+    row_version: int
+    closure_basis: Literal["titular_cualificado", "titular_sin_obligacion"]
+    signer_name: str = Field(min_length=1, max_length=200)
+
+
+@router.put("/{plan_id}/declarations")
+async def put_declarations(plan_id: uuid.UUID, body: DeclarationsPut,
+                           auth: AuthContext = require_auth(WRITE_ROLES),
+                           pool=Depends(get_db)) -> dict:
+    return await service.set_declarations(
+        pool, _actor(auth), plan_id, body.row_version, vulnerable_zone=body.vulnerable_zone,
+        vulnerable_zone_source=body.vulnerable_zone_source,
+        voluntary_digital_notebook=body.voluntary_digital_notebook)
+
+
+@router.post("/{plan_id}/sign")
+async def sign_plan(plan_id: uuid.UUID, body: RowVersion,
+                    auth: AuthContext = require_auth(SIGN_ROLES), pool=Depends(get_db)) -> dict:
+    return await signing.sign(pool, _actor(auth), plan_id, body.row_version, date.today())
+
+
+@router.post("/{plan_id}/close")
+async def close_plan(plan_id: uuid.UUID, body: CloseIn,
+                     auth: AuthContext = require_auth(WRITE_ROLES), pool=Depends(get_db)) -> dict:
+    return await signing.close(pool, _actor(auth), plan_id, body.row_version, body.closure_basis,
+                               body.signer_name, date.today())
+
+
+@router.post("/{plan_id}/revise", status_code=201)
+async def revise_plan(plan_id: uuid.UUID, body: RowVersion,
+                      auth: AuthContext = require_auth(WRITE_ROLES), pool=Depends(get_db)) -> dict:
+    return await signing.revise(pool, _actor(auth), plan_id, body.row_version)
+
+
+advisors_router = APIRouter(prefix="/advisors", tags=["FaST advisors"])
+
+
+class AdvisorPut(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    registration_number: str = Field(min_length=1, max_length=64)
+
+
+@advisors_router.get("/me")
+async def my_advisor(auth: AuthContext = require_auth(SIGN_ROLES), pool=Depends(get_db)) -> dict:
+    found = await signing.get_advisor(pool, _actor(auth))
+    if found is None:
+        raise service.NotFound("no advisor profile yet")
+    return found
+
+
+@advisors_router.put("/me")
+async def put_my_advisor(body: AdvisorPut, auth: AuthContext = require_auth(SIGN_ROLES),
+                         pool=Depends(get_db)) -> dict:
+    return await signing.put_advisor(pool, _actor(auth), body.name, body.registration_number)

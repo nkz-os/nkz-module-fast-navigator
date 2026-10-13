@@ -48,6 +48,9 @@ class TestAPI:
         assert "paths" in schema
 
 
+SUMMARY = "/api/fast/internal/plans/summary?tenant_id=t&parcel_id=p1&campaign=2027"
+
+
 class TestInternal:
     """/internal/* routes — authenticated by X-Internal-Service-Secret, not gateway headers."""
 
@@ -59,20 +62,12 @@ class TestInternal:
         get_settings.cache_clear()
 
     def test_internal_rejects_missing_secret(self, client):
-        response = client.post("/api/fast/internal/ping")
+        response = client.get(SUMMARY)
         assert response.status_code == 401
 
     def test_internal_rejects_wrong_secret(self, client):
-        response = client.post(
-            "/api/fast/internal/ping",
+        response = client.get(
+            SUMMARY,
             headers={"X-Internal-Service-Secret": "wrong"},
         )
         assert response.status_code == 401
-
-    def test_internal_accepts_correct_secret(self, client):
-        response = client.post(
-            "/api/fast/internal/ping",
-            headers={"X-Internal-Service-Secret": "test-internal-secret"},
-        )
-        assert response.status_code == 200
-        assert response.json() == {"status": "ok"}

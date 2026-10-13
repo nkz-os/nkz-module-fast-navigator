@@ -57,6 +57,11 @@ class PlanSheetIn(SheetIn):
         for app in self.applications:
             if app.organic_index is not None and app.organic_index >= len(self.organic):
                 raise ValueError(f"organic_index {app.organic_index} is not an organic input")
+        first, last = dt.date(self.campaign - 1, 1, 1), dt.date(self.campaign, 12, 31)
+        for i, app in enumerate(self.applications):
+            if app.planned_date is not None and not first <= app.planned_date <= last:
+                raise ValueError(f"application {i}: planned_date must lie between "
+                                 f"{first.isoformat()} and {last.isoformat()}")
         return self
 
 

@@ -271,6 +271,18 @@ def test_required_application_texts_cannot_be_blank(client, field):
     assert r.status_code == 422, r.text
 
 
+@pytest.mark.parametrize("day,ok", [("2025-12-31", False), ("2026-01-01", True),
+                                    ("2027-12-31", True), ("2028-01-01", False)])
+def test_planned_date_must_fall_in_the_campaign_window(client, day, ok):
+    plan = _new(client)
+    r = client.put(f"{BASE}/{plan['id']}/sheets", headers=FARMER, json={
+        "row_version": plan["row_version"],
+        "sheets": [SHEET | {"applications": [APP, APP | {"planned_date": day}]}]})
+    assert (r.status_code == 200) is ok, r.text
+    if not ok:
+        assert r.status_code == 422 and "application 1" in r.text
+
+
 def test_application_texts_are_stripped(client):
     plan = _new(client)
     app = APP | {"stage": " pre_plant ", "product_name": " AN 27 ", "machine": " spreader ",

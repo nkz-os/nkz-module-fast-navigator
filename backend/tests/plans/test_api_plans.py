@@ -290,3 +290,29 @@ def test_an_override_value_string_is_capped(client):
     r = client.put(f"{BASE}/{plan['id']}/sheets/wheat/overrides/soil.ph", headers=TECH,
                    json={"row_version": plan["row_version"], "value": "x" * 65, "reason": "r"})
     assert r.status_code == 422, r.text
+
+
+def test_a_failing_source_is_logged_with_path_tenant_and_source(client, data, caplog):
+    plan = _with_sheet(client)
+    data["fail"] = {"lab_analyses": SourceUnavailable("soil", "answered 500")}
+    with caplog.at_level("WARNING"):
+        r = client.post(f"{BASE}/{plan['id']}/calculate",
+                        json={"row_version": plan["row_version"]}, headers=FARMER)
+    assert r.status_code == 503
+    line = next(rec.getMessage() for rec in caplog.records if "source unavailable" in rec.getMessage())
+    assert f"{BASE}/{plan['id']}/calculate" in line and "tenant-a" in line and "soil" in line
+    assert "u-farmer" not in line
+
+
+def test_the_calculate_audit_records_status_and_versions_per_sheet(client):
+    plan = _with_sheet(client)
+    second = SHEET | {"key": "barley"}
+    r = client.put(f"{BASE}/{plan['id']}/sheets", headers=FARMER,
+                   json={"row_version": plan["row_version"], "sheets": [SHEET, second]})
+    plan = r.json()
+    client.post(f"{BASE}/{plan['id']}/calculate", json={"row_version": plan["row_version"]},
+                headers=FARMER)
+    detail = client.get(f"{BASE}/{plan['id']}/audit", headers=FARMER).json()[-1]["detail"]
+    assert set(detail["status"]) == {"wheat", "barley"}
+    assert set(detail["versions"]) == {"wheat", "barley"}
+    assert all(isinstance(v, dict) and v for v in detail["versions"].values())

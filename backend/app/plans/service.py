@@ -210,7 +210,7 @@ async def calculate_plan(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uui
     if not sheets:
         raise Invalid("the plan has no crop sheets")
 
-    rows, findings, statuses = [], [], {}
+    rows, findings, statuses, versions = [], [], {}, {}
     for sheet in sheets:
         result = calculate(await assemble(_request(plan.campaign, sheet), sources, today)).to_dict()
         organic = [OrganicApplication(**o) for o in sheet.inputs.get("organic") or []]
@@ -221,6 +221,7 @@ async def calculate_plan(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uui
                 apps, organic, result["n"]["min_kg_ha"], result["n"]["max_kg_ha"])]
         rows.append((sheet.id, result, summary))
         statuses[sheet.key] = result["status"]
+        versions[sheet.key] = result["versions"]
 
     async with pool.acquire() as conn, conn.transaction():
         plan = await _load(conn, actor, plan_id, for_update=True)
@@ -228,7 +229,7 @@ async def calculate_plan(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uui
         await repo.save_results(conn, plan.id, rows, findings)
         plan = await repo.update_plan(conn, plan.id, state=target, calculated=True)
         await repo.append_audit(conn, plan.id, actor.user_id, "calculate",
-                                {"status": statuses, "versions": rows[0][1]["versions"]})
+                                {"status": statuses, "versions": versions})
         logger.info("plan calculated tenant=%s plan=%s sheets=%d", actor.tenant_id, plan.id,
                     len(rows))
         return await _view(conn, plan)

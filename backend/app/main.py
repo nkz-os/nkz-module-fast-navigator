@@ -80,6 +80,9 @@ def create_app() -> FastAPI:
     @app.exception_handler(SourceUnavailable)
     async def source_unavailable(request, exc: SourceUnavailable):
         """Spec §12: a failing source stops the calculation and is named; nothing is inferred."""
+        logger.warning("source unavailable path=%s tenant=%s source=%s detail=%s",
+                       request.url.path, request.headers.get("X-Tenant-ID"), exc.source,
+                       exc.detail)
         return JSONResponse(status_code=503, content={"error": "source_unavailable",
                                                       "source": exc.source, "detail": exc.detail})
 

@@ -214,6 +214,7 @@ class DeclarationsPut(BaseModel):
     vulnerable_zone: bool | None = None
     vulnerable_zone_source: str | None = Field(default=None, max_length=500)
     voluntary_digital_notebook: bool = False
+    irrigated_spring_2026: bool | None = None
 
 
 class CloseIn(BaseModel):
@@ -229,7 +230,8 @@ async def put_declarations(plan_id: uuid.UUID, body: DeclarationsPut,
     return await service.set_declarations(
         pool, _actor(auth), plan_id, body.row_version, vulnerable_zone=body.vulnerable_zone,
         vulnerable_zone_source=body.vulnerable_zone_source,
-        voluntary_digital_notebook=body.voluntary_digital_notebook)
+        voluntary_digital_notebook=body.voluntary_digital_notebook,
+        irrigated_spring_2026=body.irrigated_spring_2026)
 
 
 @router.post("/{plan_id}/sign")

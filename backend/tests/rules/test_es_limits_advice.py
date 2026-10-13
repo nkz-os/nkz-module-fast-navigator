@@ -107,7 +107,8 @@ def test_advice_finding_is_informative():
     assert f.severity == "info"
     assert f.params == {"required": True, "required_from": "2027-09-01", "vulnerable_zone": None,
                         "assumed_vulnerable": True, "exempt": False, "irrigated_dates": False,
-                        "applies_until": "2027-08-31"}
+                        "applies_until": "2027-08-31", "irrigated_spring_2026": None,
+                        "assumed_spring_2026": False}
 
 
 def test_irrigated_plans_use_the_earlier_dates():

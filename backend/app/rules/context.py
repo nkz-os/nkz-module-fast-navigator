@@ -34,6 +34,7 @@ class PlanContext:
     vulnerable_zone: bool | None
     voluntary_digital_notebook: bool
     at: date                        # date the plan is judged at (signature date, or today)
+    irrigated_spring_2026: bool | None = None   # art. 4.2 declaration; None = not declared
 
 
 def plan_area(ctx: PlanContext) -> tuple[float, bool]:

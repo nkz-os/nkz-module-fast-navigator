@@ -1,7 +1,8 @@
 """RD 1051/2022 art. 6.6 as amended by RD 934/2025: technical advice is mandatory one year after
 the plan obligation (art. 4.2, 1-Sep-2026) in vulnerable zones and two years after elsewhere;
 units exempt from the plan are exempt from advice. Owner decision 2026-10-13: the farm declares
-whether it is in a vulnerable zone; undeclared counts as vulnerable."""
+whether it is in a vulnerable zone (undeclared counts as vulnerable) and whether the irrigated
+unit was sown or planted 1-Mar..30-Jun 2026 (undeclared counts as yes)."""
 from __future__ import annotations
 
 from datetime import date
@@ -18,7 +19,6 @@ ADVICE_OTHER_IRRIGATED = date(2028, 1, 1)
 
 
 def advice_required_from(vulnerable: bool | None, irrigated: bool = False) -> date:
-    # ASSUMPTION: sowing dates of 2026 unknown -> earlier dates for any irrigated plan (fail-safe)
     if irrigated:
         return ADVICE_OTHER_IRRIGATED if vulnerable is False else ADVICE_VULNERABLE_IRRIGATED
     return ADVICE_OTHER if vulnerable is False else ADVICE_VULNERABLE
@@ -26,6 +26,12 @@ def advice_required_from(vulnerable: bool | None, irrigated: bool = False) -> da
 
 def _irrigated(ctx: PlanContext) -> bool:
     return any(s.inputs.get("irrigated") for s in ctx.sheets)
+
+
+def _irrigated_dates(ctx: PlanContext) -> bool:
+    """Art. 4.2: the 1-Jan-2026 obligation (so 1-Jan advice dates) is for irrigated units sown
+    1-Mar..30-Jun 2026. The holder declares it; undeclared counts as yes (fail-safe)."""
+    return _irrigated(ctx) and ctx.irrigated_spring_2026 is not False
 
 
 def exempt(ctx: PlanContext) -> bool:
@@ -62,15 +68,17 @@ def advice_required(ctx: PlanContext) -> bool:
     """Owner 2026-10-13: what the administration checks is whether applications made once advice
     is mandatory are covered by an advised plan, so the period of application counts, not only
     the closing date."""
-    deadline = advice_required_from(ctx.vulnerable_zone, _irrigated(ctx))
+    deadline = advice_required_from(ctx.vulnerable_zone, _irrigated_dates(ctx))
     return not exempt(ctx) and max(ctx.at, fertilization_until(ctx)) >= deadline
 
 
 def _advice(ctx: PlanContext):
     return [({"required": advice_required(ctx),
               "required_from": advice_required_from(
-                  ctx.vulnerable_zone, _irrigated(ctx)).isoformat(),
-              "irrigated_dates": _irrigated(ctx),
+                  ctx.vulnerable_zone, _irrigated_dates(ctx)).isoformat(),
+              "irrigated_dates": _irrigated_dates(ctx),
+              "irrigated_spring_2026": ctx.irrigated_spring_2026,
+              "assumed_spring_2026": _irrigated(ctx) and ctx.irrigated_spring_2026 is None,
               "vulnerable_zone": ctx.vulnerable_zone,
               "assumed_vulnerable": ctx.vulnerable_zone is None,
               "exempt": exempt(ctx),

@@ -272,3 +272,21 @@ async def test_a_revision_whose_base_is_no_longer_signed_is_a_conflict(pool):
     with pytest.raises(service.Conflict):
         await signing.close(pool, FARMER, nid, new["row_version"], "titular_sin_obligacion",
                             "Juan", EARLY)
+
+
+async def test_irrigated_spring_2026_is_declared_sealed_and_revised(pool):
+    pid, plan = await ready(pool)
+    plan = await service.set_declarations(
+        pool, FARMER, pid, plan["row_version"], vulnerable_zone=True,
+        vulnerable_zone_source=None, voluntary_digital_notebook=False,
+        irrigated_spring_2026=False)
+    assert plan["declarations"]["irrigated_spring_2026"] is False
+    plan = await service.calculate_plan(pool, sources(), FARMER, pid, plan["row_version"], EARLY)
+    plan = await signing.close(pool, FARMER, pid, plan["row_version"], "titular_sin_obligacion",
+                               "Juan", EARLY)
+    async with pool.acquire() as c:
+        snap = await repo.get_snapshot(c, pid)
+    assert snap["declarations"]["irrigated_spring_2026"] is False
+    new = await signing.revise(pool, FARMER, pid, plan["row_version"])
+    assert new["declarations"]["irrigated_spring_2026"] is False
+

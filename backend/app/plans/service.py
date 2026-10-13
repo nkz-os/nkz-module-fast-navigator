@@ -87,7 +87,8 @@ async def build_context(conn: asyncpg.Connection, plan: repo.PlanRow, at: date, 
         history=_history(s.parcels, snapshots), n_adjustment=s.n_adjustment) for s in sheets)
     ctx = PlanContext(campaign=plan.campaign, sheets=contexts, rain=plan.rain,
                       vulnerable_zone=plan.vulnerable_zone,
-                      voluntary_digital_notebook=plan.voluntary_digital_notebook, at=at)
+                      voluntary_digital_notebook=plan.voluntary_digital_notebook, at=at,
+                      irrigated_spring_2026=plan.irrigated_spring_2026)
     return ctx, sheets, stored
 
 
@@ -130,7 +131,8 @@ async def _view(conn: asyncpg.Connection, plan: repo.PlanRow) -> dict:
         "findings": findings,
         "declarations": {"vulnerable_zone": plan.vulnerable_zone,
                          "vulnerable_zone_source": plan.vulnerable_zone_source,
-                         "voluntary_digital_notebook": plan.voluntary_digital_notebook},
+                         "voluntary_digital_notebook": plan.voluntary_digital_notebook,
+                         "irrigated_spring_2026": plan.irrigated_spring_2026},
         "signature": plan.signature, "signed_at": _iso(plan.signed_at),
         "snapshot_sha256": plan.snapshot_sha256, "rules_version": rules_version,
     }
@@ -352,7 +354,8 @@ async def calculate_plan(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uui
 
 
 async def set_declarations(pool, actor, plan_id, row_version, *, vulnerable_zone,
-                           vulnerable_zone_source, voluntary_digital_notebook) -> dict:
+                           vulnerable_zone_source, voluntary_digital_notebook,
+                           irrigated_spring_2026=None) -> dict:
     source = (vulnerable_zone_source or "").strip() or None
     if vulnerable_zone is False and source is None:
         raise Invalid("declaring the farm outside vulnerable zones needs its source")
@@ -362,12 +365,14 @@ async def set_declarations(pool, actor, plan_id, row_version, *, vulnerable_zone
         target = next_state(plan.state, Action.EDIT, actor.roles, Guard(calc_fresh=plan.calc_fresh))
         plan = await repo.set_declarations(conn, plan.id, vulnerable_zone=vulnerable_zone,
                                            vulnerable_zone_source=source,
-                                           voluntary_digital_notebook=voluntary_digital_notebook)
+                                           voluntary_digital_notebook=voluntary_digital_notebook,
+                                           irrigated_spring_2026=irrigated_spring_2026)
         if target != State(plan.state):
             plan = await repo.update_plan(conn, plan.id, state=target)
         await repo.append_audit(conn, plan.id, actor.user_id, "declarations",
                                 {"vulnerable_zone": vulnerable_zone, "source": source,
-                                 "voluntary_digital_notebook": voluntary_digital_notebook})
+                                 "voluntary_digital_notebook": voluntary_digital_notebook,
+                                 "irrigated_spring_2026": irrigated_spring_2026})
         return await _view(conn, plan)
 
 

@@ -46,12 +46,18 @@ def ctx(*sheets, at=date(2026, 10, 20), campaign=2027, vulnerable=None):
                        voluntary_digital_notebook=False, at=at)
 
 
+def result_with_water():
+    r = result()
+    r["inputs"]["irrigation.water_m3_ha"] = {"value": 1500.0, "provenance": "declared"}
+    return r
+
+
 def found(c, rule_id):
     return [f for f in evaluate(all_rules(), c) if f.rule_id == rule_id]
 
 
 def test_version():
-    assert RULES_VERSION == "es-2026.10.3"
+    assert RULES_VERSION == "es-2026.10.4"
 
 
 # 1. soil data: transitional warning until the MAPA guides + 1 year
@@ -165,3 +171,25 @@ def test_an_adjustment_belongs_to_the_campaign_year():
 def test_year_evolution_needs_no_reference():
     adj = {**ADJ, "basis": "year_evolution", "reference": None}
     assert valid_adjustment(adj, date(2026, 10, 20)) is not None
+
+
+def test_irrigated_spring_2026_declaration_moves_the_advice_dates():
+    irrigated = sheet(inputs={"irrigated": True, "strategy": 2, "organic": []},
+                      result=result_with_water())
+    base = ctx(irrigated, at=date(2026, 10, 20), campaign=2027)
+    assert advice.advice_required(base) is True             # undeclared: assumed sown in spring 2026
+    (f,) = found(base, "ES-RD1051-6.6-advice")
+    assert f.params["irrigated_dates"] is True and f.params["assumed_spring_2026"] is True
+    no = replace(base, irrigated_spring_2026=False)
+    assert advice.advice_required(no) is False              # general dates: 1-Sep-2027 > 31-Aug-2027
+    (f,) = found(no, "ES-RD1051-6.6-advice")
+    assert f.params["irrigated_dates"] is False and f.params["assumed_spring_2026"] is False
+    assert f.params["irrigated_spring_2026"] is False
+    assert advice.advice_required(replace(base, irrigated_spring_2026=True)) is True
+
+
+def test_the_declaration_does_not_matter_for_rainfed_plans():
+    c = replace(ctx(at=date(2026, 10, 20)), irrigated_spring_2026=True)
+    assert advice.advice_required(c) is False
+    (f,) = found(c, "ES-RD1051-6.6-advice")
+    assert f.params["assumed_spring_2026"] is False

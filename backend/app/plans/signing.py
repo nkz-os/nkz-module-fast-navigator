@@ -80,7 +80,8 @@ async def _freeze(conn, plan: repo.PlanRow, ctx, sheets, stored, signature: dict
                  "supersedes": str(plan.supersedes) if plan.supersedes else None},
         "declarations": {"vulnerable_zone": plan.vulnerable_zone,
                          "vulnerable_zone_source": plan.vulnerable_zone_source,
-                         "voluntary_digital_notebook": plan.voluntary_digital_notebook},
+                         "voluntary_digital_notebook": plan.voluntary_digital_notebook,
+                         "irrigated_spring_2026": plan.irrigated_spring_2026},
         "rain": plan.rain,
         "sheets": [{"key": s.key, "inputs": s.inputs, "overrides": s.overrides,
                     "parcels": s.parcels, "applications": s.applications,
@@ -184,7 +185,8 @@ async def revise(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID, row_versi
                 user_id=actor.user_id, version=plan.version + 1, supersedes=plan.id,
                 declarations={"vulnerable_zone": plan.vulnerable_zone,
                               "vulnerable_zone_source": plan.vulnerable_zone_source,
-                              "voluntary_digital_notebook": plan.voluntary_digital_notebook},
+                              "voluntary_digital_notebook": plan.voluntary_digital_notebook,
+                              "irrigated_spring_2026": plan.irrigated_spring_2026},
                 rain=plan.rain)
         except repo.PlanExists as exc:
             raise Conflict(str(exc)) from exc

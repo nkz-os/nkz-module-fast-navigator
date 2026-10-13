@@ -69,7 +69,7 @@ async def test_a_clean_plan_is_signed_frozen_and_reproducible(pool):
         snapshot = await repo.get_snapshot(c, pid)
     assert signing.verify_snapshot(snapshot) == []
     assert sha256_of(snapshot) == signed["snapshot_sha256"]      # the seal survives jsonb
-    assert snapshot["versions"]["rules"] == "es-2026.10.3"
+    assert snapshot["versions"]["rules"] == "es-2026.10.4"
     assert snapshot["signature"]["name"] == "Ana Pérez"
 
 
@@ -304,7 +304,8 @@ async def test_revising_copies_everything_the_plan_holds(pool):
     assert sheet["applications"] == [APP]
     assert [o["param"] for o in sheet["overrides"]] == ["soil.ph"]
     assert new["declarations"] == {"vulnerable_zone": False, "vulnerable_zone_source": "order",
-                                   "voluntary_digital_notebook": True}
+                                   "voluntary_digital_notebook": True,
+                                   "irrigated_spring_2026": None}
     assert new["rain_normal"] == closed["rain_normal"] and new["rain_normal"] is not None
 
 

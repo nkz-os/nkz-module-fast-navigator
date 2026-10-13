@@ -26,11 +26,14 @@ async def test_declarations_are_stored_and_mark_inputs_changed(pool):
     async with pool.acquire() as c:
         plan = await repo.create_plan(c, tenant_id=T, farm="tenant", campaign=2027, user_id="u1")
         assert plan.vulnerable_zone is None and plan.voluntary_digital_notebook is False
+        assert plan.irrigated_spring_2026 is None
         calc = await repo.update_plan(c, plan.id, state="calculated", calculated=True)
         assert calc.calc_fresh
         d = await repo.set_declarations(c, plan.id, vulnerable_zone=False,
                                         vulnerable_zone_source="regional order 2023",
-                                        voluntary_digital_notebook=True)
+                                        voluntary_digital_notebook=True,
+                                        irrigated_spring_2026=False)
+        assert d.irrigated_spring_2026 is False
         assert (d.vulnerable_zone, d.vulnerable_zone_source, d.voluntary_digital_notebook) == (
             False, "regional order 2023", True)
         assert d.row_version == calc.row_version + 1 and not d.calc_fresh
@@ -56,6 +59,7 @@ async def test_signing_stores_the_copy_and_the_seal(pool):
 
 @pytest.mark.parametrize("sql", [
     "UPDATE fast.plans SET rain = '{}'::jsonb WHERE id = $1",
+    "UPDATE fast.plans SET irrigated_spring_2026 = false WHERE id = $1",
     "UPDATE fast.plans SET snapshot = '{}'::jsonb WHERE id = $1",
     "UPDATE fast.plans SET state = 'draft' WHERE id = $1",
     "UPDATE fast.plans SET created_by = 'x' WHERE id = $1",
@@ -171,3 +175,10 @@ async def test_the_content_guard_waits_for_a_racing_signature(pool):
         source = await c.fetchval(
             "SELECT pg_get_functiondef('fast.guard_signed_content'::regproc)")
     assert "FOR SHARE" in source
+
+
+async def test_create_plan_reads_the_spring_2026_declaration(pool):
+    async with pool.acquire() as c:
+        plan = await repo.create_plan(c, tenant_id=T, farm="tenant", campaign=2027, user_id="u1",
+                                      declarations={"irrigated_spring_2026": True})
+        assert plan.irrigated_spring_2026 is True

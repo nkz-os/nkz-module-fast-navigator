@@ -23,3 +23,14 @@ def test_holder_qualification_routes(client):  # noqa: F811
     assert client.put(url, json=body, headers=TECH).status_code == 200
     got = client.get(url, headers=FARMER).json()
     assert got["reference"] == "COIA 1" and got["updated_by"] == "u-tech" and got["updated_at"]
+
+
+def test_declarations_route_takes_irrigated_spring_2026(client):  # noqa: F811
+    r = client.post(f"{BASE}/plans", json={"campaign": 2027}, headers=FARMER)
+    plan = r.json()
+    url = f"{BASE}/plans/{plan['id']}/declarations"
+    body = {"row_version": plan["row_version"], "vulnerable_zone": True}
+    bad = client.put(url, json={**body, "irrigated_spring_2026": "maybe"}, headers=FARMER)
+    assert bad.status_code == 422
+    r = client.put(url, json={**body, "irrigated_spring_2026": False}, headers=FARMER)
+    assert r.status_code == 200 and r.json()["declarations"]["irrigated_spring_2026"] is False

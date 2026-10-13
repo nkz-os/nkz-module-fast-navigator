@@ -10,8 +10,8 @@ import asyncpg
 
 _PLAN_COLUMNS = ("id, tenant_id, farm, campaign, version, state, supersedes, row_version, "
                  "inputs_changed_at, calculated_at, rain, created_by, created_at, updated_at, "
-                 "vulnerable_zone, vulnerable_zone_source, voluntary_digital_notebook, signature, "
-                 "snapshot_sha256, signed_at")
+                 "vulnerable_zone, vulnerable_zone_source, voluntary_digital_notebook, irrigated_spring_2026, "
+                 "signature, snapshot_sha256, signed_at")
 _ORGANIC_PARAM = re.compile(r"organic\.(0|[1-9][0-9]*)\.availability")
 
 
@@ -38,6 +38,7 @@ class PlanRow:
     vulnerable_zone: bool | None
     vulnerable_zone_source: str | None
     voluntary_digital_notebook: bool
+    irrigated_spring_2026: bool | None
     signature: dict | None
     snapshot_sha256: str | None
     signed_at: datetime | None
@@ -79,11 +80,13 @@ async def create_plan(conn: asyncpg.Connection, *, tenant_id: str, farm: str, ca
         row = await conn.fetchrow(
             f"INSERT INTO plans (id, tenant_id, farm, campaign, version, state, supersedes, "
             f"created_by, vulnerable_zone, vulnerable_zone_source, voluntary_digital_notebook, "
-            f"rain) VALUES ($1, $2, $3, $4, $5, 'draft', $6, $7, $8, $9, $10, $11) "
+            f"irrigated_spring_2026, rain) "
+            f"VALUES ($1, $2, $3, $4, $5, 'draft', $6, $7, $8, $9, $10, $11, $12) "
             f"RETURNING {_PLAN_COLUMNS}",
             uuid.uuid4(), tenant_id, farm, campaign, version, supersedes, user_id,
             d.get("vulnerable_zone"), d.get("vulnerable_zone_source"),
-            bool(d.get("voluntary_digital_notebook", False)), rain)
+            bool(d.get("voluntary_digital_notebook", False)),
+            d.get("irrigated_spring_2026"), rain)
     except asyncpg.UniqueViolationError as exc:
         raise PlanExists(f"an open plan exists for {farm} and campaign {campaign}") from exc
     return _plan(row)
@@ -270,12 +273,14 @@ async def get_results(conn: asyncpg.Connection, plan_id: uuid.UUID) -> dict[uuid
 
 async def set_declarations(conn: asyncpg.Connection, plan_id: uuid.UUID, *,
                            vulnerable_zone: bool | None, vulnerable_zone_source: str | None,
-                           voluntary_digital_notebook: bool) -> PlanRow:
+                           voluntary_digital_notebook: bool,
+                           irrigated_spring_2026: bool | None = None) -> PlanRow:
     row = await conn.fetchrow(
         f"UPDATE plans SET vulnerable_zone = $2, vulnerable_zone_source = $3, "
-        f"voluntary_digital_notebook = $4, row_version = row_version + 1, updated_at = now(), "
+        f"voluntary_digital_notebook = $4, irrigated_spring_2026 = $5, row_version = row_version + 1, updated_at = now(), "
         f"inputs_changed_at = clock_timestamp() WHERE id = $1 RETURNING {_PLAN_COLUMNS}",
-        plan_id, vulnerable_zone, vulnerable_zone_source, voluntary_digital_notebook)
+        plan_id, vulnerable_zone, vulnerable_zone_source, voluntary_digital_notebook,
+        irrigated_spring_2026)
     return _plan(row)
 
 

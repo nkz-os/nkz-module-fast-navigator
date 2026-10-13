@@ -57,7 +57,7 @@ def ids(c, severity=None):
 
 def test_a_good_plan_has_no_blocking_findings():
     assert ids(ctx(), BLOCK) == set()
-    assert RULES_VERSION == "es-2026.10.3"
+    assert RULES_VERSION == "es-2026.10.4"
 
 
 def test_scope_hint_for_small_rainfed_units():

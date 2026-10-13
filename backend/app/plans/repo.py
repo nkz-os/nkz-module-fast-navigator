@@ -233,10 +233,12 @@ async def save_results(conn: asyncpg.Connection, plan_id: uuid.UUID,
 
 async def get_results(conn: asyncpg.Connection, plan_id: uuid.UUID) -> dict[uuid.UUID, dict]:
     rows = await conn.fetch(
-        "SELECT r.sheet_id, r.result, r.applications_summary, r.assembled, r.calculated_at FROM results r "
+        "SELECT r.sheet_id, r.result, r.applications_summary, r.assembled, r.calculated_at "
+        "FROM results r "
         "JOIN crop_sheets s ON s.id = r.sheet_id WHERE s.plan_id = $1", plan_id)
     return {r["sheet_id"]: {"result": r["result"], "applications_summary": r["applications_summary"],
-                            "assembled": r["assembled"], "calculated_at": r["calculated_at"]} for r in rows}
+                            "assembled": r["assembled"],
+                            "calculated_at": r["calculated_at"]} for r in rows}
 
 
 async def set_declarations(conn: asyncpg.Connection, plan_id: uuid.UUID, *,

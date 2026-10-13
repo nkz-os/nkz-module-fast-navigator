@@ -55,6 +55,11 @@ async def test_signing_stores_the_copy_and_the_seal(pool):
     "UPDATE fast.plans SET rain = '{}'::jsonb WHERE id = $1",
     "UPDATE fast.plans SET snapshot = '{}'::jsonb WHERE id = $1",
     "UPDATE fast.plans SET state = 'draft' WHERE id = $1",
+    "UPDATE fast.plans SET created_by = 'x' WHERE id = $1",
+    "UPDATE fast.plans SET state = 'superseded', created_by = 'x' WHERE id = $1",
+    "UPDATE fast.plans SET state = 'superseded', created_at = now() WHERE id = $1",
+    "UPDATE fast.plans SET state = 'superseded', id = gen_random_uuid() WHERE id = $1",
+    "UPDATE fast.plans SET created_at = created_at + interval '1 day' WHERE id = $1",
     "UPDATE fast.crop_sheets SET inputs = '{}'::jsonb WHERE plan_id = $1",
     "DELETE FROM fast.crop_sheets WHERE plan_id = $1",
     "DELETE FROM fast.applications WHERE sheet_id IN (SELECT id FROM fast.crop_sheets WHERE plan_id = $1)",
@@ -66,6 +71,26 @@ async def test_a_signed_plan_cannot_change(pool, sql):
         plan = await _signed(c)
         with pytest.raises(asyncpg.RaiseError):
             await c.execute(sql, plan.id)
+
+
+async def test_content_cannot_be_moved_out_of_a_signed_plan(pool):
+    async with pool.acquire() as c:
+        signed = await _signed(c)
+        draft = await repo.create_plan(c, tenant_id=T, farm="other", campaign=2027, user_id="u1")
+        await repo.replace_sheets(c, draft.id, [repo.SheetData("w", {"organic": []}, (), ())])
+        (draft_sheet,) = await repo.get_sheets(c, draft.id)
+        (sheet,) = await repo.get_sheets(c, signed.id)
+        for sql, args in [
+            ("UPDATE fast.crop_sheets SET plan_id = $2 WHERE id = $1", (sheet.id, draft.id)),
+            ("UPDATE fast.applications SET sheet_id = $2 WHERE sheet_id = $1",
+             (sheet.id, draft_sheet.id)),
+            ("UPDATE fast.sheet_parcels SET sheet_id = $2 WHERE sheet_id = $1",
+             (sheet.id, draft_sheet.id)),
+            ("UPDATE fast.results SET sheet_id = $2 WHERE sheet_id = $1",
+             (sheet.id, draft_sheet.id)),
+        ]:
+            with pytest.raises(asyncpg.RaiseError):
+                await c.execute(sql, *args)
 
 
 async def test_a_signed_plan_can_only_be_superseded_and_then_never_changes(pool):

@@ -25,6 +25,9 @@ BEGIN
     END IF;
     IF OLD.state = 'signed' AND (
             NEW.state <> 'superseded'
+            OR NEW.id IS DISTINCT FROM OLD.id
+            OR NEW.created_by IS DISTINCT FROM OLD.created_by
+            OR NEW.created_at IS DISTINCT FROM OLD.created_at
             OR NEW.tenant_id IS DISTINCT FROM OLD.tenant_id
             OR NEW.farm IS DISTINCT FROM OLD.farm
             OR NEW.campaign IS DISTINCT FROM OLD.campaign
@@ -59,19 +62,25 @@ CREATE TRIGGER plans_no_delete BEFORE DELETE ON fast.plans
 CREATE OR REPLACE FUNCTION fast.guard_signed_content() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
     pid UUID;
-    sid UUID;
     st  TEXT;
 BEGIN
-    IF TG_TABLE_NAME IN ('crop_sheets', 'findings') THEN
-        IF TG_OP = 'DELETE' THEN pid := OLD.plan_id; ELSE pid := NEW.plan_id; END IF;
-    ELSE
-        IF TG_OP = 'DELETE' THEN sid := OLD.sheet_id; ELSE sid := NEW.sheet_id; END IF;
-        SELECT plan_id INTO pid FROM fast.crop_sheets WHERE id = sid;
-    END IF;
-    SELECT state INTO st FROM fast.plans WHERE id = pid;
-    IF st IN ('signed', 'superseded') THEN
-        RAISE EXCEPTION 'plan % is %: its content cannot change', pid, st;
-    END IF;
+    -- Check the plan of the old row and of the new row: content cannot leave or enter a frozen plan.
+    FOR i IN 1..2 LOOP
+        pid := NULL;
+        IF i = 1 AND TG_OP = 'INSERT' THEN CONTINUE; END IF;
+        IF i = 2 AND TG_OP = 'DELETE' THEN CONTINUE; END IF;
+        IF TG_TABLE_NAME IN ('crop_sheets', 'findings') THEN
+            IF i = 1 THEN pid := OLD.plan_id; ELSE pid := NEW.plan_id; END IF;
+        ELSIF i = 1 THEN
+            SELECT plan_id INTO pid FROM fast.crop_sheets WHERE id = OLD.sheet_id;
+        ELSE
+            SELECT plan_id INTO pid FROM fast.crop_sheets WHERE id = NEW.sheet_id;
+        END IF;
+        SELECT state INTO st FROM fast.plans WHERE id = pid;
+        IF st IN ('signed', 'superseded') THEN
+            RAISE EXCEPTION 'plan % is %: its content cannot change', pid, st;
+        END IF;
+    END LOOP;
     IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
     RETURN NEW;
 END $$;

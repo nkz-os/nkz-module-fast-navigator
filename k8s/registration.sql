@@ -1,3 +1,4 @@
+-- TEMPLATE FROM THE MODULE SCAFFOLD: placeholder values, replaced when the module is registered.
 -- =============================================================================
 -- FaST Navigator — Marketplace Registration
 -- =============================================================================

@@ -91,9 +91,9 @@ After the first CI publish, entity-manager invalidates the api-gateway route cac
 ## 9. Deploy backend (if any)
 
 ```bash
-docker build -t ghcr.io/nkz-os/fast-navigator-backend:v1.0.0 ./backend
-docker push ghcr.io/nkz-os/fast-navigator-backend:v1.0.0
-kubectl apply -f k8s/backend-deployment.yaml -n nekazari
+docker build -t ghcr.io/nkz-os/nkz-module-fast-navigator/fast-navigator-backend:v1.0.0 ./backend
+docker push ghcr.io/nkz-os/nkz-module-fast-navigator/fast-navigator-backend:v1.0.0
+# Deploy through your GitOps configuration; k8s/backend-deployment.yaml is a reference template.
 ```
 
 Do not add a dedicated `/api/fast-navigator` Ingress rule. Module API traffic should go through the platform `/api` catch-all and gateway auto-proxy, except for explicitly approved direct-ingress exceptions.

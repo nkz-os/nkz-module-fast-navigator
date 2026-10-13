@@ -1,237 +1,76 @@
-# Nekazari Module Template
+# FaST Navigator
 
-Starter template for building **external modules** for the Nekazari platform.
+Nekazari platform module that builds, checks and documents the **fertiliser
+(nutrient) plan** required of Spanish farm holdings by the *Real Decreto
+1051/2022, de 27 de diciembre, por el que se establecen normas para la
+nutricion sostenible en los suelos agrarios* (the "FaST" plan, "plan de
+abonado"). For each parcel and campaign it computes crop nutrient needs from
+soil, crop, weather and operation data read from the platform, checks the
+plan against the legal limits, and produces the plan document as a PDF with an
+audit trail and an advisor signature flow.
 
-Modules are built as **Module Federation 2.0 remotes** (`dist/remoteEntry.js` + `dist/mf-manifest.json` + `dist/assets/`) plus a `dist/manifest.json`. All are uploaded to MinIO and loaded at runtime by the host via `loadRemote()`. No build-time coupling to the host.
+Status: the backend is functional; the frontend in this repository is still the
+module scaffold.
 
----
+License: AGPL-3.0 (see `LICENSE`).
 
-## Quick start
+## Architecture
 
-```bash
-git clone https://github.com/nkz-os/nkz-module-template.git my-module
-cd my-module
-pnpm install
-```
+- `backend/` - FastAPI service (port 8000). Plans are stored in PostgreSQL
+  (own `fast` schema, migrated on start). Authentication relies on the
+  headers injected by the platform API gateway (`X-Tenant-ID`, `X-User-ID`,
+  `X-User-Roles`) plus its HMAC signature; `/internal/*` uses a shared secret.
+- `src/` - Module Federation frontend scaffold.
+- `k8s/backend-deployment.yaml` - reference Kubernetes template with
+  placeholders; real manifests belong to each installation's GitOps repo.
 
-Do a **find-and-replace** across the repo for these placeholders (this includes `src/locales/*.json` and `src/moduleEntry.ts` — the substitution walks every file, not just config):
+## API (under `API_PREFIX`, default `/api/fast`)
 
-| Placeholder | Example value | Where |
-|-------------|---------------|-------|
-| `fast-navigator` | `soil-sensor` | package.json (`name`, `nkz.moduleId`), moduleEntry.ts (`id`), k8s/, SQL |
-| `FaST Navigator` | `Soil Sensor` | moduleEntry.ts (`displayName`), locales/, k8s/, SQL |
-| `/fast-navigator` | `/soil-sensor` | k8s/, SQL |
-| `nkz-os` | `acme-corp` | k8s/backend-deployment.yaml, SQL |
-| `nkz-os` | `Jane Smith` | k8s/registration.sql (`author`) |
+| Route | Purpose |
+|---|---|
+| `POST /calc/preview` | Stateless calculation preview |
+| `GET /sources/parcels/{parcel_id}` | Inputs gathered for a parcel |
+| `GET, POST /plans` | List / create plans |
+| `GET /plans/{id}`, `GET /plans/{id}/audit` | Read a plan, its audit trail |
+| `PUT /plans/{id}/sheets`, `.../sheets/{key}/overrides/{param}`, `.../sheets/{key}/n-adjustment` | Edit sheets, overrides, N adjustment |
+| `POST /plans/{id}/calculate`, `GET /plans/{id}/compliance` | Calculate, check compliance |
+| `GET /plans/{id}/pdf` | Plan document (PDF) |
+| `POST /plans/{id}/rain-normal` | Rainfall normal for the plan |
+| `POST /plans/{id}/submit`, `/return`, `/sign`, `/close`, `/revise` | Review and signing workflow |
+| `PUT /plans/{id}/declarations` | Declarations |
+| `GET, PUT /advisors/me` | Advisor profile |
+| `GET, PUT /holder-qualification` | Holder qualification |
+| `GET /internal/plans/summary` | Signed plan summary for in-cluster callers (shared secret) |
+| `GET /health` | Probe (outside the prefix) |
 
-Then edit `src/moduleEntry.ts` to declare your slots, accent colour, icon, and permissions.
+OpenAPI docs are served at `{API_PREFIX}/docs`.
 
----
+## Configuration (environment variables)
 
-## Structure
+| Variable | Meaning |
+|---|---|
+| `POSTGRES_URL` (or `DATABASE_URL`) | PostgreSQL DSN. Mandatory: the service refuses to start without it. |
+| `API_PREFIX` | Route prefix, default `/api/fast`. |
+| `CORS_ORIGINS` | JSON list of allowed origins; empty denies all cross-origin requests. |
+| `HMAC_SECRET` | Secret used to verify the gateway signature and to sign calls to other modules. |
+| `REQUIRE_HMAC_SIGNATURE` | `true` to reject requests without a valid gateway signature. |
+| `INTERNAL_SERVICE_SECRET` | Secret for `/internal/*`; unset means those routes always answer 401. |
+| `BIOORCH_URL`, `SOIL_URL`, `WEATHER_API_URL`, `ENTITY_MANAGER_URL` | Base URLs of the platform services read for inputs. |
+| `APP_NAME`, `APP_VERSION`, `DEBUG`, `LOG_LEVEL` | Application metadata and logging. |
 
-```
-my-module/
-├── src/
-│   ├── moduleEntry.ts          # export default defineModule({...}) — MF2 entry
-│   ├── App.tsx                 # Main page component (lazy-loaded via moduleEntry.ts)
-│   ├── main.tsx                # Dev-only entry (Vite) — not part of the production bundle
-│   ├── i18n.ts                 # i18next resource bundle registration
-│   ├── locales/                # en/es filled in; ca/eu/fr/pt ship as {} skeletons
-│   ├── slots/index.ts           # Declare which host slots you occupy
-│   ├── components/slots/       # Slot React components (wrapped in <SlotShell>)
-│   ├── services/api.ts         # API client template (VITE_API_URL base)
-│   └── types/                  # TypeScript types
-├── backend/                    # FastAPI backend (optional, delete if unused)
-│   └── app/
-│       ├── middleware/         # Gateway-header auth (nkz_platform_sdk.auth) —
-│       │                       # NO JWKS/JWT validation in the module.
-│       └── api/internal.py     # /internal/* — X-Internal-Service-Secret only
-├── k8s/
-│   ├── backend-deployment.yaml # K8s Deployment + Service for backend
-│   └── registration.sql        # Insert/update marketplace_modules
-├── manifest.json                # NKZ metadata (routing, slots, data CSP) — edit by hand,
-│                                 # read at registration/publish time, NOT emitted into dist/
-├── vite.config.ts              # Uses @nekazari/module-builder preset (MF2)
-├── package.json
-└── dist/                       # `pnpm run build:module` output
-    ├── remoteEntry.js          # Federation remote entry
-    ├── mf-manifest.json        # Federation manifest (shared deps + exposes)
-    └── assets/                 # Sync + async chunks
-```
+See `env.example` for a local template.
 
----
+## Tests
 
-## `defineModule()` — the single source of truth
-
-Edit `src/moduleEntry.ts`:
-
-```ts
-import { defineModule } from '@nekazari/module-kit';
-import { lazy } from 'react';
-import './i18n';
-import { moduleSlots } from './slots';
-import pkg from '../package.json';
-
-const MainPage = lazy(() => import('./App'));
-
-export default defineModule({
-  id: 'soil-sensor',
-  displayName: 'Soil Sensor',
-  version: pkg.version,
-  hostApiVersion: '^2.0.0',
-  description: 'Soil Sensor — Nekazari Platform Module',
-  accent: { base: '#A16207', soft: '#FEF3C7', strong: '#713F12' },
-  icon: 'sprout',
-  main: MainPage,
-  slots: moduleSlots as never,
-});
-```
-
-Do **not** call `window.__NKZ__.register()` — that IIFE pattern no longer works under Module Federation 2.0. Export the `defineModule()` result instead; the builder and host runtime derive registration, slots and manifest from it.
-
-`fast-navigator` must match the `id` column in `marketplace_modules` exactly.
-
----
-
-## Hooks — talking to the platform
-
-Everything comes from `@nekazari/sdk` (shared federation singleton, resolved by the host at runtime):
-
-```tsx
-import { useViewer, useAuth, useTranslation } from '@nekazari/sdk';
-import { SlotShell } from '@nekazari/viewer-kit';
-
-const { t } = useTranslation('fast-navigator');
-const { selectedEntityId } = useViewer();
-const { isAuthenticated, user, getToken, getTenantId } = useAuth();
-```
-
-For your own backend, `src/services/api.ts` wraps `NKZClient` (also from `@nekazari/sdk`) with the module's `VITE_API_URL` base — see that file for the pattern. There is **no `useConfig()` hook**; read the API base at build time via `import.meta.env.VITE_API_URL`.
-
-You never write raw `fetch`, never handle JWT cookies, never construct `Fiware-Service` headers by hand.
-
----
-
-## Build
+The backend suite needs Docker (PostgreSQL via testcontainers) and the pango
+libraries for the PDF renderer (WeasyPrint):
 
 ```bash
-pnpm run build:module
-# → dist/remoteEntry.js, dist/mf-manifest.json, dist/assets/*
-#   (Module Federation 2.0 remote — upload the whole dist/ directory to MinIO)
+sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 fonts-dejavu-core
+cd backend
+pip install -r requirements-dev.txt
+python -m pytest -q
+ruff check app tests
 ```
 
-The `@nekazari/module-builder@^2.0.3` preset (`nkzModulePreset()`) configures Module Federation 2.0 via `@module-federation/vite`:
-- **Singleton shared deps** — `react`, `react-dom`, `@nekazari/*`, `i18next`, `react-i18next` resolved by the host at runtime. Never bundle them.
-- **`src/moduleEntry.ts`** → `export default defineModule({...})` is the single entry point exposed as `./Module`. The build emits `dist/remoteEntry.js` + `dist/mf-manifest.json` + `dist/assets/*`. The root-level `manifest.json` is separate — it is hand-edited metadata (routing, slots, data CSP) consumed at registration/publish time, not emitted into `dist/`.
-
----
-
-## Local development
-
-```bash
-pnpm run dev
-# http://localhost:5003 — dev shell only, not the production slot
-```
-
-For integration with a real backend, set `VITE_PROXY_TARGET=https://your-api-domain` in `.env`.
-
----
-
-## Deploy
-
-Push to `main`. That's it.
-
-The included `.github/workflows/build-push.yml` handles everything via GitHub Actions:
-
-1. **Tests** — frontend typecheck + backend tests
-2. **Build** — `pnpm run build:module` produces `dist/` (disabled by default in the raw template — the placeholder `fast-navigator` id fails the builder's kebab-case validator; remove the job's `if: false` once you've replaced placeholders)
-3. **Publish** — uploads to immutable `modules/fast-navigator/<git-sha>/` on MinIO, flips the live pointer
-
-The publish step uses **GitHub OIDC** for authentication:
-- Runner gets a signed JWT from `token.actions.githubusercontent.com`
-- `POST https://nkz.robotika.cloud/api/internal/modules/fast-navigator/publish`
-- No manual MinIO uploads. No `kubectl`. No database SQL.
-
-**Prerequisites (one-time, org-level — already done for nkz-os):**
-- Org secret `INTERNAL_SERVICE_SECRET` configured in GitHub Actions secrets
-- Module registered in `marketplace_modules` (one-time SQL `INSERT`, see `k8s/registration.sql`)
-- Module metadata includes gateway routing keys:
-  - `api_prefix` (for example `/api/fast-navigator`)
-  - `backend_service` (for example `http://fast-navigator-api-service:8000`)
-  - `backend_mount` (for example `/api/fast-navigator`)
-  - `requires_auth` (`true` by default)
-
-After first publish, verify metadata was preserved:
-
-```sql
-SELECT id, metadata->>'api_prefix', metadata->>'backend_service'
-FROM marketplace_modules
-WHERE id = 'fast-navigator';
-```
-
-If `api_prefix` is `NULL`, re-apply the routing metadata migration in `nkz` and invalidate the gateway `routes` cache.
-
----
-
-## Slots
-
-Edit `src/slots/index.ts` to register your components in host slots:
-
-```ts
-import type { ModuleViewerSlots } from '@nekazari/sdk';
-import { ExampleSlot } from '../components/slots/ExampleSlot';
-
-const MODULE_ID = 'soil-sensor';
-
-export const moduleSlots: ModuleViewerSlots = {
-  'map-layer': [],
-  'layer-toggle': [],
-  'context-panel': [
-    { id: 'soil-sensor-context', moduleId: MODULE_ID, component: 'ExampleSlot', localComponent: ExampleSlot, priority: 10 },
-  ],
-  'bottom-panel': [],
-  'entity-tree': [],
-  'dashboard-widget': [],
-};
-```
-
-Available slot types:
-
-| Slot | Where it renders |
-|------|-----------------|
-| `context-panel` | Side panel when an entity is selected |
-| `bottom-panel` | Tabbed panel at the bottom of the viewer |
-| `map-layer` | Overlay or toolbar button on the 3D map |
-| `layer-toggle` | Toggle entry in the layer panel |
-| `entity-tree` | Context menu in the entity tree |
-| `dashboard-widget` | Card in the tenant dashboard |
-
-Wrap every slot component's body in `<SlotShell>` from `@nekazari/viewer-kit` — it gives the panel chrome (title, accent scope, error boundary) the viewer expects; do not hand-roll that shell. See `src/components/slots/ExampleSlot.tsx`.
-
----
-
-## CSP-of-data (api-gateway enforcement)
-
-When the bundle calls a platform API, the gateway validates the requested NGSI-LD `type=` / Timescale hypertable against the module's declared data manifest (`data.entities` / `data.timeseries`). Declare exactly what your module needs — this is the platform's lightweight defence-in-depth, no replacement for sandboxing.
-
----
-
-## Build rules (critical)
-
-- **Keep `i18next@^23.11.0` and `react-i18next@^14.1.0`** — must match the host's singleton versions to avoid federation runtime version mismatch warnings.
-- **Never bundle shared deps** — React, ReactDOM, `@nekazari/*`, i18next, react-i18next. They come from the host as federation singletons. Bundling creates two instances and breaks hooks.
-- **`main` wrapper pattern** — `defineModule({ main: lazy(() => import('./App')) })` gives you a Suspense boundary for free; keep context providers, if any, inside `App.tsx`.
-- **i18n via ES import, not `window.__NKZ_SDK__`** — `import { i18n } from '@nekazari/sdk'` guarantees the SDK singleton is available at module-eval time; a `window.__NKZ_SDK__` read does not (the host injects it after the module's code has already loaded).
-
----
-
-## License
-
-AGPL-3.0-or-later (see `LICENSE`).
-
-The nutrient engine in `backend/app/engine` is a Python port, with modifications, of the
-FertiliCalc reference script by F. J. Villalobos (Universidad de Córdoba), distributed under the
-GNU GPL v3. The unmodified script and its licence are kept in
-`backend/tests/engine/fixtures/fertilicalc_reference/` as the test oracle. GPLv3 section 13
-allows combining it with AGPL-3.0 code.
+The image builds with `docker build -t fast-navigator-backend backend/`.

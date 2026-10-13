@@ -1,21 +1,20 @@
 # =============================================================================
-# FaST Navigator Backend Deployment
+# FaST Navigator backend - REFERENCE TEMPLATE
 # =============================================================================
-# Backend API service for FaST Navigator module
+# Reference only. The real manifests live in the GitOps configuration of each
+# installation; replace every YOUR_* marker there. Registration data
+# (k8s/registration.sql, manifest.json) is finalised when the module is
+# registered in a platform.
 # =============================================================================
-
----
-# Deployment: FaST Navigator Backend Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fast-navigator-backend
-  namespace: nekazari
+  namespace: YOUR_NAMESPACE
   labels:
     app: fast-navigator-backend
     component: backend
     module: fast-navigator
-    nekazari.io/profile: addon
 spec:
   replicas: 1
   selector:
@@ -27,59 +26,50 @@ spec:
         app: fast-navigator-backend
         component: backend
         module: fast-navigator
+        nkz-os.org/postgres-client: "true"
+        nkz-os.org/orion-client: "true"
     spec:
       containers:
         - name: backend
-          image: ghcr.io/nkz-os/fast-navigator-backend:v1.0.0
-          imagePullPolicy: Always
+          image: ghcr.io/nkz-os/nkz-module-fast-navigator/fast-navigator-backend:YOUR_IMAGE_TAG
           ports:
             - name: http
               containerPort: 8000
-          # Non-secret config (service URLs, CORS origins) belongs in a
-          # ConfigMap overlay in gitops-config/overlays/modules/fast-navigator/ —
-          # NOT in this public repo. `optional: true` so config.py's own
-          # defaults apply when the ConfigMap doesn't exist (e.g. local dev).
+          # Non-secret, installation-specific config (CORS origins, service
+          # URLs) goes in a ConfigMap kept in the installation's GitOps repo.
           envFrom:
             - configMapRef:
                 name: fast-navigator-config
                 optional: true
           env:
-            - name: APP_NAME
-              value: "FaST Navigator"
-            - name: DEBUG
-              value: "false"
             - name: API_PREFIX
-              value: "/api/fast-navigator"
-            # CORS — explicit origin whitelist (never *). This is a local
-            # placeholder; the production value lives in the ConfigMap overlay.
+              value: "/api/fast"
             - name: CORS_ORIGINS
-              value: '["https://your-frontend-domain"]'
-            # Auth: this module trusts gateway-injected headers (X-Tenant-ID,
-            # X-User-ID, X-User-Roles) via nkz_platform_sdk.auth.require_auth —
-            # no Keycloak/JWT config needed here (see app/middleware).
-            # Internal service-to-service auth (/internal/* routes only) —
-            # shared K8s Secret, hmac.compare_digest verification.
+              value: '["https://YOUR_FRONTEND_DOMAIN"]'
+            - name: REQUIRE_HMAC_SIGNATURE
+              value: "true"
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: YOUR_POSTGRES_SECRET
+                  key: connection-string
+            - name: HMAC_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: YOUR_HMAC_SECRET
+                  key: secret
             - name: INTERNAL_SERVICE_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: internal-service-secret
+                  name: YOUR_INTERNAL_SERVICE_SECRET
                   key: secret
-                  optional: true
-          # Database (only if this module writes admin/metadata to PostgreSQL —
-          # NEVER for time-series/telemetry, which flows through Orion-LD
-          # subscriptions only. See app/config.py:require_postgres_url.)
-          # - name: POSTGRES_URL
-          #   valueFrom:
-          #     secretKeyRef:
-          #       name: postgresql-secret
-          #       key: connection-string
           resources:
             requests:
-              memory: "128Mi"
+              memory: "256Mi"
               cpu: "100m"
             limits:
-              memory: "256Mi"
-              cpu: "200m"
+              memory: "768Mi"
+              cpu: "1"
           livenessProbe:
             httpGet:
               path: /health
@@ -94,14 +84,12 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3
-
 ---
-# Service: FaST Navigator Backend API
 apiVersion: v1
 kind: Service
 metadata:
   name: fast-navigator-api-service
-  namespace: nekazari
+  namespace: YOUR_NAMESPACE
   labels:
     app: fast-navigator-backend
     module: fast-navigator

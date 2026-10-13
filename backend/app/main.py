@@ -7,6 +7,7 @@ Main entry point for the backend service.
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -81,6 +82,13 @@ def create_app() -> FastAPI:
         """Spec §12: a failing source stops the calculation and is named; nothing is inferred."""
         return JSONResponse(status_code=503, content={"error": "source_unavailable",
                                                       "source": exc.source, "detail": exc.detail})
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request, exc: RequestValidationError):
+        """422 without echoing the input: a NaN in it cannot be serialised (and would be a 500)."""
+        detail = [{"type": e["type"], "loc": list(e["loc"]), "msg": e["msg"]}
+                  for e in exc.errors()]
+        return JSONResponse(status_code=422, content={"detail": detail})
 
     @app.exception_handler(NotFound)
     async def not_found(request, exc: NotFound):

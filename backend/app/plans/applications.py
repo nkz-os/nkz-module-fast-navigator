@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator, model_validator
 
 from app.engine.split import PRE_PLANT, PlannedApplication, n_split_issues
 from app.inputs.organic import OrganicApplication
@@ -41,12 +41,17 @@ AnnexVCode = Literal["A.a", "A.b", "A.c", "A.d", "A.e", "A.f", "A.g", "A.h", "A.
                      "B.a", "B.b", "B.c", "B.d", "B.e", "B.f", "B.g", "B.h", "B.i"]
 
 
+def _text(max_length: int):
+    return Annotated[str, StringConstraints(strip_whitespace=True, min_length=1,
+                                            max_length=max_length)]
+
+
 class ApplicationIn(BaseModel):
-    stage: str = Field(min_length=1, max_length=64)       # "pre_plant" or a crop stage label
+    stage: _text(64)       # "pre_plant" or a crop stage label
     planned_date: dt.date | None = None
     kind: Literal["mineral", "urea", "urea_solution", "ammonium_carbonate", "organo_mineral",
                   "organic"]
-    product_name: str = Field(min_length=1, max_length=200)
+    product_name: _text(200)
     registry_ref: str | None = Field(default=None, max_length=100)
     organic_index: int | None = Field(default=None, ge=0)
     n_pct: float | None = Field(default=None, ge=0, le=100)
@@ -57,9 +62,14 @@ class ApplicationIn(BaseModel):
     method: Literal["broadcast", "localized", "band", "injection", "incorporated", "fertigation",
                     "foliar", "other"]
     method_detail: str | None = Field(default=None, max_length=200)
-    machine: str = Field(min_length=1, max_length=200)    # description or ManufacturingMachine URN
+    machine: _text(200)    # description or ManufacturingMachine URN
     annex_v: list[AnnexVCode] = Field(default_factory=list, max_length=18)
     other_measure: str | None = Field(default=None, max_length=500)
+
+    @field_validator("registry_ref", "method_detail", "other_measure")
+    @classmethod
+    def _strip_optional(cls, v: str | None) -> str | None:
+        return (v.strip() or None) if v is not None else None
 
     @model_validator(mode="after")
     def _consistent(self) -> ApplicationIn:

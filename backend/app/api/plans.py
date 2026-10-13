@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import uuid
 from datetime import date
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query
 from pydantic import BaseModel, Field, model_validator
 
 from app.api import PLAN_ROLES, SheetIn, _urn, get_sources_factory
 from app.db.pool import get_db
+from app.inputs.organic import OrganicApplication
 from app.inputs.parcel import is_parcel_identifier
 from app.middleware import AuthContext, require_auth
 from app.plans import repo, service
@@ -31,7 +33,8 @@ class PlanCreate(BaseModel):
 class PlanSheetIn(SheetIn):
     key: str = Field(pattern=KEY_PATTERN)
     applications: list[ApplicationIn] = Field(default_factory=list, max_length=50)
-    sigpac: dict[str, str] = Field(default_factory=dict)
+    sigpac: dict[Annotated[str, Field(max_length=200)], Annotated[str, Field(max_length=200)]] = (
+        Field(default_factory=dict, max_length=200))
 
     @model_validator(mode="after")
     def _consistent(self) -> PlanSheetIn:
@@ -40,11 +43,15 @@ class PlanSheetIn(SheetIn):
         urns = [_urn(p) for p in self.parcel_ids]
         if len(set(urns)) != len(urns):
             raise ValueError("a parcel appears twice in the sheet")
+        if len({_urn(p) for p in self.sigpac}) != len(self.sigpac):
+            raise ValueError("sigpac gives one parcel twice")
         for parcel, value in self.sigpac.items():
             if _urn(parcel) not in urns:
                 raise ValueError(f"sigpac given for {parcel}, which is not in the sheet")
             if not is_parcel_identifier(value):
                 raise ValueError(f"{value!r} is not a SIGPAC recinto or cadastral reference")
+        for item in self.organic:
+            OrganicApplication(**item.model_dump())     # its ValueError becomes a 422
         for app in self.applications:
             if app.organic_index is not None and app.organic_index >= len(self.organic):
                 raise ValueError(f"organic_index {app.organic_index} is not an organic input")
@@ -65,7 +72,7 @@ class SheetsPut(BaseModel):
 
 class OverridePut(BaseModel):
     row_version: int
-    value: bool | float | str
+    value: bool | float | Annotated[str, Field(max_length=64)]
     reason: str = Field(min_length=1, max_length=500)
 
 

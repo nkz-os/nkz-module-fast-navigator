@@ -141,3 +141,33 @@ async def test_advisor_profile(pool):
         assert await repo.put_advisor(c, T, "u-tech", "Ana Pérez", "NA-123") == {
             "name": "Ana Pérez", "registration_number": "NA-123"}
         assert await repo.get_advisor(c, "tenant-b", "u-tech") is None
+
+
+async def test_a_frozen_state_needs_the_signature_the_copy_and_the_seal(pool):
+    async with pool.acquire() as c:
+        plan = await repo.create_plan(c, tenant_id=T, farm="tenant", campaign=2027, user_id="u1")
+        for state in ("signed", "superseded"):
+            with pytest.raises(asyncpg.CheckViolationError):
+                await c.execute("UPDATE fast.plans SET state = $2 WHERE id = $1", plan.id, state)
+        with pytest.raises(asyncpg.CheckViolationError):         # one column missing
+            await c.execute(
+                "UPDATE fast.plans SET state = 'signed', signature = '{}', snapshot = '{}', "
+                "snapshot_sha256 = 'x' WHERE id = $1", plan.id)
+        await c.execute(
+            "UPDATE fast.plans SET state = 'signed', signature = '{}', snapshot = '{}', "
+            "snapshot_sha256 = 'x', signed_at = now() WHERE id = $1", plan.id)
+
+
+async def test_a_plan_is_never_deleted(pool):
+    async with pool.acquire() as c:
+        plan = await repo.create_plan(c, tenant_id=T, farm="tenant", campaign=2027, user_id="u1")
+        with pytest.raises(asyncpg.RaiseError, match="never deleted"):
+            await c.execute("DELETE FROM fast.plans WHERE id = $1", plan.id)
+        assert await repo.get_plan(c, T, plan.id) is not None
+
+
+async def test_the_content_guard_waits_for_a_racing_signature(pool):
+    async with pool.acquire() as c:
+        source = await c.fetchval(
+            "SELECT pg_get_functiondef('fast.guard_signed_content'::regproc)")
+    assert "FOR SHARE" in source

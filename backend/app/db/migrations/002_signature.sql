@@ -58,6 +58,18 @@ END $$;
 CREATE TRIGGER plans_no_delete BEFORE DELETE ON fast.plans
     FOR EACH ROW EXECUTE FUNCTION fast.reject_plan_delete();
 
+-- A frozen plan always carries its signature, copy, seal and time.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'plans_frozen_has_seal'
+                   AND conrelid = 'fast.plans'::regclass) THEN
+        ALTER TABLE fast.plans ADD CONSTRAINT plans_frozen_has_seal CHECK (
+            state NOT IN ('signed', 'superseded')
+            OR (signature IS NOT NULL AND snapshot IS NOT NULL
+                AND snapshot_sha256 IS NOT NULL AND signed_at IS NOT NULL));
+    END IF;
+END $$;
+
 -- The content of a signed or superseded plan cannot change either.
 CREATE OR REPLACE FUNCTION fast.guard_signed_content() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
@@ -76,7 +88,7 @@ BEGIN
         ELSE
             SELECT plan_id INTO pid FROM fast.crop_sheets WHERE id = NEW.sheet_id;
         END IF;
-        SELECT state INTO st FROM fast.plans WHERE id = pid;
+        SELECT state INTO st FROM fast.plans WHERE id = pid FOR SHARE;   -- a racing writer waits
         IF st IN ('signed', 'superseded') THEN
             RAISE EXCEPTION 'plan % is %: its content cannot change', pid, st;
         END IF;

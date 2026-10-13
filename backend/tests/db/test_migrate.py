@@ -80,7 +80,8 @@ async def test_one_open_plan_per_farm_and_campaign(pool):
             raise AssertionError("a second open plan was accepted")
         except asyncpg.UniqueViolationError:
             pass
-        await c.execute("UPDATE plans SET state = 'superseded'")
+        await c.execute("UPDATE plans SET state = 'superseded', signature = '{}', "
+                        "snapshot = '{}', snapshot_sha256 = 'x', signed_at = now()")
         await c.execute("INSERT INTO plans (id, tenant_id, farm, campaign, version, state, created_by) "
                         "VALUES (gen_random_uuid(), 't', 'tenant', 2027, 2, 'draft', 'u')")
 

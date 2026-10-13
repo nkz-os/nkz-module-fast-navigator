@@ -335,7 +335,9 @@ async def test_rain_normal_is_not_stored_if_the_plan_is_signed_meanwhile(pool):
     class Signing(FakeSources):
         async def daily(self, *args, **kwargs):
             async with pool.acquire() as conn:
-                await conn.execute("UPDATE plans SET state = 'signed' WHERE id = $1 AND state <> 'signed'", pid)
+                await conn.execute("UPDATE plans SET state = 'signed', signature = '{}', snapshot = '{}', "
+                    "snapshot_sha256 = 'x', signed_at = now() "
+                    "WHERE id = $1 AND state <> 'signed'", pid)
             return await super().daily(*args, **kwargs)
 
     with pytest.raises(TransitionError) as err:

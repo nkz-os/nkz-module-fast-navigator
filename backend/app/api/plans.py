@@ -13,7 +13,7 @@ from app.db.pool import get_db
 from app.inputs.organic import OrganicApplication
 from app.inputs.parcel import is_parcel_identifier
 from app.middleware import AuthContext, require_auth
-from app.plans import repo, service, signing
+from app.plans import compliance_service, repo, service, signing
 from app.plans.applications import ApplicationIn
 from app.plans.clock import legal_today
 from app.plans.states import Action
@@ -187,6 +187,15 @@ async def calculate_plan(plan_id: uuid.UUID, body: RowVersion,
     async with sources_factory(auth.tenant_id) as sources:
         return await service.calculate_plan(pool, sources, _actor(auth), plan_id,
                                             body.row_version, legal_today())
+
+
+@router.get("/{plan_id}/compliance")
+async def plan_compliance(plan_id: uuid.UUID, auth: AuthContext = require_auth(PLAN_ROLES),
+                          pool=Depends(get_db),
+                          sources_factory=Depends(get_sources_factory)) -> dict:
+    async with sources_factory(auth.tenant_id) as sources:
+        return await compliance_service.compliance(pool, sources, _actor(auth), plan_id,
+                                                   legal_today())
 
 
 @router.post("/{plan_id}/rain-normal")

@@ -47,6 +47,16 @@ def _flag_species(cycle: dict | None, notices: list[Notice]) -> None:
             "species": cycle.get("species"), "crop_id": cycle.get("crop_id")}))
 
 
+def _is_pending(cycle: dict | None) -> bool:
+    """A planned cycle whose start is past, with no sowing fact and not closed: never confirmed."""
+    return cycle is not None and cycle.get("pending") is True
+
+
+def _flag_pending(cycle: dict, notices: list[Notice]) -> None:
+    notices.append(Notice("previous_cycle_pending", {
+        "crop_id": cycle.get("crop_id"), "campaign": cycle.get("campaign_label")}))
+
+
 def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
                        declared_crop: str | None = None,
                        declared_previous: str | None = None) -> CropChoice:
@@ -81,6 +91,9 @@ def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
         last = of_campaign[cycle_index - 1] if len(of_campaign) >= cycle_index else None
         if last is None:
             notices.append(Notice("double_crop_first_cycle_unknown", {"campaign": campaign}))
+        if _is_pending(last):
+            _flag_pending(last, notices)
+            last = None
         if _species(last):
             previous = Sourced(_species(last), MEASURED, f"{_SOURCE}:{last.get('crop_id')}")
             previous_campaign = last.get("campaign_label")
@@ -99,6 +112,11 @@ def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
                       and isinstance(c.get("campaign_label"), int)
                       and c["campaign_label"] < campaign]
         last = max(before, key=lambda c: _date(c, "end"), default=None)
+        if _is_pending(last):
+            # A planned cycle never confirmed is not a crop that was grown: never fall back to the
+            # older confirmed cycle behind it, the previous crop is the one the user declares.
+            _flag_pending(last, notices)
+            last = None
         if _species(last):
             previous = Sourced(_species(last), MEASURED, f"{_SOURCE}:{last.get('crop_id')}")
             previous_campaign = last.get("campaign_label")

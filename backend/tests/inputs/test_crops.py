@@ -123,3 +123,52 @@ def test_a_declared_crop_does_not_flag_the_cycle_species():
     cycles = [cycle("barley", 2027, "2026-10-25", "2027-07-10")]
     c = crops_for_campaign(cycles, 2027, declared_crop="HORVX", declared_previous="fallow")
     assert not any(n.code == "cycle_species_not_eppo" for n in c.notices)
+
+
+def _pending(c):
+    return {**c, "pending": True}
+
+
+def test_a_pending_immediately_preceding_cycle_is_no_previous_crop_even_with_an_older_confirmed_one():
+    older = cycle("HELAN", 2025, "2025-04-10", "2025-09-20")
+    pending_prev = _pending(cycle("TRZAX", 2026, "2026-04-10", "2026-09-20"))
+    cycles = [older, pending_prev, cycle("ZEAMX", 2027, "2026-10-25", "2027-07-10")]
+    c = crops_for_campaign(cycles, 2027)
+    assert not c.previous.known and c.previous_campaign is None
+    assert MissingInput("previous_crop", "plan", {"campaign": 2027}) in c.missing
+    assert Notice("previous_cycle_pending",
+                  {"crop_id": pending_prev["crop_id"], "campaign": 2026}) in c.notices
+
+
+def test_a_pending_cycle_that_is_not_the_immediately_preceding_one_is_irrelevant():
+    older_pending = _pending(cycle("TRZAX", 2024, "2024-04-10", "2024-09-20"))
+    confirmed_prev = cycle("HELAN", 2026, "2026-04-10", "2026-09-20")
+    cycles = [older_pending, confirmed_prev, cycle("ZEAMX", 2027, "2026-10-25", "2027-07-10")]
+    c = crops_for_campaign(cycles, 2027)
+    assert c.previous.value == "HELAN" and c.previous_campaign == 2026
+    assert not c.missing and not c.notices
+
+
+def test_second_crop_after_a_pending_first_cycle_has_no_previous_crop():
+    pending_first = _pending(cycle("TRZAX", 2027, "2026-10-25", "2027-06-20"))
+    cycles = [pending_first, cycle("HORVX", 2027, "2027-07-01", "2027-10-30")]
+    c = crops_for_campaign(cycles, 2027, cycle_index=1)
+    assert not c.previous.known
+    assert MissingInput("previous_crop", "plan", {"campaign": 2027}) in c.missing
+    assert Notice("previous_cycle_pending",
+                  {"crop_id": pending_first["crop_id"], "campaign": 2027}) in c.notices
+
+
+def test_the_plan_campaigns_own_pending_cycles_are_still_the_plan_crops():
+    previous = cycle("HELAN", 2026, "2026-04-10", "2026-09-20")
+    own = _pending(cycle("TRZAX", 2027, "2026-10-25", "2027-07-10"))
+    c = crops_for_campaign([previous, own], 2027)
+    assert c.crop.value == "TRZAX" and c.crop.provenance == MEASURED
+    assert c.previous.value == "HELAN" and c.previous_campaign == 2026
+    assert not c.missing and not c.notices
+
+    first = cycle("TRZAX", 2027, "2026-10-25", "2027-06-20")
+    second = _pending(cycle("HORVX", 2027, "2027-07-01", "2027-10-30"))
+    c = crops_for_campaign([first, second], 2027, cycle_index=1)
+    assert c.crop.value == "HORVX" and c.previous.value == "TRZAX"
+    assert not c.missing and not any(n.code == "previous_cycle_pending" for n in c.notices)

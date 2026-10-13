@@ -3,8 +3,9 @@ from datetime import date
 
 import pytest
 
-from app.rules import BLOCK, evaluate
+from app.rules import BLOCK, WARN, evaluate
 from app.rules.context import PlanContext, SheetContext
+from app.rules.es import rd1051
 from app.rules.registry import RULES_VERSION, all_rules
 
 P1 = "urn:ngsi-ld:AgriParcel:p1"
@@ -56,7 +57,7 @@ def ids(c, severity=None):
 
 def test_a_good_plan_has_no_blocking_findings():
     assert ids(ctx(), BLOCK) == set()
-    assert RULES_VERSION == "es-2026.10.2"
+    assert RULES_VERSION == "es-2026.10.3"
 
 
 def test_scope_hint_for_small_rainfed_units():
@@ -78,14 +79,28 @@ def inputs_with(**over):
     return {**result()["inputs"], **over}
 
 
+@pytest.fixture
+def soil_mandatory(monkeypatch):
+    """Soil data are mandatory (MAPA guides published + 1 year) for the blocking 6.2 rule."""
+    monkeypatch.setattr(rd1051, "SOIL_DATA_MANDATORY_FROM", date(2026, 1, 1))
+
+
 def soil_findings(c, rule_id="ES-RD1051-6.2-soil"):
     return [f for f in evaluate(all_rules(), c) if f.rule_id == rule_id]
 
 
-def test_soil_needs_a_laboratory_analysis():
+def test_soil_needs_a_laboratory_analysis(soil_mandatory):
     none = result(inputs=inputs_with(**{"soil.analysis_id": {"value": None}}))
     (f,) = soil_findings(ctx(sheet(result=none)))
     assert f.severity == BLOCK and f.params["reasons"] == ["no_analysis"]
+
+
+def test_soil_gaps_only_warn_while_soil_data_are_not_mandatory():
+    none = result(inputs=inputs_with(**{"soil.analysis_id": {"value": None}}))
+    c = ctx(sheet(result=none))
+    assert soil_findings(c) == []
+    (f,) = soil_findings(c, "ES-RD1051-6.2-soil-transitional")
+    assert f.severity == WARN and f.params["reasons"] == ["no_analysis"]
 
 
 def test_estimated_texture_does_not_block_a_measured_analysis():
@@ -95,7 +110,7 @@ def test_estimated_texture_does_not_block_a_measured_analysis():
     assert soil_findings(ctx(sheet(result=est))) == []
 
 
-def test_estimated_or_missing_legal_soil_values_block():
+def test_estimated_or_missing_legal_soil_values_block(soil_mandatory):
     est = result(inputs=inputs_with(**{"soil.ph": {"value": 7.0, "provenance": "estimated"},
                                        "soil.k_mg_kg": {"value": None, "provenance": "missing"}}))
     (f,) = soil_findings(ctx(sheet(result=est)))
@@ -108,7 +123,7 @@ def analysed(date_s, irrigated):
         inputs=inputs_with(**{"soil.analysis_id": {"value": "a1", "sampling_date": date_s}})))
 
 
-def test_analysis_age_limits_depend_on_irrigation():
+def test_analysis_age_limits_depend_on_irrigation(soil_mandatory):
     (old,) = soil_findings(ctx(analysed("2016-10-19", False)))
     assert old.params["reasons"] == ["too_old"]
     assert old.params["sampling_date"] == "2016-10-19" and old.params["max_age_years"] == 10
@@ -118,12 +133,12 @@ def test_analysis_age_limits_depend_on_irrigation():
     assert soil_findings(ctx(analysed("2020-10-01", False))) == []
 
 
-def test_analysis_without_sampling_date_blocks():
+def test_analysis_without_sampling_date_blocks(soil_mandatory):
     (f,) = soil_findings(ctx(analysed(None, False)))
     assert f.params["reasons"] == ["no_sampling_date"]
 
 
-def test_datetime_sampling_dates_are_accepted_and_garbage_blocks():
+def test_datetime_sampling_dates_are_accepted_and_garbage_blocks(soil_mandatory):
     assert soil_findings(ctx(analysed("2026-09-01T00:00:00Z", False))) == []
     (f,) = soil_findings(ctx(analysed("last spring", False)))
     assert f.params["reasons"] == ["no_sampling_date"]
@@ -143,7 +158,7 @@ def test_small_sheet_of_a_small_unit_is_exempt_from_the_analysis():
     assert f.citation == "RD 1311/2012, annex III part I C.i.d (RD 1051/2022)"
 
 
-def test_exemption_needs_a_unit_of_at_most_20_ha_and_a_known_area():
+def test_exemption_needs_a_unit_of_at_most_20_ha_and_a_known_area(soil_mandatory):
     P2 = "urn:ngsi-ld:AgriParcel:p2"
     big = sheet(key="maize", parcels=({"urn": P2, "sigpac": None},), result=result(
         inputs={f"parcel.{P2}.area_ha": {"value": 21.0}, "soil.analysis_id": {"value": "a2"}}))

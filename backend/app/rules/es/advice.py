@@ -34,8 +34,36 @@ def exempt(ctx: PlanContext) -> bool:
     return area_known(ctx) and area > 0 and rainfed and area <= EXEMPT_RAINFED_HA
 
 
+def campaign_end(campaign: int) -> date:
+    """Last day of the agricultural year of a harvest-year campaign (1-Sep..31-Aug, the way
+    art. 4.2 counts the plan obligation)."""
+    return date(campaign, 8, 31)
+
+
+def _planned_dates(ctx: PlanContext) -> list[date]:
+    out = []
+    for sheet in ctx.sheets:
+        for app in sheet.applications:
+            raw = app.get("planned_date")
+            if raw:
+                try:
+                    out.append(date.fromisoformat(str(raw)[:10]))
+                except ValueError:
+                    continue
+    return out
+
+
+def fertilization_until(ctx: PlanContext) -> date:
+    """Last day the plan is applied: its campaign's agricultural year, or a later planned date."""
+    return max([campaign_end(ctx.campaign), *_planned_dates(ctx)])
+
+
 def advice_required(ctx: PlanContext) -> bool:
-    return not exempt(ctx) and ctx.at >= advice_required_from(ctx.vulnerable_zone, _irrigated(ctx))
+    """Owner 2026-10-13: what the administration checks is whether applications made once advice
+    is mandatory are covered by an advised plan, so the period of application counts, not only
+    the closing date."""
+    deadline = advice_required_from(ctx.vulnerable_zone, _irrigated(ctx))
+    return not exempt(ctx) and max(ctx.at, fertilization_until(ctx)) >= deadline
 
 
 def _advice(ctx: PlanContext):
@@ -45,7 +73,8 @@ def _advice(ctx: PlanContext):
               "irrigated_dates": _irrigated(ctx),
               "vulnerable_zone": ctx.vulnerable_zone,
               "assumed_vulnerable": ctx.vulnerable_zone is None,
-              "exempt": exempt(ctx)}, None)]
+              "exempt": exempt(ctx),
+              "applies_until": fertilization_until(ctx).isoformat()}, None)]
 
 
 RULES = [Rule("ES-RD1051-6.6-advice", "RD 1051/2022, art. 6.6 (RD 934/2025) and art. 21", INFO,

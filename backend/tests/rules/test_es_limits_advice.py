@@ -106,7 +106,8 @@ def test_advice_finding_is_informative():
     (f,) = found(ctx(at=date(2027, 10, 1)), "ES-RD1051-6.6-advice")
     assert f.severity == "info"
     assert f.params == {"required": True, "required_from": "2027-09-01", "vulnerable_zone": None,
-                        "assumed_vulnerable": True, "exempt": False, "irrigated_dates": False}
+                        "assumed_vulnerable": True, "exempt": False, "irrigated_dates": False,
+                        "applies_until": "2027-08-31"}
 
 
 def test_irrigated_plans_use_the_earlier_dates():

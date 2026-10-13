@@ -87,8 +87,23 @@ def _soil_findings(ctx: PlanContext):
     return blocks, exempt
 
 
+# RD 1311/2012 annex III part I C.i (as amended by RD 1051/2022): soil data are not mandatory
+# until one year after the MAPA publishes its soil sampling and analysis guides. Not published
+# as of 2026-10-13 (owner): when they are, set publication + 1 year in a new rules version.
+# Sewage sludge (always analysed) is not a material FaST plans.
+SOIL_DATA_MANDATORY_FROM: date | None = None
+
+
+def soil_data_mandatory(at: date) -> bool:
+    return SOIL_DATA_MANDATORY_FROM is not None and at >= SOIL_DATA_MANDATORY_FROM
+
+
 def _soil(ctx: PlanContext):
-    return _soil_findings(ctx)[0]
+    return _soil_findings(ctx)[0] if soil_data_mandatory(ctx.at) else []
+
+
+def _soil_transitional(ctx: PlanContext):
+    return [] if soil_data_mandatory(ctx.at) else _soil_findings(ctx)[0]
 
 
 def _soil_exempt_info(ctx: PlanContext):
@@ -140,8 +155,12 @@ def _ammonium_carbonate(ctx: PlanContext):
 
 
 def _is_ureic(app: dict) -> bool:
-    return app.get("kind") in _UREA_KINDS or (
-        app.get("kind") in ("mineral", "organo_mineral") and app.get("n_form") == "ureic")
+    """Art. 12.3 "urea o soluciones nitrogenadas ureicas": urea products, and any non-organic
+    product whose label declares ureic N."""
+    if app.get("kind") in _UREA_KINDS:
+        return True
+    return app.get("kind") in ("mineral", "organo_mineral") and (
+        app.get("n_form") == "ureic" or (app.get("n_ureic_pct") or 0) > 0)
 
 
 def _urea(ctx: PlanContext):
@@ -182,6 +201,9 @@ RULES = [
     Rule("ES-RD1051-4.2-scope", f"{C}, art. 4.2", INFO, IN_FORCE, None, _scope),
     Rule("ES-RD1051-6.1-recinto", f"{C}, art. 6.1", BLOCK, IN_FORCE, None, _recinto),
     Rule("ES-RD1051-6.2-soil", f"{C}, art. 6.2", BLOCK, IN_FORCE, None, _soil),
+    Rule("ES-RD1051-6.2-soil-transitional",
+         f"{C}, art. 6.2; RD 1311/2012, annex III part I C.i (soil data not yet mandatory: "
+         "MAPA sampling guides not published)", WARN, IN_FORCE, None, _soil_transitional),
     Rule("ES-RD1051-6.2-analysis-exempt",
          "RD 1311/2012, annex III part I C.i.d (RD 1051/2022)", INFO, IN_FORCE, None,
          _soil_exempt_info),

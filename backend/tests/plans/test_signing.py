@@ -69,7 +69,7 @@ async def test_a_clean_plan_is_signed_frozen_and_reproducible(pool):
         snapshot = await repo.get_snapshot(c, pid)
     assert signing.verify_snapshot(snapshot) == []
     assert sha256_of(snapshot) == signed["snapshot_sha256"]      # the seal survives jsonb
-    assert snapshot["versions"]["rules"] == "es-2026.10.2"
+    assert snapshot["versions"]["rules"] == "es-2026.10.3"
     assert snapshot["signature"]["name"] == "Ana Pérez"
 
 

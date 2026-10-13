@@ -14,6 +14,7 @@ class SheetContext:
     result: dict | None             # SheetResult.to_dict(), None if not calculated
     summary: dict | None            # applications summary
     history: tuple[dict, ...] = ()  # previous campaigns of these parcels (P and K limits)
+    n_adjustment: dict | None = None   # technician's justified N adjustment (annex III-I.3)
 
     def _item(self, name: str) -> dict:
         return ((self.result or {}).get("inputs") or {}).get(name) or {}

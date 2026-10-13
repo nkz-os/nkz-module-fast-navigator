@@ -34,17 +34,56 @@ def effective_n(result: dict | None, summary: dict | None) -> float | None:
     return mineral + organic
 
 
-def _n_limit(ctx: PlanContext):
-    hits = []
+ADJUSTMENT_BASES = ("foliar_analysis", "other_technique", "year_evolution")
+
+
+def valid_adjustment(adj: dict | None, at: date) -> dict | None:
+    """Annex III-I.3: N may exceed the limit when plant-need determinations (foliar analysis or
+    another accepted technique) or the course of the agricultural year justify it. Incomplete,
+    future-dated or unreferenced (except year evolution) justifications do not count."""
+    if not adj or adj.get("basis") not in ADJUSTMENT_BASES:
+        return None
+    try:
+        day = date.fromisoformat(str(adj.get("date"))[:10])
+    except ValueError:
+        return None
+    if day > at or not (adj.get("description") or "").strip():
+        return None
+    if adj["basis"] != "year_evolution" and not (adj.get("reference") or "").strip():
+        return None
+    n = adj.get("justified_n_kg_ha")
+    if isinstance(n, bool) or not isinstance(n, (int, float)) or n <= 0:
+        return None
+    return adj
+
+
+def _n_findings(ctx: PlanContext):
+    blocks, adjusted = [], []
     for sheet in ctx.sheets:
         calc, eff = calculated_n(sheet.result), effective_n(sheet.result, sheet.summary)
         if calc is None or eff is None:
             continue
         limit = calc * N_FACTOR
-        if eff > limit + _EPS:
-            hits.append(({"effective_n_kg_ha": round(eff, 1), "calculated_n_kg_ha": round(calc, 1),
-                          "limit_kg_ha": round(limit, 1)}, sheet.key))
-    return hits
+        if eff <= limit + _EPS:
+            continue
+        params = {"effective_n_kg_ha": round(eff, 1), "calculated_n_kg_ha": round(calc, 1),
+                  "limit_kg_ha": round(limit, 1)}
+        adj = valid_adjustment(sheet.n_adjustment, ctx.at)
+        if adj is not None and eff <= adj["justified_n_kg_ha"] + _EPS:
+            adjusted.append(({**params, "justified_n_kg_ha": adj["justified_n_kg_ha"],
+                              "basis": adj["basis"], "date": adj["date"],
+                              "reference": adj.get("reference")}, sheet.key))
+        else:
+            blocks.append((params, sheet.key))
+    return blocks, adjusted
+
+
+def _n_limit(ctx: PlanContext):
+    return _n_findings(ctx)[0]
+
+
+def _n_adjusted(ctx: PlanContext):
+    return _n_findings(ctx)[1]
 
 
 def _five_years(oxide: str, factor: float):
@@ -85,6 +124,8 @@ def _history_short(ctx: PlanContext):
 C = "RD 1051/2022"
 RULES = [
     Rule("ES-RD1051-AIII-3-N", f"{C}, annex III-I.3", BLOCK, IN_FORCE, None, _n_limit),
+    Rule("ES-RD1051-AIII-3-N-adjusted", f"{C}, annex III-I.3 (justified adjustment)", INFO,
+         IN_FORCE, None, _n_adjusted),
     Rule("ES-RD1051-AIII-4-P", f"{C}, annex III-I.4", WARN, IN_FORCE, None,
          _five_years("p2o5", P_FACTOR)),
     Rule("ES-RD1051-AIII-5-K", f"{C}, annex III-I.5", WARN, IN_FORCE, None,

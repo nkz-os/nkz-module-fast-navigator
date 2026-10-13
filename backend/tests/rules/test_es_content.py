@@ -22,6 +22,10 @@ def result(**over):
             f"parcel.{P1}.area_ha": {"value": 12.0, "provenance": "measured"},
             f"parcel.{P1}.identifier": {"value": "31201A00100123", "provenance": "measured"},
             "soil.analysis_id": {"value": "a1", "sampling_date": "2026-09-01"},
+            "soil.ph": {"value": 7.8, "provenance": "measured"},
+            "soil.organic_matter_pct": {"value": 1.9, "provenance": "measured"},
+            "soil.p_olsen_mg_kg": {"value": 14.0, "provenance": "entered"},
+            "soil.k_mg_kg": {"value": 210.0, "provenance": "measured"},
             "irrigation.water_m3_ha": {"value": 0.0, "provenance": "declared"},
             "region.nuts": {"value": "ES24", "provenance": "declared"},
             "yield.basis": {"value": "zone", "years": [2020]},
@@ -52,7 +56,7 @@ def ids(c, severity=None):
 
 def test_a_good_plan_has_no_blocking_findings():
     assert ids(ctx(), BLOCK) == set()
-    assert RULES_VERSION == "es-2026.10.0"
+    assert RULES_VERSION == "es-2026.10.1"
 
 
 def test_scope_hint_for_small_rainfed_units():
@@ -70,12 +74,79 @@ def test_recinto_needs_an_identifier():
     assert "ES-RD1051-6.1-recinto" not in ids(ctx(declared))
 
 
-@pytest.mark.parametrize("change", [
-    {"inputs": {**result()["inputs"], "soil.analysis_id": {"value": None}}},
-    {"provisional": True},
-])
-def test_soil_needs_a_laboratory_analysis(change):
-    assert "ES-RD1051-6.2-soil" in ids(ctx(sheet(result=result(**change))), BLOCK)
+def inputs_with(**over):
+    return {**result()["inputs"], **over}
+
+
+def soil_findings(c, rule_id="ES-RD1051-6.2-soil"):
+    return [f for f in evaluate(all_rules(), c) if f.rule_id == rule_id]
+
+
+def test_soil_needs_a_laboratory_analysis():
+    none = result(inputs=inputs_with(**{"soil.analysis_id": {"value": None}}))
+    (f,) = soil_findings(ctx(sheet(result=none)))
+    assert f.severity == BLOCK and f.params["reasons"] == ["no_analysis"]
+
+
+def test_estimated_texture_does_not_block_a_measured_analysis():
+    est = result(provisional=True, inputs=inputs_with(
+        **{"soil.sand_pct": {"value": 40, "provenance": "estimated"},
+           "soil.clay_pct": {"value": 25, "provenance": "estimated"}}))
+    assert soil_findings(ctx(sheet(result=est))) == []
+
+
+def test_estimated_or_missing_legal_soil_values_block():
+    est = result(inputs=inputs_with(**{"soil.ph": {"value": 7.0, "provenance": "estimated"},
+                                       "soil.k_mg_kg": {"value": None, "provenance": "missing"}}))
+    (f,) = soil_findings(ctx(sheet(result=est)))
+    assert f.params["reasons"] == ["not_measured"]
+    assert f.params["fields"] == ["soil.ph", "soil.k_mg_kg"]
+
+
+def analysed(date_s, irrigated):
+    return sheet(inputs={"irrigated": irrigated, "strategy": 2}, result=result(
+        inputs=inputs_with(**{"soil.analysis_id": {"value": "a1", "sampling_date": date_s}})))
+
+
+def test_analysis_age_limits_depend_on_irrigation():
+    (old,) = soil_findings(ctx(analysed("2016-10-19", False)))
+    assert old.params["reasons"] == ["too_old"]
+    assert old.params["sampling_date"] == "2016-10-19" and old.params["max_age_years"] == 10
+    assert soil_findings(ctx(analysed("2016-10-20", False))) == []
+    (irr,) = soil_findings(ctx(analysed("2020-10-01", True)))
+    assert irr.params["reasons"] == ["too_old"] and irr.params["max_age_years"] == 5
+    assert soil_findings(ctx(analysed("2020-10-01", False))) == []
+
+
+def test_analysis_without_sampling_date_blocks():
+    (f,) = soil_findings(ctx(analysed(None, False)))
+    assert f.params["reasons"] == ["no_sampling_date"]
+
+
+def no_analysis_sheet(area):
+    return sheet(result=result(inputs=inputs_with(**{
+        "soil.analysis_id": {"value": None}, f"parcel.{P1}.area_ha": {"value": area}})))
+
+
+def test_small_sheet_of_a_small_unit_is_exempt_from_the_analysis():
+    c = ctx(no_analysis_sheet(4.0))
+    assert soil_findings(c) == []
+    (f,) = soil_findings(c, "ES-RD1051-6.2-analysis-exempt")
+    assert f.severity == "info"
+    assert f.params == {"sheet_area_ha": 4.0, "unit_area_ha": 4.0}
+    assert f.citation == "RD 1311/2012, annex III part I C.i.d (RD 1051/2022)"
+
+
+def test_exemption_needs_a_unit_of_at_most_20_ha_and_a_known_area():
+    P2 = "urn:ngsi-ld:AgriParcel:p2"
+    big = sheet(key="maize", parcels=({"urn": P2, "sigpac": None},), result=result(
+        inputs={f"parcel.{P2}.area_ha": {"value": 21.0}, "soil.analysis_id": {"value": "a2"}}))
+    c = ctx(no_analysis_sheet(4.0), big)
+    assert "wheat" in [f.sheet_key for f in soil_findings(c)]
+    assert soil_findings(c, "ES-RD1051-6.2-analysis-exempt") == []
+    unknown = sheet(result=result(inputs=inputs_with(**{"soil.analysis_id": {"value": None},
+                                                         f"parcel.{P1}.area_ha": {"value": None}})))
+    assert soil_findings(ctx(unknown))
 
 
 def test_water_needs_the_rain_normal_and_the_irrigation_volume():
@@ -101,6 +172,16 @@ def test_organic_applications_need_an_annex_v_a_measure():
         ctx(sheet(applications=({**manure, "annex_v": ["A.i"]},))))
 
 
+def test_a_described_measure_satisfies_6_5():
+    manure = {**GOOD_APP, "kind": "organic", "annex_v": []}
+    text = {**manure, "other_measure": "composted, incorporated within 4 h"}
+    assert "ES-RD1051-6.5-annexV" not in ids(ctx(sheet(applications=(text,))))
+    blank = {**manure, "other_measure": "   "}
+    assert "ES-RD1051-6.5-annexV" in ids(ctx(sheet(applications=(blank,))), BLOCK)
+    mixed = {**GOOD_APP, "kind": "organo_mineral", "annex_v": []}
+    assert "ES-RD1051-6.5-annexV" in ids(ctx(sheet(applications=(mixed,))), BLOCK)
+
+
 def test_ammonium_carbonate_is_forbidden():
     bad = {**GOOD_APP, "kind": "ammonium_carbonate"}
     assert "ES-RD1051-12.1" in ids(ctx(sheet(applications=(bad,))), BLOCK)
@@ -117,6 +198,32 @@ def test_urea_needs_one_of_the_three_ways(kind):
     assert "ES-RD1051-12.3" not in ids(ctx(sheet(applications=(urea,)), notebook=True))
     assert "ES-RD1051-12.3" in ids(
         ctx(sheet(applications=({**urea, "other_measure": "   "},))), BLOCK)
+
+
+def test_mineral_product_with_ureic_n_falls_under_12_3():
+    ureic = {**GOOD_APP, "kind": "mineral", "n_form": "ureic", "annex_v": []}
+    assert "ES-RD1051-12.3" in ids(ctx(sheet(applications=(ureic,))), BLOCK)
+    assert "ES-RD1051-12.3" not in ids(ctx(sheet(applications=({**ureic, "annex_v": ["B.a"]},))))
+
+
+def test_unknown_area_is_not_a_scope_exemption():
+    small = sheet(result=result(inputs=inputs_with(**{f"parcel.{P1}.area_ha": {"value": 8.0}})))
+    assert "ES-RD1051-4.2-scope" in ids(ctx(small))
+    assert "ES-RD1051-4.2-scope" not in ids(ctx(small, sheet(key="other", result=None)))
+    noarea = sheet(key="other", parcels=({"urn": "urn:x", "sigpac": None},))
+    assert "ES-RD1051-4.2-scope" not in ids(ctx(small, noarea))
+
+
+def test_a_zone_previous_yield_from_the_point_lookup_must_be_confirmed():
+    point = result(inputs=inputs_with(
+        **{"yield.basis": {"value": "farm"}, "previous_yield.basis": {"value": "zone"},
+           "region.nuts": {"value": "ES23", "provenance": "table:natural_earth_province"}}))
+    assert "FAST-region-unconfirmed" in ids(ctx(sheet(result=point)), BLOCK)
+
+
+def test_a_sheet_needing_only_p_still_needs_applications():
+    only_p = result(n={"avg_kg_ha": 0.0}, p2o5={"rate_kg_ha": 30.0}, k2o={"rate_kg_ha": 0.0})
+    assert "ES-RD1051-6.4-content" in ids(ctx(sheet(applications=(), result=only_p)), BLOCK)
 
 
 def test_strategy_4_warns():

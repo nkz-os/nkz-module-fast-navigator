@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import statistics
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 
 from .crops import is_main
 from .provenance import (
     DECLARED,
     MEASURED,
+    MISSING,
     MissingInput,
     Notice,
     Override,
@@ -177,6 +178,9 @@ def resolve_yield(campaign: int, history: dict[int, float], declared: dict[int, 
                               {"cv_pct": round(cv.value, 1), "basis": basis}))
         cv = missing()
 
+    ignored = sorted(y for y in declared if not campaign - WINDOW_YEARS <= y < campaign)
+    if ignored:
+        notices.append(Notice("declared_years_ignored", {"years": ignored}))
     if 0 < len(hist) < MIN_YEARS_FOR_CV:
         notices.append(Notice("history_too_short", {"years": sorted(hist)}))
     if f"{prefix}.kg_ha" in overrides:
@@ -191,3 +195,37 @@ def resolve_yield(campaign: int, history: dict[int, float], declared: dict[int, 
     if not cv.known:
         absent.append(MissingInput(f"{prefix}.cv_pct", "plan", {"campaign": campaign}))
     return YieldTarget(y, cv, basis, years, tuple(notices), tuple(absent))
+
+
+def _own(campaign: int, by_year: dict[int, float]) -> float | None:
+    value = by_year.get(campaign)
+    return value if value is not None and value > 0 else None
+
+
+def previous_zone_needed(campaign: int, history: dict[int, float], declared: dict[int, float],
+                         overrides: dict[str, Override], prefix: str = "previous_yield") -> bool:
+    """Whether resolve_previous_yield could use the zone series (the CV is never needed)."""
+    if f"{prefix}.kg_ha" in overrides:
+        return False
+    if _own(campaign, history) is not None or _own(campaign, declared) is not None:
+        return False
+    return len(_window(campaign, history)) < MIN_YEARS_FOR_CV and not _window(campaign, declared)
+
+
+def resolve_previous_yield(campaign: int, history: dict[int, float], declared: dict[int, float],
+                           zone: dict | None, overrides: dict[str, Override], today: date,
+                           prefix: str = "previous_yield") -> YieldTarget:
+    """Yield of the preceding crop: its own campaign's harvest, else its declared value, else
+    the usual rule (window median, then zone). Its CV is never read, so never reported missing."""
+    no_cv = Sourced(None, MISSING)
+    if f"{prefix}.kg_ha" not in overrides:
+        measured, stated = _own(campaign, history), _own(campaign, declared)
+        if measured is not None:
+            return YieldTarget(Sourced(measured, MEASURED, _HISTORY_SOURCE), no_cv, "history",
+                               (campaign,), (), ())
+        if stated is not None:
+            return YieldTarget(Sourced(stated, DECLARED, "plan:declared-yields"), no_cv,
+                               "declared", (campaign,), (), ())
+    fallback = resolve_yield(campaign, history, declared, zone, overrides, today, prefix)
+    return replace(fallback, missing=tuple(m for m in fallback.missing
+                                           if not m.field.endswith(".cv_pct")))

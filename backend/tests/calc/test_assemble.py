@@ -93,3 +93,28 @@ async def test_rain_normal_asks_year_by_year_in_order():
     normal = await fetch_rain_normal(src, URN, 2027)
     assert [c[1] for c in src.calls if c[0] == "daily"] == list(range(2016, 2026))
     assert normal.annual_mm is None
+
+
+def _yield_request():
+    return replace(REQ, declared_yields={2023: 5000.0, 2024: 6000.0, 2025: 5500.0})
+
+
+async def test_the_previous_crop_uses_its_own_declared_yield_without_a_zone_call():
+    src = FakeSources(**complete_data())
+    req = replace(_yield_request(), previous_declared_yields={2026: 3000.0})
+    a = await assemble(req, src, TODAY)
+    assert a.choice.previous_campaign == 2026
+    assert a.previous_yield.yield_kg_ha.value == 3000.0
+    assert a.previous_yield.yield_kg_ha.provenance == "declared"
+    assert not any(c[0] == "regional_yields" for c in src.calls)
+
+
+async def test_a_recorded_harvest_beats_the_declared_yield_of_the_previous_crop():
+    data = complete_data()
+    data["harvests"] = {URN: [{"id": "urn:ngsi-ld:AgriParcelOperation:h1",
+                               "operationType": "harvesting",
+                               "endedAt": "2026-07-10T10:00:00Z", "harvestedWeight": 60000}]}
+    req = replace(_yield_request(), previous_declared_yields={2026: 3000.0})
+    a = await assemble(req, FakeSources(**data), TODAY)
+    assert a.previous_yield.yield_kg_ha.value == 6000.0
+    assert a.previous_yield.yield_kg_ha.provenance == "measured"

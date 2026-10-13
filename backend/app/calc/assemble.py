@@ -30,6 +30,8 @@ from app.inputs.yield_target import (
     YieldTarget,
     combine_histories,
     history_yields,
+    previous_zone_needed,
+    resolve_previous_yield,
     resolve_yield,
     zone_needed,
 )
@@ -211,12 +213,16 @@ async def assemble(req: SheetRequest, sources, today: date) -> AssembledInputs:
                 per_parcel.append((got, parcel.area_ha.value))
                 history_notices.extend(found)
         history = combine_histories(per_parcel)
+        previous = prefix == "previous_yield"
+        needed = (previous_zone_needed if previous else zone_needed)(
+            campaign, history, declared, overrides, prefix)
         zone = None
-        if eppo and zone_needed(campaign, history, declared, overrides, prefix):
+        if eppo and needed:
             nuts = await region_value()
             if nuts.known:
                 zone = await sources.regional_yields(eppo, nuts.value)
-        resolved = resolve_yield(campaign, history, declared, zone, overrides, today, prefix)
+        resolve = resolve_previous_yield if previous else resolve_yield
+        resolved = resolve(campaign, history, declared, zone, overrides, today, prefix)
         return replace(resolved, notices=tuple(history_notices) + resolved.notices)
 
     yield_target = await target(crop_eppo, req.campaign, req.declared_yields, "yield")

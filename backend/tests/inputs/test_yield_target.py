@@ -165,3 +165,33 @@ def test_a_zone_cv_above_100_is_not_used():
     assert not t.cv_pct.known
     assert any(n.code == "yield_cv_out_of_range" and n.params["basis"] == "zone"
                for n in t.notices)
+
+
+def test_previous_yield_is_the_recorded_harvest_of_its_own_campaign():
+    from app.inputs.yield_target import resolve_previous_yield
+    t = resolve_previous_yield(2026, {2026: 6000.0}, {2026: 3000.0}, None, {}, TODAY)
+    assert t.yield_kg_ha.value == 6000.0 and t.yield_kg_ha.provenance == "measured"
+    assert t.basis == "history" and t.years == (2026,) and not t.missing
+
+
+def test_previous_yield_is_the_declared_value_of_its_own_campaign():
+    from app.inputs.yield_target import previous_zone_needed, resolve_previous_yield
+    t = resolve_previous_yield(2026, {}, {2026: 3000.0}, None, {}, TODAY)
+    assert t.yield_kg_ha.value == 3000.0 and t.yield_kg_ha.provenance == "declared"
+    assert t.basis == "declared" and t.years == (2026,) and not t.missing
+    assert not previous_zone_needed(2026, {}, {2026: 3000.0}, {})
+
+
+def test_previous_yield_falls_back_and_never_asks_for_a_cv():
+    from app.inputs.yield_target import resolve_previous_yield
+    t = resolve_previous_yield(2026, {}, {}, ZONE, {}, TODAY)
+    assert t.basis == "zone" and t.yield_kg_ha.known
+    assert not any(m.field.endswith(".cv_pct") for m in t.missing)
+    t = resolve_previous_yield(2026, {}, {}, None, {}, TODAY)
+    assert [m.field for m in t.missing] == ["previous_yield.kg_ha"]
+
+
+def test_declared_years_outside_the_window_are_reported():
+    declared = {2010: 4000.0, 2024: 5000.0}
+    t = resolve_yield(2026, {}, declared, None, {}, TODAY)
+    assert Notice("declared_years_ignored", {"years": [2010]}) in t.notices

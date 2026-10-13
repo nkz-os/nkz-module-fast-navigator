@@ -53,10 +53,11 @@ class Guard:
 
 
 class TransitionError(Exception):
-    def __init__(self, code: str, detail: str):
+    def __init__(self, code: str, detail: str, rules: list[str] | None = None):
         super().__init__(detail)
         self.code = code
         self.detail = detail
+        self.rules = rules          # ids of the rules behind a "blocking_findings" refusal
 
 
 def next_state(state: State | str, action: Action | str, roles: Iterable[str],

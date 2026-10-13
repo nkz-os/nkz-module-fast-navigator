@@ -112,7 +112,8 @@ async def _finish(conn, actor, plan, action: Action, guard_extra: dict, signatur
         if exc.code != "blocking_findings":
             raise
         blocking = sorted({f.rule_id for f in findings if f.severity == BLOCK})
-        raise TransitionError("blocking_findings", f"blocking findings: {blocking}") from exc
+        raise TransitionError("blocking_findings", f"blocking findings: {blocking}",
+                              rules=blocking) from exc
     signed_at = datetime.now(UTC).replace(microsecond=0)      # one clock: seal and column
     signature = {**signature, "signed_at": signed_at.isoformat(timespec="seconds")}
     if plan.supersedes is not None:

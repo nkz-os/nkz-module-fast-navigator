@@ -267,7 +267,11 @@ async def test_a_revision_whose_base_is_no_longer_signed_is_a_conflict(pool):
     new = await signing.revise(pool, FARMER, pid, plan["row_version"])
     nid = uuid.UUID(new["id"])
     new = await service.calculate_plan(pool, sources(), FARMER, nid, new["row_version"], EARLY)
-    async with pool.acquire() as c:
+    async with pool.acquire() as c, c.transaction():
+        # The database now refuses a superseded plan without a signed successor, so this state is
+        # unreachable; the code still defends against it. Triggers are off for this transaction
+        # only (the test database user is a superuser) to force it.
+        await c.execute("SET LOCAL session_replication_role = replica")
         await c.execute("UPDATE fast.plans SET state = 'superseded' WHERE id = $1", pid)
     with pytest.raises(service.Conflict):
         await signing.close(pool, FARMER, nid, new["row_version"], "titular_sin_obligacion",

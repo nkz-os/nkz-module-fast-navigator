@@ -191,6 +191,7 @@ async def test_history_feeds_the_five_year_limits(pool):
     sheet = repo.SheetData(sheet.key, {**sheet.inputs, "campaign": 2028}, sheet.parcels,
                            sheet.applications)
     nxt = await service.edit_sheets(pool, FARMER, nid, nxt["row_version"], [sheet])
+    await service.calculate_plan(pool, sources(), FARMER, nid, nxt["row_version"], EARLY)
     async with pool.acquire() as c:
         plan_row = await repo.get_plan(c, "tenant-a", nid)
         ctx, _, _ = await service.build_context(c, plan_row, EARLY)
@@ -321,19 +322,28 @@ async def test_history_values_come_from_the_signed_plan(pool):
                           base.applications)
     other = repo.SheetData("other", {**base.inputs, "campaign": 2028},
                            (("urn:ngsi-ld:AgriParcel:other", None),), base.applications)
-    await service.edit_sheets(pool, FARMER, nid, nxt["row_version"], [mine, other])
+    edited = await service.edit_sheets(pool, FARMER, nid, nxt["row_version"], [mine, other])
+    data = complete_data()
+    data["parcels"][URN]["area"] = 12.0
+    data["parcels"]["urn:ngsi-ld:AgriParcel:other"] = dict(data["parcels"][URN])
+    await service.calculate_plan(pool, FakeSources(**data), FARMER, nid, edited["row_version"],
+                                 EARLY)
     async with pool.acquire() as c:
         ctx, _, _ = await service.build_context(c, await repo.get_plan(c, "tenant-a", nid), EARLY)
     by_key = {s.key: s.history for s in ctx.sheets}
     (entry,) = by_key["wheat"]
-    assert set(entry) == {"campaign", "p2o5_planned_kg_ha", "p2o5_calculated_kg_ha",
+    assert set(entry) == {"campaign", "source", "p2o5_planned_kg_ha", "p2o5_calculated_kg_ha",
                           "k2o_planned_kg_ha", "k2o_calculated_kg_ha"}
     summary = old["applications_summary"]
-    assert entry["campaign"] == 2027
-    assert entry["p2o5_planned_kg_ha"] == summary["p2o5_kg_ha"] and summary["p2o5_kg_ha"] > 0
-    assert entry["k2o_planned_kg_ha"] == summary["k2o_kg_ha"]
-    assert entry["p2o5_calculated_kg_ha"] == old["result"]["p2o5"]["before_organic_kg_ha"]
-    assert entry["k2o_calculated_kg_ha"] == old["result"]["k2o"]["before_organic_kg_ha"]
+    assert entry["campaign"] == 2027 and entry["source"] == "planned"
+    approx = pytest.approx      # the entry is rounded to 3 decimals
+    assert entry["p2o5_planned_kg_ha"] == approx(summary["p2o5_kg_ha"], abs=1e-3)
+    assert summary["p2o5_kg_ha"] > 0
+    assert entry["k2o_planned_kg_ha"] == approx(summary["k2o_kg_ha"], abs=1e-3)
+    assert entry["p2o5_calculated_kg_ha"] == approx(
+        old["result"]["p2o5"]["before_organic_kg_ha"], abs=1e-3)
+    assert entry["k2o_calculated_kg_ha"] == approx(
+        old["result"]["k2o"]["before_organic_kg_ha"], abs=1e-3)
     assert by_key["other"] == ()
 
 
@@ -358,7 +368,7 @@ async def test_the_copy_holds_what_reproduces_the_verdict(pool):
 async def test_the_copy_keeps_the_history_the_rules_saw(pool, monkeypatch):
     seen = ({"campaign": 2026, "p2o5_planned_kg_ha": 30.0, "p2o5_calculated_kg_ha": 40.0,
              "k2o_planned_kg_ha": 20.0, "k2o_calculated_kg_ha": 25.0},)
-    monkeypatch.setattr(service, "_history", lambda parcels, snapshots: seen)
+    monkeypatch.setattr(service, "_history", lambda parcels, result, snapshots: seen)
     pid, plan = await ready(pool)
     await signing.close(pool, FARMER, pid, plan["row_version"], "titular_sin_obligacion",
                         "Juan", EARLY)
@@ -409,3 +419,62 @@ async def test_the_seal_is_taken_over_what_jsonb_stores(pool, monkeypatch):
     async with pool.acquire() as c:
         stored = await repo.get_snapshot(c, pid)
     assert sha256_of(stored) == closed["snapshot_sha256"]
+
+
+# --- history over every old sheet (same rule as the compliance report) ---------------------
+
+P1, P2 = "urn:ngsi-ld:AgriParcel:p1", "urn:ngsi-ld:AgriParcel:p2"
+
+
+def _current(areas):
+    return ([{"urn": u, "sigpac": None} for u in areas],
+            {"inputs": {f"parcel.{u}.area_ha": {"value": a} for u, a in areas.items()}})
+
+
+def _old(urns, p2o5, k2o=0.0, calc_p2o5=None, summary=True, result=True):
+    return {"key": "-".join(urns), "parcels": [{"urn": u} for u in urns],
+            "applications_summary": {"p2o5_kg_ha": p2o5, "k2o_kg_ha": k2o} if summary else None,
+            "result": {"p2o5": {"before_organic_kg_ha": calc_p2o5 if calc_p2o5 is not None else p2o5},
+                       "k2o": {"before_organic_kg_ha": k2o}} if result else None}
+
+
+def test_history_sums_the_sheets_stacked_on_one_parcel():
+    parcels, result = _current({P1: 10.0})
+    snaps = {2027: {"sheets": [_old([P1], 40.0, 10.0), _old([P1], 25.0, 5.0)]}}
+    (entry,) = service._history(parcels, result, snaps)
+    assert entry == {"campaign": 2027, "source": "planned", "p2o5_planned_kg_ha": 65.0,
+                     "p2o5_calculated_kg_ha": 65.0, "k2o_planned_kg_ha": 15.0,
+                     "k2o_calculated_kg_ha": 15.0}
+
+
+def test_history_is_the_area_weighted_mean_over_the_parcels():
+    parcels, result = _current({P1: 10.0, P2: 30.0})
+    snaps = {2027: {"sheets": [_old([P1], 90.0), _old([P2], 10.0)]}}
+    (entry,) = service._history(parcels, result, snaps)
+    assert entry["p2o5_planned_kg_ha"] == pytest.approx(30.0)      # (90*10 + 10*30) / 40
+    assert entry["p2o5_calculated_kg_ha"] == pytest.approx(30.0)
+
+
+def test_history_ignores_parcels_without_an_old_sheet_in_the_mean():
+    parcels, result = _current({P1: 10.0, P2: 30.0})
+    snaps = {2027: {"sheets": [_old([P1], 90.0)]}}
+    (entry,) = service._history(parcels, result, snaps)
+    assert entry["p2o5_planned_kg_ha"] == pytest.approx(90.0)
+
+
+@pytest.mark.parametrize("snapshot", [
+    {"sheets": [_old([P1], 10.0, summary=False)]},
+    {"sheets": [_old([P1], 10.0, result=False)]},
+    {"sheets": [_old([P2], 10.0)]},
+])
+def test_history_skips_campaigns_that_cannot_be_combined(snapshot):
+    parcels, result = _current({P1: 10.0})
+    assert service._history(parcels, result, {2027: snapshot}) == ()
+
+
+def test_history_needs_the_areas_of_the_current_sheet():
+    # No stored result yet (never calculated): the mean cannot be weighted, so no entry
+    parcels, _ = _current({P1: 10.0})
+    snaps = {2027: {"sheets": [_old([P1], 40.0)]}}
+    assert service._history(parcels, None, snaps) == ()
+    assert service._history(parcels, {"inputs": {}}, snaps) == ()

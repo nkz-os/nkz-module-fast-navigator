@@ -141,3 +141,4 @@ def test_signing_with_a_blocking_finding_is_a_409(client, pg_url):
                     headers=TECH)
     assert r.status_code == 409 and r.json()["error"] == "blocking_findings"
     assert "ES-RD1051-6.4-content" in r.json()["detail"]
+    assert r.json()["rules"] == ["ES-RD1051-6.4-content"]

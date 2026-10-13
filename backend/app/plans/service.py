@@ -55,21 +55,49 @@ def _iso(value: datetime | None) -> str | None:
 HISTORY_CAMPAIGNS = 4
 
 
-def _history(sheet_parcels: list[dict], snapshots: dict[int, dict]) -> tuple[dict, ...]:
-    urns = {p["urn"] for p in sheet_parcels}
+def _area(result: dict | None, urn: str) -> float | None:
+    item = ((result or {}).get("inputs") or {}).get(f"parcel.{urn}.area_ha") or {}
+    value = item.get("value")
+    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) \
+        and value > 0 else None
+
+
+def _history(sheet_parcels: list[dict], result: dict | None,
+             snapshots: dict[int, dict]) -> tuple[dict, ...]:
+    """Per past campaign: for each parcel of this sheet, the planned and calculated P2O5/K2O summed
+    over every old sheet holding that parcel (stacked crops); then the mean over the parcels that
+    had one, weighted by area. Same rule as the compliance report, without realized operations.
+
+    Areas come from this sheet's stored result. A sheet never calculated has none, so the mean
+    cannot be weighted and it gets no history. A campaign whose old sheets lack a summary or a
+    result, or a parcel without a known area, is left out rather than guessed."""
+    areas = {p["urn"]: _area(result, p["urn"]) for p in sheet_parcels}
     out = []
     for campaign in sorted(snapshots):
-        for old in snapshots[campaign].get("sheets") or []:
-            if urns & {p["urn"] for p in old.get("parcels") or []}:
-                result, summary = old.get("result") or {}, old.get("applications_summary") or {}
-                out.append({
-                    "campaign": campaign,
-                    "p2o5_planned_kg_ha": summary.get("p2o5_kg_ha"),
-                    "p2o5_calculated_kg_ha": (result.get("p2o5") or {}).get("before_organic_kg_ha"),
-                    "k2o_planned_kg_ha": summary.get("k2o_kg_ha"),
-                    "k2o_calculated_kg_ha": (result.get("k2o") or {}).get("before_organic_kg_ha"),
-                })
-                break
+        old_sheets = snapshots[campaign].get("sheets") or []
+        used = {}
+        for urn in areas:
+            held = [o for o in old_sheets if urn in {p["urn"] for p in o.get("parcels") or []}]
+            if held:
+                used[urn] = held
+        if not used:
+            continue
+        if any(o.get("applications_summary") is None or not o.get("result")
+               for held in used.values() for o in held) or any(areas[u] is None for u in used):
+            continue
+        total_area = sum(areas[u] for u in used)
+        acc = {"p2o5_planned_kg_ha": 0.0, "p2o5_calculated_kg_ha": 0.0,
+               "k2o_planned_kg_ha": 0.0, "k2o_calculated_kg_ha": 0.0}
+        for urn, held in used.items():
+            weight = areas[urn] / total_area
+            for oxide in ("p2o5", "k2o"):
+                acc[f"{oxide}_planned_kg_ha"] += weight * sum(
+                    o["applications_summary"].get(f"{oxide}_kg_ha") or 0 for o in held)
+                acc[f"{oxide}_calculated_kg_ha"] += weight * sum(
+                    (o["result"].get(oxide) or {}).get("before_organic_kg_ha") or 0
+                    for o in held)
+        out.append({"campaign": campaign, "source": "planned",
+                    **{k: round(v, 3) for k, v in acc.items()}})
     return tuple(out)
 
 
@@ -84,7 +112,8 @@ async def build_context(conn: asyncpg.Connection, plan: repo.PlanRow, at: date, 
         key=s.key, inputs=s.inputs, parcels=tuple(s.parcels), applications=tuple(s.applications),
         result=(stored.get(s.id) or {}).get("result"),
         summary=(stored.get(s.id) or {}).get("applications_summary"),
-        history=_history(s.parcels, snapshots), n_adjustment=s.n_adjustment) for s in sheets)
+        history=_history(s.parcels, (stored.get(s.id) or {}).get("result"), snapshots),
+        n_adjustment=s.n_adjustment) for s in sheets)
     ctx = PlanContext(campaign=plan.campaign, sheets=contexts, rain=plan.rain,
                       vulnerable_zone=plan.vulnerable_zone,
                       voluntary_digital_notebook=plan.voluntary_digital_notebook, at=at,

@@ -125,7 +125,10 @@ def create_app() -> FastAPI:
     @app.exception_handler(TransitionError)
     async def transition_error(request, exc: TransitionError):
         status = 403 if exc.code == "forbidden" else 409
-        return JSONResponse(status_code=status, content={"error": exc.code, "detail": exc.detail})
+        content = {"error": exc.code, "detail": exc.detail}
+        if exc.rules is not None:
+            content["rules"] = exc.rules
+        return JSONResponse(status_code=status, content=content)
 
     @app.exception_handler(Invalid)
     async def invalid(request, exc: Invalid):

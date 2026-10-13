@@ -100,10 +100,23 @@ async def test_content_cannot_be_moved_out_of_a_signed_plan(pool):
                 await c.execute(sql, *args)
 
 
+async def _supersede_with_successor(c, plan):
+    """What a revision does: supersede the signed plan and sign the next version, one transaction."""
+    async with c.transaction():
+        await repo.update_plan(c, plan.id, state="superseded")
+        new = await repo.create_plan(c, tenant_id=plan.tenant_id, farm=plan.farm,
+                                     campaign=plan.campaign, user_id="u2",
+                                     version=plan.version + 1, supersedes=plan.id)
+        return await repo.sign_plan(c, new.id, signature={"kind": "advisor", "name": "A"},
+                                    snapshot={"campaign": plan.campaign, "sheets": []},
+                                    sha256="cd" * 32, signed_at=datetime.now(UTC))
+
+
 async def test_a_signed_plan_can_only_be_superseded_and_then_never_changes(pool):
     async with pool.acquire() as c:
         plan = await _signed(c)
-        gone = await repo.update_plan(c, plan.id, state="superseded")
+        await _supersede_with_successor(c, plan)
+        gone = await repo.get_plan(c, T, plan.id)
         assert gone.state == "superseded"
         with pytest.raises(asyncpg.RaiseError):
             await repo.update_plan(c, plan.id, state="superseded")
@@ -112,19 +125,48 @@ async def test_a_signed_plan_can_only_be_superseded_and_then_never_changes(pool)
 async def test_copy_inputs_into_a_new_version(pool):
     async with pool.acquire() as c:
         plan = await _signed(c)
-        await repo.update_plan(c, plan.id, state="superseded")
-        new = await repo.create_plan(c, tenant_id=T, farm="tenant", campaign=2027, user_id="u2",
-                                     version=2, supersedes=plan.id,
-                                     declarations={"vulnerable_zone": True,
-                                                   "vulnerable_zone_source": None,
-                                                   "voluntary_digital_notebook": False},
-                                     rain={"annual_mm": 600.0})
-        await repo.copy_plan_inputs(c, plan.id, new.id)
-        sheets = await repo.get_sheets(c, new.id)
+        async with c.transaction():     # the successor must be signed by the commit
+            await repo.update_plan(c, plan.id, state="superseded")
+            new = await repo.create_plan(c, tenant_id=T, farm="tenant", campaign=2027,
+                                         user_id="u2", version=2, supersedes=plan.id,
+                                         declarations={"vulnerable_zone": True,
+                                                       "vulnerable_zone_source": None,
+                                                       "voluntary_digital_notebook": False},
+                                         rain={"annual_mm": 600.0})
+            await repo.copy_plan_inputs(c, plan.id, new.id)
+            sheets = await repo.get_sheets(c, new.id)
+            await repo.sign_plan(c, new.id, signature={"kind": "advisor", "name": "A"},
+                                 snapshot={"campaign": 2027, "sheets": []}, sha256="cd" * 32,
+                                 signed_at=datetime.now(UTC))
+        new = await repo.get_plan(c, T, new.id)
         assert [s.key for s in sheets] == ["wheat"]
         assert sheets[0].applications == [{"kind": "mineral"}]
         assert await repo.get_results(c, new.id) == {}
         assert new.vulnerable_zone is True and new.rain == {"annual_mm": 600.0}
+
+
+async def test_a_superseded_plan_without_a_signed_successor_cannot_commit(pool):
+    async with pool.acquire() as c:
+        plan = await _signed(c)
+        with pytest.raises(asyncpg.RaiseError, match="without a signed successor"):
+            await c.execute("UPDATE fast.plans SET state = 'superseded' WHERE id = $1", plan.id)
+        assert (await repo.get_plan(c, T, plan.id)).state == "signed"
+        draft = None
+        with pytest.raises(asyncpg.RaiseError, match="without a signed successor"):
+            async with c.transaction():          # a successor that is only a draft does not count
+                await repo.update_plan(c, plan.id, state="superseded")
+                draft = await repo.create_plan(c, tenant_id=T, farm="tenant", campaign=2027,
+                                               user_id="u2", version=2, supersedes=plan.id)
+        assert draft is not None
+        assert (await repo.get_plan(c, T, plan.id)).state == "signed"
+
+
+async def test_a_superseded_plan_with_a_signed_successor_commits(pool):
+    async with pool.acquire() as c:
+        plan = await _signed(c)
+        new = await _supersede_with_successor(c, plan)
+        assert new.state == "signed" and new.supersedes == plan.id
+        assert (await repo.get_plan(c, T, plan.id)).state == "superseded"
 
 
 async def test_signed_history_and_campaign_lookup(pool):

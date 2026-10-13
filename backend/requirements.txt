@@ -14,13 +14,3 @@ nkz-platform-sdk>=0.9.1
 
 # PostgreSQL (plans live in the module's own schema, spec §9)
 asyncpg>=0.29
-
-# Testing
-pytest>=9.0.3
-pytest-asyncio>=1.4.0
-httpx>=0.26.0
-testcontainers[postgres]>=4.8
-
-# Development
-black>=24.1.0
-ruff>=0.15.17

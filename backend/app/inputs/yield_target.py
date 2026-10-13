@@ -19,6 +19,7 @@ from .provenance import (
 
 WINDOW_YEARS = 5
 MIN_YEARS_FOR_CV = 3
+MAX_CV_PCT = 100.0        # the engine rejects a larger CV; the technician enters it instead
 STALE_ZONE_YEARS = 5      # owner 2026-10-12: warn when the zone's latest year is older
 HARVEST_GRACE_DAYS = 30   # a harvest booked shortly after the cycle's recorded end belongs to it
 _HISTORY_SOURCE = "field-operations:harvests"
@@ -170,6 +171,11 @@ def resolve_yield(campaign: int, history: dict[int, float], declared: dict[int, 
                                   {"latest_year": latest, "nuts": (zone or {}).get("nuts")}))
     else:
         y, cv, basis, years = missing(), missing(), "missing", ()
+
+    if cv.known and cv.value > MAX_CV_PCT:
+        notices.append(Notice("yield_cv_out_of_range",
+                              {"cv_pct": round(cv.value, 1), "basis": basis}))
+        cv = missing()
 
     if 0 < len(hist) < MIN_YEARS_FOR_CV:
         notices.append(Notice("history_too_short", {"years": sorted(hist)}))

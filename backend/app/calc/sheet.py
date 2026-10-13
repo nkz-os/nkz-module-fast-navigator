@@ -123,7 +123,11 @@ def _previous(a: AssembledInputs, missing: list[MissingInput]) -> tuple[bool, Cr
     if pb.params is None or not py.yield_kg_ha.known:
         return False, None
     # The preceding crop's CV is never read (n_requirement uses its yield only).
-    return True, CropSeason(pb.params, float(py.yield_kg_ha.value), 0.0)
+    try:
+        return True, CropSeason(pb.params, float(py.yield_kg_ha.value), 0.0)
+    except ValueError as exc:
+        missing.append(MissingInput("previous_yield.kg_ha", "plan", {"error": str(exc)}))
+        return False, None
 
 
 def _nitrogen(a: AssembledInputs, current: CropSeason, previous: CropSeason | None,
@@ -205,8 +209,12 @@ def calculate(a: AssembledInputs) -> SheetResult:
     if a.crop.params is not None and a.yield_target.yield_kg_ha.known:
         cv = a.yield_target.cv_pct
         # A missing CV blocks N (below) but not P and K, which never read it.
-        current = CropSeason(a.crop.params, float(a.yield_target.yield_kg_ha.value),
-                             float(cv.value) if cv.known else 0.0, a.previous_residues_burned)
+        try:
+            current = CropSeason(a.crop.params, float(a.yield_target.yield_kg_ha.value),
+                                 float(cv.value) if cv.known else 0.0,
+                                 a.previous_residues_burned)
+        except ValueError as exc:
+            missing.append(MissingInput("yield.kg_ha", "plan", {"error": str(exc)}))
     previous_ok, previous = _previous(a, missing)
 
     n = None

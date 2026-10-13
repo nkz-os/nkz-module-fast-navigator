@@ -172,3 +172,19 @@ def test_n_needs_no_soil_for_a_non_fixing_crop():
     empty = calculate(assembled(soil=build_soil([], [], None, None, {})))
     assert empty.n is not None
     assert empty.n["avg_kg_ha"] == pytest.approx(calculate(assembled()).n["avg_kg_ha"])
+
+
+def test_an_impossible_cv_does_not_raise_out_of_calculate():
+    base = assembled()
+    bad = replace(base.yield_target, cv_pct=Sourced(150.0, DECLARED, "plan"))
+    r = calculate(replace(base, yield_target=bad))
+    assert r.status == INCOMPLETE and r.n is None
+    assert any(m.field == "yield.kg_ha" and "error" in m.params for m in r.missing)
+
+
+def test_an_impossible_previous_yield_does_not_raise():
+    base = assembled()
+    bad = replace(base.previous_yield, yield_kg_ha=Sourced(-5.0, DECLARED, "plan"))
+    r = calculate(replace(base, previous_yield=bad))
+    assert r.status == INCOMPLETE and r.n is None
+    assert any(m.field == "previous_yield.kg_ha" and "error" in m.params for m in r.missing)

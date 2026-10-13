@@ -138,3 +138,30 @@ def test_history_reads_the_cycles_the_platform_sdk_emits():
     harvests = [harvest("2026-07-10", 80000)]
     got, _ = history_yields(_sdk_cycles(), harvests, "TRZAX", 10.0)
     assert got == {2026: 8000.0}
+
+
+def test_a_computed_cv_above_100_is_not_used():
+    history = {2023: 500.0, 2024: 600.0, 2025: 60000.0}
+    t = resolve_yield(2026, history, {}, None, {}, TODAY)
+    assert not t.cv_pct.known
+    assert MissingInput("yield.cv_pct", "plan", {"campaign": 2026}) in t.missing
+    notice = next(n for n in t.notices if n.code == "yield_cv_out_of_range")
+    assert notice.params["basis"] == "history" and notice.params["cv_pct"] > 100
+
+
+def test_a_declared_cv_above_100_is_not_used():
+    t = resolve_yield(2026, {}, {2023: 500.0, 2024: 600.0, 2025: 60000.0}, None, {}, TODAY)
+    assert not t.cv_pct.known
+    assert any(n.code == "yield_cv_out_of_range" and n.params["basis"] == "declared"
+               for n in t.notices)
+
+
+def test_a_zone_cv_above_100_is_not_used():
+    zone = {"nuts": "ES22", "recent_median_t_ha": 3.0, "recent_years": [2021, 2022, 2023],
+            "latest_year": 2023, "series": [{"year": 2021, "yield_t_ha": 0.5},
+                                            {"year": 2022, "yield_t_ha": 0.6},
+                                            {"year": 2023, "yield_t_ha": 60.0}]}
+    t = resolve_yield(2026, {}, {}, zone, {}, TODAY)
+    assert not t.cv_pct.known
+    assert any(n.code == "yield_cv_out_of_range" and n.params["basis"] == "zone"
+               for n in t.notices)

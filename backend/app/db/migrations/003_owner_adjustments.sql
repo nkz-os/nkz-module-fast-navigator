@@ -10,3 +10,11 @@ CREATE TABLE IF NOT EXISTS fast.holder_qualifications (
     updated_by    TEXT NOT NULL,
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- The open-plan index also covers in_review; a database that ran an older 001 has the old
+-- predicate, and CREATE INDEX IF NOT EXISTS would keep it.
+DROP INDEX IF EXISTS fast.plans_one_open_per_campaign;
+CREATE UNIQUE INDEX IF NOT EXISTS plans_one_open_per_campaign
+    ON fast.plans (tenant_id, farm, campaign) WHERE state IN ('draft', 'calculated', 'in_review');
+CREATE UNIQUE INDEX IF NOT EXISTS plans_one_signed_per_campaign
+    ON fast.plans (tenant_id, farm, campaign) WHERE state = 'signed';

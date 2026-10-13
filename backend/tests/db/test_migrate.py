@@ -117,3 +117,19 @@ async def test_the_audit_log_is_append_only(pool):
             with pytest.raises(asyncpg.RaiseError):
                 await c.execute(statement)
         assert await c.fetchval("SELECT action FROM audit_log") == "x"
+
+
+async def test_the_open_plan_index_is_replaced_on_a_database_that_had_the_old_one(pg_url):
+    conn = await asyncpg.connect(pg_url)
+    try:
+        await conn.execute("DROP INDEX IF EXISTS fast.plans_one_open_per_campaign")
+        await conn.execute("CREATE UNIQUE INDEX plans_one_open_per_campaign ON fast.plans "
+                           "(tenant_id, farm, campaign) WHERE state IN ('draft', 'calculated')")
+        await conn.execute("DELETE FROM fast.schema_migrations WHERE name = "
+                           "'003_owner_adjustments.sql'")
+        assert await apply_migrations(conn) == ["003_owner_adjustments.sql"]
+        defn = await conn.fetchval("SELECT indexdef FROM pg_indexes WHERE schemaname = 'fast' "
+                                   "AND indexname = 'plans_one_open_per_campaign'")
+        assert "in_review" in defn
+    finally:
+        await conn.close()

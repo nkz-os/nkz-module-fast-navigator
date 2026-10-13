@@ -65,10 +65,18 @@ class Realized:
     n_form: str | None
     composition: str
     notices: tuple[str, ...] = ()
+    organic_flag: bool = False
+    status: str | None = None
 
     @property
     def organic(self) -> bool:
-        return self.n_form == "organic"
+        """The notebook's nitrogen form or its "organic fertilizer" checkbox."""
+        return self.n_form == "organic" or self.organic_flag
+
+    @property
+    def completed(self) -> bool:
+        """An operation without a status is read as completed (the broker query asks for it)."""
+        return self.status in (None, "completed")
 
     def _kg(self, pct: float | None) -> float | None:
         if self.rate_kg_ha is None or pct is None:
@@ -88,21 +96,38 @@ class Realized:
         return self._kg(self.k2o_pct)
 
 
-def _composition(entity: dict) -> tuple[str, tuple[float | None, ...]]:
-    values = [_number(entity.get(f)) for f in _CONTENTS]
-    if any(v is not None for v in values):
-        return STRUCTURED, tuple(v if v is not None else 0.0 for v in values)
+def _grade(entity: dict) -> tuple[float, ...] | None:
     text = entity.get("fertilizerComposition")
     match = NPK.match(text) if isinstance(text, str) else None
     if match:
         parsed = tuple(float(g.replace(",", ".")) for g in match.groups())
         if sum(parsed) <= 100:
-            return PARSED, parsed
-    return UNREADABLE, (None, None, None)
+            return parsed
+    return None
+
+
+def _composition(entity: dict) -> tuple[str, tuple[float | None, ...], tuple[str, ...]]:
+    """A blank structured content is "not recorded" (the notebook shows 8-?-?), never 0: it is
+    filled from a strict grade that agrees with the recorded ones, else left unknown."""
+    values = [_number(entity.get(f)) for f in _CONTENTS]
+    grade = _grade(entity)
+    if any(v is not None for v in values):
+        if all(v is not None for v in values):
+            return STRUCTURED, tuple(values), ()
+        if grade is None:
+            return STRUCTURED, tuple(values), ("partial_composition",)
+        notices = ()
+        if any(v is not None and abs(v - g) > 0.01 for v, g in zip(values, grade, strict=True)):
+            notices = ("composition_mismatch",)
+        return STRUCTURED, tuple(v if v is not None else g
+                                 for v, g in zip(values, grade, strict=True)), notices
+    if grade is not None:
+        return PARSED, grade, ()
+    return UNREADABLE, (None, None, None), ()
 
 
 def parse_operation(entity: dict) -> Realized:
-    kind, (n, p, k) = _composition(entity)
+    kind, (n, p, k), composition_notices = _composition(entity)
     day = _day(entity.get("endedAt")) or _day(entity.get("startedAt"))
     rate = _number(entity.get("fertilizerRate"))
     if rate is not None and rate <= 0:
@@ -115,6 +140,7 @@ def parse_operation(entity: dict) -> Realized:
         notices.append("no_rate")
     if kind == UNREADABLE:
         notices.append("unreadable_composition")
+    notices.extend(composition_notices)
     product = entity.get("fertilizerType") or entity.get("productName")
     return Realized(
         operation=str(entity.get("id")),
@@ -123,4 +149,6 @@ def parse_operation(entity: dict) -> Realized:
         area_ha=area if area is not None and area > 0 else None,
         n_pct=n, p2o5_pct=p, k2o_pct=k,
         n_form=entity.get("nitrogenForm") if isinstance(entity.get("nitrogenForm"), str) else None,
-        composition=kind, notices=tuple(notices))
+        composition=kind, notices=tuple(notices),
+        organic_flag=entity.get("organicFertilizer") is True,
+        status=entity.get("status") if isinstance(entity.get("status"), str) else None)

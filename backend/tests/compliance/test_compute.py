@@ -223,6 +223,149 @@ def test_a_sheet_without_n_result_is_incomplete(res):
     assert s["status"] == "incomplete" and "no_result" in s["notices"]
 
 
-def test_organic_with_a_tiny_rate_is_suspect_but_not_incomplete():
+def test_organic_with_a_tiny_rate_is_suspect_and_incomplete():
     s = compliance(doc(), {}, {P1: [fert(rate=20, n=0.6, form="organic")]}, AT)["sheets"][0]
-    assert "organic_rate_suspect" in s["notices"] and s["status"] == "ok"
+    assert "organic_rate_suspect" in s["notices"] and s["status"] == "incomplete"
+
+
+def _raw(**over):
+    base = {"id": "o", "hasAgriParcel": P1, "endedAt": {"@value": "2027-02-10T09:00:00Z"},
+            "fertilizerType": "x", "fertilizerRate": 1000, "status": "completed"}
+    base.update(over)
+    return parse_operation(base)
+
+
+def _one(ops, d=None, previous=None):
+    return compliance(d or doc(), previous or {}, {P1: ops}, AT)["sheets"][0]
+
+
+# C3
+def test_partial_composition_makes_the_sheet_incomplete_and_sums_only_what_is_known():
+    s = _one([_raw(nitrogenContent=15, nitrogenForm="mixed")])
+    assert "partial_composition" in s["notices"] and s["status"] == "incomplete"
+    assert s["realized"]["mineral_n_kg_ha"] == pytest.approx(150.0)
+    assert s["realized"]["p2o5_kg_ha"] == 0.0
+
+
+def test_partial_composition_completed_from_the_grade_is_complete():
+    s = _one([_raw(nitrogenContent=15, nitrogenForm="mixed", fertilizerComposition="15-15-15",
+                   fertilizerRate=100)])
+    assert s["status"] == "ok" and s["realized"]["p2o5_kg_ha"] == pytest.approx(15.0)
+
+
+def test_phosphorus_potassium_only_does_not_sum_nitrogen():
+    s = _one([_raw(phosphorusPentoxideContent=15,
+                   potassiumOxideContent=15)])
+    assert "partial_composition" in s["notices"] and s["realized"]["mineral_n_kg_ha"] == 0.0
+    assert s["realized"]["p2o5_kg_ha"] == pytest.approx(150.0)
+
+
+# C4
+def test_organic_flag_without_nitrogen_form_counts_as_organic():
+    s = _one([_raw(fertilizerRate=20000, nitrogenContent=0.6, phosphorusPentoxideContent=0,
+                   potassiumOxideContent=0, organicFertilizer=True)])
+    assert s["realized"]["organic_n_total_kg_ha"] == pytest.approx(120.0)
+    assert s["realized"]["mineral_n_kg_ha"] == 0.0
+
+
+def test_organic_availability_from_the_single_planned_material_is_noted():
+    organic = [{"material": "cattle_manure", "rate_t_ha": 20, "n_pct": 0.6, "p2o5_pct": 0.3,
+                "k2o_pct": 0.7}]
+    d = doc(sheet(res=result(availability=0.3), organic=organic))
+    s = _one([fert(rate=20000, n=0.6, form="organic")], d)
+    assert "organic_availability_from_plan" in s["notices"]
+    assert "organic_availability_assumed_full" not in s["notices"]
+
+
+# C5
+@pytest.mark.parametrize("status", ["incomplete", "needs_review"])
+def test_a_started_fertilization_is_listed_flagged_and_not_summed(status):
+    s = _one([_raw(status=status, nitrogenContent=27, nitrogenForm="nitric",
+                   phosphorusPentoxideContent=0, potassiumOxideContent=0)])
+    assert s["status"] == "incomplete" and "operation_not_completed" in s["notices"]
+    assert s["realized"]["mineral_n_kg_ha"] == 0.0
+    assert [a["operation"] for a in s["applications"]] == ["o"]
+
+
+def test_a_started_fertilization_in_a_past_campaign_flags_the_history():
+    previous = {2026: {"sheets": [_old(P1, 90.0)]}}
+    bad = _raw(status="incomplete", endedAt={"@value": "2026-03-01"}, nitrogenContent=27,
+               phosphorusPentoxideContent=0, potassiumOxideContent=0)
+    s = _one([bad], previous=previous)
+    assert "history_incomplete:2026" in s["notices"]
+
+
+# C6
+def test_window_starts_at_the_earliest_planned_date():
+    d = doc()
+    d["sheets"][0]["applications"] = [{"planned_date": "2026-08-20"}]
+    out = compliance(d, {}, {P1: [_raw(endedAt={"@value": "2026-08-20T09:00:00Z"},
+                                       nitrogenContent=27, nitrogenForm="nitric",
+                                       phosphorusPentoxideContent=0,
+                                       potassiumOxideContent=0, fertilizerRate=600)]}, AT)
+    s = out["sheets"][0]
+    assert out["window"]["from"] == "2026-08-20"
+    assert s["realized"]["mineral_n_kg_ha"] == pytest.approx(162.0)
+    assert "operation_in_extended_window" in s["notices"]
+
+
+def test_an_operation_inside_the_standard_season_has_no_extended_notice():
+    d = doc()
+    d["sheets"][0]["applications"] = [{"planned_date": "2026-08-20"}]
+    s = _one([fert()], d)
+    assert "operation_in_extended_window" not in s["notices"]
+
+
+# C7
+def _high_p_result():
+    res = result()
+    res["p2o5"] = {"rate_kg_ha": 40.0, "before_organic_kg_ha": 40.0}
+    return res
+
+
+def test_one_high_p_year_without_history_is_at_risk():
+    s = _one([fert(rate=400, n=0, p=15)])                 # 60 kg P2O5 vs 40 * 1.3
+    assert [f["rule_id"] for f in s["findings"] if f["severity"] == "warn"] == [
+        "ES-RD1051-AIII-4-P"]
+    assert s["status"] == "at_risk"
+
+
+def test_four_full_years_over_the_limit_is_exceeded():
+    previous = {y: {"sheets": [_old(P1, 90.0)]} for y in range(2023, 2027)}
+    s = _one([fert(rate=400, n=0, p=15)], previous=previous)
+    assert s["status"] == "exceeded"
+
+
+# minors
+def test_unknown_area_gives_unknown_not_zero():
+    res = result()
+    res["inputs"] = {"crop.eppo": {"value": "TRZAX"}}
+    s = _one([fert()], doc(sheet(res=res)))
+    assert "parcel_area_unknown" in s["notices"] and s["status"] == "incomplete"
+    assert all(v is None for v in s["realized"].values())
+    assert all(v is None for v in s["difference"].values())
+
+
+def test_operation_parcel_differing_from_the_queried_urn_does_not_raise():
+    op = parse_operation({"id": "o", "hasAgriParcel": [P1, P2],
+                          "endedAt": {"@value": "2027-02-10"}, "fertilizerRate": 200,
+                          "nitrogenContent": 27, "phosphorusPentoxideContent": 0,
+                          "potassiumOxideContent": 0, "nitrogenForm": "nitric"})
+    other = parse_operation({"id": "o2", "hasAgriParcel": P2, "endedAt": {"@value": "2027-02-10"},
+                             "fertilizerRate": 200, "nitrogenContent": 27,
+                             "phosphorusPentoxideContent": 0, "potassiumOxideContent": 0,
+                             "nitrogenForm": "nitric"})
+    s = _one([op, other])
+    assert s["realized"]["mineral_n_kg_ha"] == pytest.approx(108.0)
+
+
+@pytest.mark.parametrize("drop", ["p2o5", "k2o"])
+def test_a_result_without_p_or_k_is_incomplete(drop):
+    res = result()
+    del res[drop]
+    s = _one([], doc(sheet(res=res)))
+    assert "no_result" in s["notices"] and s["status"] == "incomplete"
+
+
+def test_the_response_says_when_it_was_judged():
+    assert compliance(doc(), {}, {P1: []}, AT)["judged_at"] == "2027-06-01"

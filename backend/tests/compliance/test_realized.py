@@ -24,9 +24,36 @@ def test_structured_composition():
     assert r.p2o5_kg_ha == 0.0 and r.k2o_kg_ha == 0.0 and not r.organic and r.notices == ()
 
 
-def test_missing_structured_nutrients_count_as_zero():
-    r = parse_operation(op())
-    assert r.p2o5_pct == 0.0 and r.k2o_pct == 0.0
+def test_blank_structured_nutrients_are_filled_from_a_strict_grade():
+    r = parse_operation(op(fertilizerComposition="15-15-15", nitrogenContent=15))
+    assert r.composition == STRUCTURED
+    assert (r.n_pct, r.p2o5_pct, r.k2o_pct) == (15, 15, 15)
+    assert "partial_composition" not in r.notices and "composition_mismatch" not in r.notices
+
+
+def test_blank_nutrients_without_a_grade_are_not_recorded():
+    r = parse_operation(op())                      # N only
+    assert r.composition == STRUCTURED and r.n_pct == 27
+    assert r.p2o5_pct is None and r.k2o_pct is None
+    assert r.p2o5_kg_ha is None and "partial_composition" in r.notices
+
+
+def test_phosphorus_and_potassium_only_leave_nitrogen_unrecorded():
+    r = parse_operation(op(nitrogenContent=None, nitrogenForm=None,
+                           phosphorusPentoxideContent=15, potassiumOxideContent=15))
+    assert r.n_pct is None and r.n_kg_ha is None and "partial_composition" in r.notices
+
+
+def test_a_grade_that_disagrees_loses_to_the_structured_value():
+    r = parse_operation(op(nitrogenContent=15, fertilizerComposition="8-15-15"))
+    assert r.n_pct == 15 and (r.p2o5_pct, r.k2o_pct) == (15, 15)
+    assert "composition_mismatch" in r.notices
+
+
+def test_organic_flag_and_status():
+    assert parse_operation(op(nitrogenForm=None, organicFertilizer=True)).organic
+    assert not parse_operation(op(organicFertilizer=False)).organic
+    assert parse_operation(op(status="needs_review")).status == "needs_review"
 
 
 @pytest.mark.parametrize("text,npk", [("8-15-15", (8, 15, 15)), (" 15 - 15 - 15 ", (15, 15, 15)),

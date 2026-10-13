@@ -73,6 +73,46 @@ async def test_a_stale_row_version_is_refused(pool):
         await service.edit_sheets(pool, TECH, pid, plan["row_version"] - 1, [sheet()])
 
 
+async def test_a_stale_write_changes_nothing(pool):
+    plan = await _ready(pool)
+    pid = uuid.UUID(plan["id"])
+    before = await service.audit(pool, FARMER, pid)
+    stale = plan["row_version"] - 1
+    with pytest.raises(service.Conflict):
+        await service.edit_sheets(pool, TECH, pid, stale, [sheet(), sheet("other")])
+    with pytest.raises(service.Conflict):
+        await service.set_override(pool, TECH, pid, stale, "wheat", "soil.ph", 7.2, "lab")
+    with pytest.raises(service.Conflict):
+        await service.transition(pool, FARMER, pid, stale, Action.SUBMIT)
+    after = await service.get(pool, FARMER, pid)
+    assert after["row_version"] == plan["row_version"]
+    assert [s["key"] for s in after["sheets"]] == ["wheat"] and after["sheets"][0]["overrides"] == []
+    assert await service.audit(pool, FARMER, pid) == before
+
+
+async def test_a_failing_source_after_a_good_calculation_keeps_the_previous_results(pool):
+    plan = await _ready(pool)
+    pid = uuid.UUID(plan["id"])
+    good = await service.calculate_plan(pool, FakeSources(**complete_data()), FARMER, pid,
+                                        plan["row_version"], TODAY)
+    # the plan is calculated; an edit makes it draft again, then the recalculation fails
+    edited = await service.edit_sheets(pool, FARMER, pid, good["row_version"], [sheet()])
+    results_before = (await service.get(pool, FARMER, pid))["sheets"][0]["result"]
+    assert results_before == good["sheets"][0]["result"]
+    data = complete_data()
+    data["fail"] = {"lab_analyses": SourceUnavailable("soil", "answered 500")}
+    audit_before = await service.audit(pool, FARMER, pid)
+    with pytest.raises(SourceUnavailable):
+        await service.calculate_plan(pool, FakeSources(**data), FARMER, pid,
+                                     edited["row_version"], TODAY)
+    after = await service.get(pool, FARMER, pid)
+    assert after["sheets"][0]["result"] == good["sheets"][0]["result"]
+    assert after["state"] == edited["state"] and after["row_version"] == edited["row_version"]
+    assert after["calculated_at"] == edited["calculated_at"] and not after["calc_fresh"]
+    assert after["findings"] == edited["findings"]
+    assert await service.audit(pool, FARMER, pid) == audit_before
+
+
 async def test_an_edit_during_the_calculation_wins(pool, monkeypatch):
     plan = await _ready(pool)
     pid = uuid.UUID(plan["id"])

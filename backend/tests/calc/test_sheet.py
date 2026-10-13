@@ -197,3 +197,13 @@ def test_an_uncreditable_nmin_analysis_blocks_n_and_is_listed():
     assert r.n is None and r.status == INCOMPLETE
     assert r.p2o5 is not None and r.k2o is not None
     assert MissingInput("soil.nmin_analysis", "soil", {"analysis": "nope"}) in r.missing
+
+
+def test_two_parcels_without_area_are_both_listed_and_the_sheet_is_incomplete():
+    from app.inputs.parcel import parcel_info
+    parcels = (parcel_info({"id": "urn:ngsi-ld:AgriParcel:p1"}),
+               parcel_info({"id": "urn:ngsi-ld:AgriParcel:p2"}))
+    r = calculate(assembled(parcels=parcels))
+    listed = [m.params["parcel"] for m in r.missing if m.field == "parcel.area_ha"]
+    assert sorted(listed) == ["urn:ngsi-ld:AgriParcel:p1", "urn:ngsi-ld:AgriParcel:p2"]
+    assert None not in (r.n, r.p2o5, r.k2o) and r.status == INCOMPLETE

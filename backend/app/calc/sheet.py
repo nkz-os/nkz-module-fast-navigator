@@ -1,6 +1,7 @@
 """One crop sheet's requirement: the engine over assembled inputs, every term with its provenance."""
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 
 from app.engine import ENGINE_VERSION
@@ -190,8 +191,9 @@ def _inputs(a: AssembledInputs) -> dict[str, dict]:
 def _dedupe(items: list[MissingInput]) -> tuple[MissingInput, ...]:
     seen, out = set(), []
     for m in items:
-        if m.field not in seen:
-            seen.add(m.field)
+        key = (m.field, json.dumps(m.params, sort_keys=True, default=str))
+        if key not in seen:
+            seen.add(key)
             out.append(m)
     return tuple(out)
 
@@ -245,7 +247,7 @@ def calculate(a: AssembledInputs) -> SheetResult:
         except _Absent as exc:
             missing.extend(_soil_missing(exc.fields))
 
-    status = COMPLETE if None not in (n, p2o5, k2o) else INCOMPLETE
+    status = COMPLETE if None not in (n, p2o5, k2o) and not missing else INCOMPLETE
     return SheetResult(
         status=status, provisional=a.soil.provisional, n=n, p2o5=p2o5, k2o=k2o,
         inputs=_inputs(a), notices=tuple(_notices(a)), missing=_dedupe(missing),

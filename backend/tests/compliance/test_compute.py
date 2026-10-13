@@ -144,3 +144,85 @@ def test_history_uses_realized_then_planned():
     # 2025 realized 200 + 2026 planned 90 + 2027 realized 0 = 290 > (40·3)·1.3 = 156
     assert p and p[0]["params"]["planned_kg_ha"] == pytest.approx(290.0)
     assert sorted(p[0]["params"]["history"]) == ["planned", "realized"]
+
+
+def _old(parcel, planned_p, calc_p=40.0, **over):
+    s = {"key": "o", "parcels": [{"urn": parcel}],
+         "result": {"p2o5": {"before_organic_kg_ha": calc_p}, "k2o": {"before_organic_kg_ha": 0}},
+         "applications_summary": {"p2o5_kg_ha": planned_p, "k2o_kg_ha": 0.0}}
+    s.update(over)
+    return s
+
+
+def _p_finding(out):
+    return [f for f in out["sheets"][0]["findings"] if f["rule_id"] == "ES-RD1051-AIII-4-P"]
+
+
+def test_history_unusable_past_operation_marks_the_sheet_incomplete():
+    previous = {2026: {"sheets": [_old(P1, 90.0)]}}
+    bad = parse_operation({"id": "o", "hasAgriParcel": P1, "endedAt": {"@value": "2026-03-01"},
+                           "fertilizerComposition": "complejo", "fertilizerRate": 100})
+    s = compliance(doc(), previous, {P1: [bad]}, AT)["sheets"][0]
+    assert "history_incomplete:2026" in s["notices"] and s["status"] == "incomplete"
+
+
+@pytest.mark.parametrize("drop", ["applications_summary", "result"])
+def test_history_snapshot_missing_data_is_flagged_and_skipped(drop):
+    old = _old(P1, 90.0)
+    old[drop] = None
+    out = compliance(doc(), {2026: {"sheets": [old]}}, {}, AT)
+    s = out["sheets"][0]
+    assert "history_incomplete:2026" in s["notices"] and s["status"] == "incomplete"
+    assert not _p_finding(out) or _p_finding(out)[0]["params"]["years"] == [2027]
+
+
+def test_history_is_area_weighted_over_parcels():
+    d = doc(sheet(parcels=(P1, P2), res=result(areas=((P1, 10.0), (P2, 30.0)))))
+    previous = {2026: {"sheets": [_old(P1, 90.0), _old(P2, 10.0)]}}
+    out = compliance(d, previous, {}, AT)
+    # current planned 100/40 per ha + history (90*10+10*30)/40 = 30 ; calculated 40 + 40
+    (f,) = _p_finding(out) or [None]
+    assert f is None or f["params"]["planned_kg_ha"] == pytest.approx(70.0)
+    s = out["sheets"][0]
+    assert s["status"] in ("ok", "exceeded")
+
+
+def test_history_weighted_value_reaches_the_rule():
+    # force the P rule to fire so the params expose the weighted history
+    res = result(areas=((P1, 10.0), (P2, 30.0)))
+    res["p2o5"] = {"rate_kg_ha": 0.0, "before_organic_kg_ha": 0.0}
+    d = doc(sheet(parcels=(P1, P2), res=res))
+    d["sheets"][0]["applications_summary"]["p2o5_kg_ha"] = 0.0
+    previous = {2026: {"sheets": [_old(P1, 90.0, calc_p=0.0), _old(P2, 10.0, calc_p=0.0)]}}
+    (f,) = _p_finding(compliance(d, previous, {}, AT))
+    assert f["params"]["planned_kg_ha"] == pytest.approx(30.0)
+
+
+def test_history_stacked_old_sheets_on_one_parcel_sum():
+    res = result()
+    res["p2o5"] = {"rate_kg_ha": 0.0, "before_organic_kg_ha": 0.0}
+    d = doc(sheet(res=res))
+    d["sheets"][0]["applications_summary"]["p2o5_kg_ha"] = 0.0
+    previous = {2026: {"sheets": [_old(P1, 50.0, calc_p=0.0), _old(P1, 30.0, calc_p=0.0)]}}
+    (f,) = _p_finding(compliance(d, previous, {}, AT))
+    assert f["params"]["planned_kg_ha"] == pytest.approx(80.0)
+
+
+def test_operation_on_a_parcel_outside_the_plan_is_unattributed():
+    out = compliance(doc(), {}, {"urn:ngsi-ld:AgriParcel:zz": [fert(parcel="urn:ngsi-ld:AgriParcel:zz")]},
+                     AT)
+    assert [u["reason"] for u in out["unattributed"]] == ["parcel_not_in_plan"]
+    assert out["sheets"][0]["status"] == "ok"
+
+
+@pytest.mark.parametrize("res", [{}, {"status": "complete", "inputs": {}}])
+def test_a_sheet_without_n_result_is_incomplete(res):
+    d = doc(sheet())
+    d["sheets"][0]["result"] = res
+    s = compliance(d, {}, {}, AT)["sheets"][0]
+    assert s["status"] == "incomplete" and "no_result" in s["notices"]
+
+
+def test_organic_with_a_tiny_rate_is_suspect_but_not_incomplete():
+    s = compliance(doc(), {}, {P1: [fert(rate=20, n=0.6, form="organic")]}, AT)["sheets"][0]
+    assert "organic_rate_suspect" in s["notices"] and s["status"] == "ok"

@@ -62,3 +62,13 @@ def test_parcel_from_either_relationship_shape():
 def test_organic():
     r = parse_operation(op(nitrogenForm="organic", fertilizerRate=20000, nitrogenContent=0.6))
     assert r.organic and r.n_kg_ha == pytest.approx(120.0)
+
+
+def test_huge_integer_is_not_a_number():
+    assert parse_operation(op(fertilizerRate=10**400)).rate_kg_ha is None
+
+
+def test_instant_becomes_the_madrid_calendar_date():
+    r = parse_operation(op(endedAt={"@value": "2026-08-31T23:30:00Z"}))
+    assert r.day == date(2026, 9, 1)
+    assert parse_operation(op(endedAt={"@value": "2026-08-31"})).day == date(2026, 8, 31)

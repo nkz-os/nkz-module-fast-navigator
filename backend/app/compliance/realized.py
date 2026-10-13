@@ -6,7 +6,9 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
+
+from app.plans.clock import MADRID
 
 STRUCTURED, PARSED, UNREADABLE = "structured", "parsed", "unreadable"
 _PCT = r"(\d{1,3}(?:[.,]\d+)?)"
@@ -17,7 +19,11 @@ _CONTENTS = ("nitrogenContent", "phosphorusPentoxideContent", "potassiumOxideCon
 def _number(raw) -> float | None:
     if isinstance(raw, dict):
         raw = raw.get("value")
-    if isinstance(raw, bool) or not isinstance(raw, (int, float)) or not math.isfinite(raw):
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        return None
+    if isinstance(raw, int) and abs(raw) > 1e15:       # huge ints overflow float()
+        return None
+    if not math.isfinite(raw):
         return None
     return float(raw)
 
@@ -27,8 +33,14 @@ def _day(raw) -> date | None:
         raw = raw.get("@value", raw.get("value"))
     if not raw:
         return None
+    text = str(raw)
     try:
-        return date.fromisoformat(str(raw)[:10])
+        if len(text) > 10 and "T" in text:
+            moment = datetime.fromisoformat(text)
+            if moment.tzinfo is not None:              # the norm's dates are Spanish calendar dates
+                return moment.astimezone(MADRID).date()
+            return moment.date()
+        return date.fromisoformat(text[:10])
     except ValueError:
         return None
 

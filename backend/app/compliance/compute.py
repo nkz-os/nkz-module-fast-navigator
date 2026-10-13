@@ -70,36 +70,63 @@ def _in(op: Realized, start: date, until: date) -> bool:
     return op.day is not None and start <= op.day <= until
 
 
+_UNUSABLE = ("no_rate", "unreadable_composition")
+
+
+def _parcel_per_ha(ops: list[Realized], area: float, key: str) -> float:
+    """kg/ha over one parcel from its operations (operation area capped by the parcel's)."""
+    total = 0.0
+    for op in ops:
+        value = getattr(op, key)
+        if value is None:
+            continue
+        covered = min(op.area_ha, area) if op.area_ha else area
+        total += value * covered / area
+    return total
+
+
 def _history(sheet: dict, previous: dict[int, dict], realized: dict[str, list[Realized]],
-             campaign: int) -> tuple[dict, ...]:
-    urns = {p["urn"] for p in sheet["parcels"]}
+             campaign: int, notices: set[str]) -> tuple[dict, ...]:
+    """Per past campaign, per parcel of this sheet: calculated and applied P2O5/K2O summed over
+    every old sheet holding that parcel; then the area-weighted mean over the parcels that had
+    one. Realized operations of the season win over the signed plan; unusable data is flagged."""
+    areas = {p["urn"]: _area(sheet, p["urn"]) for p in sheet["parcels"]}
     out = []
     for year in range(campaign - HISTORY_CAMPAIGNS, campaign):
         snapshot = previous.get(year)
         if not snapshot:
             continue
-        old = [s for s in snapshot.get("sheets") or []
-               if urns & {p["urn"] for p in s.get("parcels") or []}]
-        if not old:
+        old_by_parcel = {}
+        for urn in areas:
+            old_by_parcel[urn] = [s for s in snapshot.get("sheets") or []
+                                  if urn in {p["urn"] for p in s.get("parcels") or []}]
+        used = {u: o for u, o in old_by_parcel.items() if o}
+        if not used:
             continue
-        calc_p = sum(((s.get("result") or {}).get("p2o5") or {}).get("before_organic_kg_ha") or 0
-                     for s in old)
-        calc_k = sum(((s.get("result") or {}).get("k2o") or {}).get("before_organic_kg_ha") or 0
-                     for s in old)
+        if any(s.get("applications_summary") is None or not s.get("result")
+               for o in used.values() for s in o) or any(areas[u] is None for u in used):
+            notices.add(f"history_incomplete:{year}")
+            continue
         start, until = _season(year)
-        ops = [op for u in urns for op in realized.get(u, []) if _in(op, start, until)]
-        if ops:
-            totals = _totals(sheet, ops, set())
-            applied_p, applied_k, source = totals["p2o5_kg_ha"], totals["k2o_kg_ha"], "realized"
-        else:
-            applied_p = sum((s.get("applications_summary") or {}).get("p2o5_kg_ha") or 0
-                            for s in old)
-            applied_k = sum((s.get("applications_summary") or {}).get("k2o_kg_ha") or 0
-                            for s in old)
-            source = "planned"
-        out.append({"campaign": year, "source": source,
-                    "p2o5_planned_kg_ha": applied_p, "p2o5_calculated_kg_ha": calc_p,
-                    "k2o_planned_kg_ha": applied_k, "k2o_calculated_kg_ha": calc_k})
+        ops = {u: [op for op in realized.get(u, []) if _in(op, start, until)] for u in used}
+        if any(n in _UNUSABLE for o in ops.values() for op in o for n in op.notices):
+            notices.add(f"history_incomplete:{year}")
+            continue
+        use_realized = any(ops.values())
+        total_area = sum(areas[u] for u in used)
+        acc = defaultdict(float)
+        for urn, old in used.items():
+            weight = areas[urn] / total_area
+            for oxide in ("p2o5", "k2o"):
+                acc[f"{oxide}_calculated_kg_ha"] += weight * sum(
+                    ((s.get("result") or {}).get(oxide) or {}).get("before_organic_kg_ha") or 0
+                    for s in old)
+                applied = (_parcel_per_ha(ops[urn], areas[urn], f"{oxide}_kg_ha") if use_realized
+                           else sum((s.get("applications_summary") or {}).get(f"{oxide}_kg_ha")
+                                    or 0 for s in old))
+                acc[f"{oxide}_planned_kg_ha"] += weight * applied
+        out.append({"campaign": year, "source": "realized" if use_realized else "planned",
+                    **{k: round(v, 3) for k, v in acc.items()}})
     return tuple(out)
 
 
@@ -140,6 +167,11 @@ def compliance(document: dict, previous: dict[int, dict], realized: dict[str, li
                                      "date": op.day.isoformat() if op.day else None,
                                      "reason": "parcel_in_several_sheets"})
                 continue
+            if not owners.get(urn):
+                unattributed.append({"operation": op.operation, "parcel": urn,
+                                     "date": op.day.isoformat() if op.day else None,
+                                     "reason": "parcel_not_in_plan"})
+                continue
             if owners.get(urn):
                 per_sheet[owners[urn][0]].append(op)
     ambiguous = {k for u in unattributed for k in owners[u["parcel"]]}
@@ -150,6 +182,11 @@ def compliance(document: dict, previous: dict[int, dict], realized: dict[str, li
         notices = {n for op in ops for n in op.notices}
         if s["key"] in ambiguous:
             notices.add("parcel_in_several_sheets")
+        # ASSUMPTION: the notebook rate is kg of product per ha for every product (keyValues drops unitCode)
+        if any(op.organic and op.rate_kg_ha is not None and op.rate_kg_ha < 1000 for op in ops):
+            notices.add("organic_rate_suspect")
+        if not (s.get("result") or {}).get("n"):
+            notices.add("no_result")
         dated = [op for op in ops if op.day is not None]
         totals = _totals(s, dated, notices)
         result = copy.deepcopy(s.get("result")) or {}
@@ -161,7 +198,7 @@ def compliance(document: dict, previous: dict[int, dict], realized: dict[str, li
         ctx = PlanContext(
             campaign=campaign,
             sheets=(SheetContext(s["key"], s.get("inputs") or {}, tuple(s["parcels"]), (), result,
-                                 summary, _history(s, previous, realized, campaign),
+                                 summary, _history(s, previous, realized, campaign, notices),
                                  s.get("n_adjustment")),),
             rain=None, vulnerable_zone=None, voluntary_digital_notebook=False, at=at)
         findings = evaluate(annex3.RULES, ctx)
@@ -169,8 +206,9 @@ def compliance(document: dict, previous: dict[int, dict], realized: dict[str, li
         if any(f.severity in (BLOCK, WARN) and f.rule_id != "ES-RD1051-AIII-history-short"
                for f in findings):
             status = "exceeded"
-        elif notices & set(_INCOMPLETE) or notices & {"parcel_in_several_sheets",
-                                                      "parcel_area_unknown"}:
+        elif (notices & set(_INCOMPLETE)
+              or notices & {"parcel_in_several_sheets", "parcel_area_unknown", "no_result"}
+              or any(n.startswith("history_incomplete:") for n in notices)):
             status = "incomplete"
         else:
             status = "ok"

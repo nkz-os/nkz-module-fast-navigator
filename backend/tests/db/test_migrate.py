@@ -4,7 +4,7 @@ import pytest
 from app.db.migrate import MIGRATIONS_DIR, apply_migrations
 
 TABLES = {"advisors", "plans", "crop_sheets", "sheet_parcels", "applications", "results", "findings",
-          "audit_log", "schema_migrations"}
+          "audit_log", "schema_migrations", "holder_qualifications"}
 
 
 async def test_migrations_create_the_schema(pg_url):

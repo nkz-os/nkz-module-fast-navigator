@@ -21,7 +21,9 @@ CREATE TABLE IF NOT EXISTS fast.plans (
     UNIQUE (tenant_id, farm, campaign, version)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS plans_one_open_per_campaign
-    ON fast.plans (tenant_id, farm, campaign) WHERE state <> 'superseded';
+    ON fast.plans (tenant_id, farm, campaign) WHERE state IN ('draft', 'calculated', 'in_review');
+CREATE UNIQUE INDEX IF NOT EXISTS plans_one_signed_per_campaign
+    ON fast.plans (tenant_id, farm, campaign) WHERE state = 'signed';
 CREATE INDEX IF NOT EXISTS plans_tenant_campaign_ix ON fast.plans (tenant_id, campaign);
 
 CREATE TABLE IF NOT EXISTS fast.crop_sheets (

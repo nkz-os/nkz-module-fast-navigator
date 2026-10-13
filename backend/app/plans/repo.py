@@ -64,6 +64,7 @@ class SheetRow:
     overrides: list[dict]
     parcels: list[dict]
     applications: list[dict]
+    n_adjustment: dict | None = None
 
 
 def _plan(row: asyncpg.Record) -> PlanRow:
@@ -197,8 +198,8 @@ async def replace_sheets(conn: asyncpg.Connection, plan_id: uuid.UUID,
 
 
 async def get_sheets(conn: asyncpg.Connection, plan_id: uuid.UUID) -> list[SheetRow]:
-    rows = await conn.fetch("SELECT id, key, seq, inputs, overrides FROM crop_sheets "
-                            "WHERE plan_id = $1 ORDER BY seq", plan_id)
+    rows = await conn.fetch("SELECT id, key, seq, inputs, overrides, n_adjustment "
+                            "FROM crop_sheets WHERE plan_id = $1 ORDER BY seq", plan_id)
     ids = [r["id"] for r in rows]
     parcels: dict[uuid.UUID, list[dict]] = {i: [] for i in ids}
     for p in await conn.fetch("SELECT sheet_id, parcel_urn, sigpac FROM sheet_parcels "
@@ -209,12 +210,35 @@ async def get_sheets(conn: asyncpg.Connection, plan_id: uuid.UUID) -> list[Sheet
                               "WHERE sheet_id = ANY($1::uuid[]) ORDER BY seq", ids):
         apps[a["sheet_id"]].append(a["data"])
     return [SheetRow(r["id"], r["key"], r["seq"], r["inputs"], r["overrides"], parcels[r["id"]],
-                     apps[r["id"]]) for r in rows]
+                     apps[r["id"]], r["n_adjustment"]) for r in rows]
 
 
 async def set_overrides(conn: asyncpg.Connection, sheet_id: uuid.UUID,
                         overrides: list[dict]) -> None:
     await conn.execute("UPDATE crop_sheets SET overrides = $2 WHERE id = $1", sheet_id, overrides)
+
+
+async def set_n_adjustment(conn: asyncpg.Connection, sheet_id: uuid.UUID,
+                           value: dict | None) -> None:
+    await conn.execute("UPDATE crop_sheets SET n_adjustment = $2 WHERE id = $1", sheet_id, value)
+
+
+async def get_holder_qualification(conn: asyncpg.Connection, tenant_id: str) -> dict | None:
+    row = await conn.fetchrow("SELECT holder_name, qualification, reference "
+                              "FROM holder_qualifications WHERE tenant_id = $1", tenant_id)
+    return dict(row) if row else None
+
+
+async def put_holder_qualification(conn: asyncpg.Connection, tenant_id: str, holder_name: str,
+                                   qualification: str, reference: str, user_id: str) -> dict:
+    row = await conn.fetchrow(
+        "INSERT INTO holder_qualifications (tenant_id, holder_name, qualification, reference, "
+        "updated_by) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (tenant_id) DO UPDATE SET "
+        "holder_name = EXCLUDED.holder_name, qualification = EXCLUDED.qualification, "
+        "reference = EXCLUDED.reference, updated_by = EXCLUDED.updated_by, updated_at = now() "
+        "RETURNING holder_name, qualification, reference",
+        tenant_id, holder_name, qualification, reference, user_id)
+    return dict(row)
 
 
 async def save_results(conn: asyncpg.Connection, plan_id: uuid.UUID,
@@ -270,9 +294,10 @@ async def copy_plan_inputs(conn: asyncpg.Connection, from_plan_id: uuid.UUID,
                            to_plan_id: uuid.UUID) -> None:
     for sheet in await get_sheets(conn, from_plan_id):
         new_id = uuid.uuid4()
-        await conn.execute("INSERT INTO crop_sheets (id, plan_id, key, seq, inputs, overrides) "
-                           "VALUES ($1, $2, $3, $4, $5, $6)", new_id, to_plan_id, sheet.key,
-                           sheet.seq, sheet.inputs, sheet.overrides)
+        await conn.execute("INSERT INTO crop_sheets (id, plan_id, key, seq, inputs, overrides, "
+                           "n_adjustment) VALUES ($1, $2, $3, $4, $5, $6, $7)", new_id,
+                           to_plan_id, sheet.key, sheet.seq, sheet.inputs, sheet.overrides,
+                           sheet.n_adjustment)
         await conn.executemany(
             "INSERT INTO sheet_parcels (sheet_id, parcel_urn, sigpac, ord) VALUES ($1, $2, $3, $4)",
             [(new_id, p["urn"], p["sigpac"], i) for i, p in enumerate(sheet.parcels)])

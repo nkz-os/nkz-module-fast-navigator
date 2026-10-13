@@ -95,6 +95,11 @@ jobs:
                   cache: "pip"
                   cache-dependency-path: backend/requirements*.txt
 
+            - name: Install system libraries for PDF rendering
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 fonts-dejavu-core
+
             - name: Install backend dependencies
               run: pip install -r backend/requirements-dev.txt
 
@@ -174,26 +179,29 @@ jobs:
                       type=ref,event=branch
                       type=semver,pattern={{version}}
                       type=semver,pattern={{major}}.{{minor}}
-                      type=sha,prefix=
+                      type=sha,prefix=,format=long
 
             - name: Build and push Backend image
               uses: docker/build-push-action@v5
+              with:
+                  context: ./backend
+                  file: ./backend/Dockerfile
+                  push: true
+                  tags: ${{ steps.meta.outputs.tags }}
+                  labels: ${{ steps.meta.outputs.labels }}
 
     # ==========================================================================
     # Publish MF2 remote (main only) via canonical OIDC workflow
     # ==========================================================================
-    # Skipped until the placeholders are replaced — see the `guard` job. The
-    # placeholder module_id is not registered in the platform, so publishing 404s.
-    # Remember to register the module id before the first publish.
+    # Disabled until the module is registered in the platform (06b). Publishing
+    # an unregistered module id is rejected, so this stays off until then.
     publish-module:
         name: Publish Module
         needs: [test, guard]
-        if: ${{ needs.guard.outputs.initialised == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: false
         permissions:
             id-token: write
             contents: read
         uses: nkz-os/nkz/.github/workflows/_publish-module.yml@main
         with:
             module_id: "fast-navigator"
-        secrets:
-            INTERNAL_SERVICE_SECRET: ${{ secrets.INTERNAL_SERVICE_SECRET }}

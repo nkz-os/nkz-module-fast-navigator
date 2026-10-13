@@ -10,6 +10,8 @@ on:
 jobs:
   trigger-web-rebuild:
     name: Signal Web Repository
+    # Disabled: needs an org dispatch token and a docs site repo this module does not use.
+    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Dispatch Event to Web Repo

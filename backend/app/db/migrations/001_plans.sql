@@ -79,3 +79,13 @@ CREATE TABLE IF NOT EXISTS fast.audit_log (
     detail  JSONB NOT NULL DEFAULT '{}'::jsonb
 );
 CREATE INDEX IF NOT EXISTS audit_log_plan_ix ON fast.audit_log (plan_id, at);
+
+-- Append-only: the log can be read and added to, never changed or deleted row by row.
+CREATE OR REPLACE FUNCTION fast.audit_log_immutable() RETURNS trigger AS $$
+BEGIN
+    RAISE EXCEPTION 'fast.audit_log is append-only';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS audit_log_no_change ON fast.audit_log;
+CREATE TRIGGER audit_log_no_change BEFORE UPDATE OR DELETE ON fast.audit_log
+    FOR EACH ROW EXECUTE FUNCTION fast.audit_log_immutable();

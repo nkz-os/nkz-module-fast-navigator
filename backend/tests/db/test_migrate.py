@@ -1,4 +1,5 @@
 import asyncpg
+import pytest
 
 from app.db.migrate import MIGRATIONS_DIR, apply_migrations
 
@@ -102,3 +103,16 @@ async def test_json_round_trips(pool):
             {"annual_mm": 512.5, "years": [2016, 2017]})
         assert await c.fetchval("SELECT rain FROM plans WHERE id = $1", plan_id) == {
             "annual_mm": 512.5, "years": [2016, 2017]}
+
+
+async def test_the_audit_log_is_append_only(pool):
+    async with pool.acquire() as c:
+        plan_id = await c.fetchval(
+            "INSERT INTO plans (id, tenant_id, farm, campaign, state, created_by) "
+            "VALUES (gen_random_uuid(), 't', 'tenant', 2027, 'draft', 'u') RETURNING id")
+        await c.execute("INSERT INTO audit_log (plan_id, user_id, action) VALUES ($1, 'u', 'x')",
+                        plan_id)
+        for statement in ("UPDATE audit_log SET action = 'y'", "DELETE FROM audit_log"):
+            with pytest.raises(asyncpg.RaiseError):
+                await c.execute(statement)
+        assert await c.fetchval("SELECT action FROM audit_log") == "x"

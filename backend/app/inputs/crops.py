@@ -67,6 +67,19 @@ def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
     if declared_previous:
         previous = Sourced(declared_previous, DECLARED, "plan")
         previous_campaign = campaign - 1
+    elif cycle_index > 0:
+        # The crop before a later crop of the campaign is the campaign's own earlier cycle,
+        # recorded or not the later one yet.
+        last = of_campaign[cycle_index - 1] if len(of_campaign) >= cycle_index else None
+        if last is None:
+            notices.append(Notice("double_crop_first_cycle_unknown", {"campaign": campaign}))
+        if _species(last):
+            previous = Sourced(_species(last), MEASURED, f"{_SOURCE}:{last.get('crop_id')}")
+            previous_campaign = last.get("campaign_label")
+        else:
+            previous = missing(_SOURCE)
+            previous_campaign = None
+            absent.append(MissingInput("previous_crop", "plan", {"campaign": campaign}))
     else:
         start = _date(current, "start") if current else None
         if start:

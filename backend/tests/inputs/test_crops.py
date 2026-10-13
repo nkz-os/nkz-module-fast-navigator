@@ -89,3 +89,20 @@ def test_a_cycle_without_role_is_a_main_crop_and_a_cover_crop_is_not():
     from app.inputs.crops import is_main
     assert is_main({}) and is_main({"role": None}) and is_main({"role": "main_crop"})
     assert not is_main({"role": "cover_crop"})
+
+
+def test_second_crop_declared_but_not_recorded_follows_the_first_of_the_campaign():
+    cycles = [cycle("TRZAX", 2026, "2025-10-25", "2026-07-10"),
+              cycle("HORVX", 2027, "2026-10-25", "2027-06-20")]
+    c = crops_for_campaign(cycles, 2027, cycle_index=1, declared_crop="ZEAMX")
+    assert c.crop.value == "ZEAMX"
+    assert c.previous.value == "HORVX" and c.previous_campaign == 2027
+    assert not any(m.field == "previous_crop" for m in c.missing)
+
+
+def test_second_crop_with_no_first_cycle_recorded_is_flagged():
+    cycles = [cycle("TRZAX", 2026, "2025-10-25", "2026-07-10")]
+    c = crops_for_campaign(cycles, 2027, cycle_index=1, declared_crop="ZEAMX")
+    assert not c.previous.known
+    assert MissingInput("previous_crop", "plan", {"campaign": 2027}) in c.missing
+    assert Notice("double_crop_first_cycle_unknown", {"campaign": 2027}) in c.notices

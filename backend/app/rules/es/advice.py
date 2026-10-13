@@ -7,29 +7,42 @@ from __future__ import annotations
 from datetime import date
 
 from app.rules import INFO, Rule
-from app.rules.context import PlanContext, plan_area
+from app.rules.context import PlanContext, area_known, plan_area
 from app.rules.es.rd1051 import EXEMPT_RAINFED_HA
 
 ADVICE_VULNERABLE = date(2027, 9, 1)
 ADVICE_OTHER = date(2028, 9, 1)
+# Art. 4.2 second sentence: irrigated units sown 1-Mar..30-Jun 2026 owe the plan from 1-Jan-2026.
+ADVICE_VULNERABLE_IRRIGATED = date(2027, 1, 1)
+ADVICE_OTHER_IRRIGATED = date(2028, 1, 1)
 
 
-def advice_required_from(vulnerable: bool | None) -> date:
+def advice_required_from(vulnerable: bool | None, irrigated: bool = False) -> date:
+    # ASSUMPTION: sowing dates of 2026 unknown -> earlier dates for any irrigated plan (fail-safe)
+    if irrigated:
+        return ADVICE_OTHER_IRRIGATED if vulnerable is False else ADVICE_VULNERABLE_IRRIGATED
     return ADVICE_OTHER if vulnerable is False else ADVICE_VULNERABLE
 
 
+def _irrigated(ctx: PlanContext) -> bool:
+    return any(s.inputs.get("irrigated") for s in ctx.sheets)
+
+
 def exempt(ctx: PlanContext) -> bool:
+    """Unknown area is never an exemption."""
     area, rainfed = plan_area(ctx)
-    return area > 0 and rainfed and area <= EXEMPT_RAINFED_HA
+    return area_known(ctx) and area > 0 and rainfed and area <= EXEMPT_RAINFED_HA
 
 
 def advice_required(ctx: PlanContext) -> bool:
-    return not exempt(ctx) and ctx.at >= advice_required_from(ctx.vulnerable_zone)
+    return not exempt(ctx) and ctx.at >= advice_required_from(ctx.vulnerable_zone, _irrigated(ctx))
 
 
 def _advice(ctx: PlanContext):
     return [({"required": advice_required(ctx),
-              "required_from": advice_required_from(ctx.vulnerable_zone).isoformat(),
+              "required_from": advice_required_from(
+                  ctx.vulnerable_zone, _irrigated(ctx)).isoformat(),
+              "irrigated_dates": _irrigated(ctx),
               "vulnerable_zone": ctx.vulnerable_zone,
               "assumed_vulnerable": ctx.vulnerable_zone is None,
               "exempt": exempt(ctx)}, None)]

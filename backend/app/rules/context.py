@@ -45,3 +45,23 @@ def plan_area(ctx: PlanContext) -> tuple[float, bool]:
                 areas.setdefault(parcel["urn"], float(area))
     rainfed = not any(sheet.inputs.get("irrigated") for sheet in ctx.sheets)
     return sum(areas.values()), rainfed
+
+
+def _numeric(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def sheet_area(sheet: SheetContext) -> float | None:
+    """Sum of the sheet's parcel areas in ha; None when any is unknown (never a silent 0)."""
+    total = 0.0
+    for parcel in sheet.parcels:
+        area = sheet.value(f"parcel.{parcel['urn']}.area_ha")
+        if not _numeric(area):
+            return None
+        total += float(area)
+    return total
+
+
+def area_known(ctx: PlanContext) -> bool:
+    """True only when every sheet is calculated and every parcel has a numeric area."""
+    return all(s.result is not None and sheet_area(s) is not None for s in ctx.sheets)

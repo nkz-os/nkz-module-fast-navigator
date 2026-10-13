@@ -106,4 +106,26 @@ def test_advice_finding_is_informative():
     (f,) = found(ctx(at=date(2027, 10, 1)), "ES-RD1051-6.6-advice")
     assert f.severity == "info"
     assert f.params == {"required": True, "required_from": "2027-09-01", "vulnerable_zone": None,
-                        "assumed_vulnerable": True, "exempt": False}
+                        "assumed_vulnerable": True, "exempt": False, "irrigated_dates": False}
+
+
+def test_irrigated_plans_use_the_earlier_dates():
+    assert advice_required_from(None, True) == date(2027, 1, 1)
+    assert advice_required_from(False, True) == date(2028, 1, 1)
+    irr = sheet(irrigated=True)
+    assert advice_required(ctx(irr, at=date(2027, 2, 1)))
+    assert not advice_required(ctx(sheet(), at=date(2027, 2, 1)))
+    assert not advice_required(ctx(irr, at=date(2027, 12, 31), vulnerable=False))
+    assert advice_required(ctx(irr, at=date(2028, 1, 1), vulnerable=False))
+    (f,) = found(ctx(irr, at=date(2027, 2, 1)), "ES-RD1051-6.6-advice")
+    assert f.params["irrigated_dates"] is True and f.params["required_from"] == "2027-01-01"
+
+
+def test_unknown_area_is_never_exempt():
+    small = sheet(res=result(area=8.0))
+    assert exempt(ctx(small))
+    uncalculated = replace(sheet(), key="other", result=None)
+    assert not exempt(ctx(small, uncalculated))
+    assert advice_required(ctx(small, uncalculated, at=date(2027, 9, 1)))
+    noarea = replace(sheet(), key="other", parcels=({"urn": "urn:x", "sigpac": None},))
+    assert not exempt(ctx(small, noarea))

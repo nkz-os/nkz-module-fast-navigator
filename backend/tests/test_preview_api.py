@@ -148,3 +148,13 @@ def test_ids_that_reach_urls_are_validated(client, field, value):
 def test_a_valid_water_quality_id_passes_validation(client):
     body = dict(BODY, water_quality_id="urn:ngsi-ld:WaterQualityObserved:w1")
     assert client.post("/api/fast/calc/preview", json=body, headers=FARMER).status_code == 200
+
+
+@pytest.mark.parametrize("param", [
+    "organic.0.availability\n", "organic.٣.availability", "organic.01.availability",
+])
+def test_non_canonical_organic_override_names_are_rejected(client, param):
+    body = dict(BODY, organic=[{"material": "slurry", "rate_t_ha": 30, "n_pct": 0.5,
+                                "p2o5_pct": 0.2, "k2o_pct": 0.6}],
+                overrides=[{"param": param, "value": 0.6, "reason": "x"}])
+    assert client.post("/api/fast/calc/preview", json=body, headers=TECH).status_code == 422

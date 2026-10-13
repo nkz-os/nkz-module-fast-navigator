@@ -6,7 +6,7 @@ import re
 
 from app.engine.types import CROP_TYPES
 
-FARMER_PARAMS = re.compile(r"^organic\.\d+\.availability$")
+FARMER_PARAMS = re.compile(r"organic\.(0|[1-9][0-9]*)\.availability")
 _CROP = {"dm_product_pct": (0.01, 100.0), "harvest_index_pct": (0.01, 100.0),
          "residue_left_pct": (0.0, 100.0), "n_product_pct": (0.0, 10.0),
          "n_min_product_pct": (0.0, 10.0), "p_product_pct": (0.0, 10.0),
@@ -21,7 +21,7 @@ _SOIL = {"sand_pct": (0.0, 100.0), "clay_pct": (0.0, 100.0), "ph": (0.0, 14.0),
 
 def farmer_may_override(param: str) -> bool:
     """Owner 2026-10-13: the farmer sets the N availability of organic inputs; nothing else."""
-    return bool(FARMER_PARAMS.match(param))
+    return bool(FARMER_PARAMS.fullmatch(param))
 
 
 def check_override(param: str, value) -> None:
@@ -40,7 +40,7 @@ def check_override(param: str, value) -> None:
         bounds = _YIELD.get(tail)
     elif head == "soil":
         bounds = _SOIL.get(tail)
-    elif param == "irrigation.uptake" or FARMER_PARAMS.match(param):
+    elif param == "irrigation.uptake" or FARMER_PARAMS.fullmatch(param):
         bounds = (0.0, 1.0)
     else:
         bounds = None

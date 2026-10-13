@@ -28,3 +28,12 @@ def test_the_farmer_only_sets_organic_availability():
     assert farmer_may_override("organic.0.availability")
     assert not farmer_may_override("irrigation.uptake")
     assert not farmer_may_override("crop.n_min_product_pct")
+
+
+@pytest.mark.parametrize("param", [
+    "organic.0.availability\n", "organic.٣.availability", "organic.01.availability",
+])
+def test_non_canonical_organic_params_are_not_overridable(param):
+    assert not farmer_may_override(param)
+    with pytest.raises(ValueError):
+        check_override(param, 0.5)

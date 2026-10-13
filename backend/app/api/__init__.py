@@ -113,12 +113,12 @@ def _overrides(items: list[OverrideIn], auth: AuthContext) -> tuple[Override, ..
     return tuple(out)
 
 
-_ORGANIC_PARAM = re.compile(r"^organic\.(\d+)\.availability$")
+_ORGANIC_PARAM = re.compile(r"organic\.(0|[1-9][0-9]*)\.availability")
 
 
 def _request(body: SheetIn, auth: AuthContext) -> SheetRequest:
     for item in body.overrides:
-        m = _ORGANIC_PARAM.match(item.param)
+        m = _ORGANIC_PARAM.fullmatch(item.param)
         if m and int(m.group(1)) >= len(body.organic):
             raise HTTPException(422, f"{item.param} refers to an organic application that is not in the request")
     try:

@@ -40,6 +40,13 @@ def _species(cycle: dict | None) -> str | None:
     return s if isinstance(s, str) and EPPO.match(s) else None
 
 
+def _flag_species(cycle: dict | None, notices: list[Notice]) -> None:
+    """A cycle that would have been the crop but whose species is not an EPPO code."""
+    if cycle is not None and not _species(cycle):
+        notices.append(Notice("cycle_species_not_eppo", {
+            "species": cycle.get("species"), "crop_id": cycle.get("crop_id")}))
+
+
 def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
                        declared_crop: str | None = None,
                        declared_previous: str | None = None) -> CropChoice:
@@ -62,6 +69,7 @@ def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
     else:
         crop = missing(_SOURCE)
         absent.append(MissingInput("crop", "plan", {"campaign": campaign}))
+        _flag_species(current, notices)
 
     previous_campaign: int | None
     if declared_previous:
@@ -80,6 +88,7 @@ def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
             previous = missing(_SOURCE)
             previous_campaign = None
             absent.append(MissingInput("previous_crop", "plan", {"campaign": campaign}))
+            _flag_species(last, notices)
     else:
         start = _date(current, "start") if current else None
         if start:
@@ -97,4 +106,5 @@ def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
             previous = missing(_SOURCE)
             previous_campaign = None
             absent.append(MissingInput("previous_crop", "plan", {"campaign": campaign}))
+            _flag_species(last, notices)
     return CropChoice(crop, previous, previous_campaign, tuple(notices), tuple(absent))

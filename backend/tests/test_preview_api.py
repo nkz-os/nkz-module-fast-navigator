@@ -158,3 +158,10 @@ def test_non_canonical_organic_override_names_are_rejected(client, param):
                                 "p2o5_pct": 0.2, "k2o_pct": 0.6}],
                 overrides=[{"param": param, "value": 0.6, "reason": "x"}])
     assert client.post("/api/fast/calc/preview", json=body, headers=TECH).status_code == 422
+
+
+@pytest.mark.parametrize("nuts,status", [("ES22", 200), ("ES2", 422), ("ES221", 422),
+                                         ("es22", 422)])
+def test_nuts_is_exactly_level_2(client, nuts, status):
+    assert client.post("/api/fast/calc/preview", json=dict(BODY, nuts=nuts),
+                       headers=FARMER).status_code == status

@@ -106,3 +106,20 @@ def test_second_crop_with_no_first_cycle_recorded_is_flagged():
     assert not c.previous.known
     assert MissingInput("previous_crop", "plan", {"campaign": 2027}) in c.missing
     assert Notice("double_crop_first_cycle_unknown", {"campaign": 2027}) in c.notices
+
+
+def test_a_cycle_species_that_is_not_an_eppo_code_is_flagged():
+    cycles = [cycle("wheat", 2026, "2025-10-25", "2026-07-10"),
+              cycle("barley", 2027, "2026-10-25", "2027-07-10")]
+    c = crops_for_campaign(cycles, 2027)
+    assert not c.crop.known and not c.previous.known
+    assert Notice("cycle_species_not_eppo", {"species": "barley",
+                                             "crop_id": cycles[1]["crop_id"]}) in c.notices
+    assert Notice("cycle_species_not_eppo", {"species": "wheat",
+                                             "crop_id": cycles[0]["crop_id"]}) in c.notices
+
+
+def test_a_declared_crop_does_not_flag_the_cycle_species():
+    cycles = [cycle("barley", 2027, "2026-10-25", "2027-07-10")]
+    c = crops_for_campaign(cycles, 2027, declared_crop="HORVX", declared_previous="fallow")
+    assert not any(n.code == "cycle_species_not_eppo" for n in c.notices)

@@ -207,3 +207,18 @@ def test_two_parcels_without_area_are_both_listed_and_the_sheet_is_incomplete():
     listed = [m.params["parcel"] for m in r.missing if m.field == "parcel.area_ha"]
     assert sorted(listed) == ["urn:ngsi-ld:AgriParcel:p1", "urn:ngsi-ld:AgriParcel:p2"]
     assert None not in (r.n, r.p2o5, r.k2o) and r.status == INCOMPLETE
+
+
+def test_management_inputs_are_echoed_as_declared_values():
+    base = assembled()
+    r = calculate(replace(base, previous_residues_burned=True, rotation_years=3))
+    for name, value in (("strategy", 2), ("tillage", True), ("irrigated", False),
+                        ("rotation_years", 3), ("previous_residues_burned", True)):
+        entry = r.inputs[f"management.{name}"]
+        assert entry["value"] == value and entry["provenance"] == DECLARED
+
+
+def test_versions_carry_the_preceding_crop_s_coefficients():
+    r = calculate(assembled())
+    assert r.versions["previous_coefficients"] == r.versions["coefficients"] is not None
+    assert calculate(assembled(previous_crop=None)).versions["previous_coefficients"] is None

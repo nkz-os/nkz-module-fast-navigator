@@ -15,7 +15,7 @@ from app.inputs.crops import FALLOW, CropChoice
 from app.inputs.irrigation import IrrigationCredit
 from app.inputs.organic import ORGANIC_TABLE_VERSION, OrganicCredit
 from app.inputs.parcel import ParcelInfo
-from app.inputs.provenance import MissingInput, Notice, Sourced
+from app.inputs.provenance import DECLARED, MissingInput, Notice, Sourced
 from app.inputs.soil import SoilInputs
 from app.inputs.yield_target import YieldTarget
 
@@ -175,6 +175,11 @@ def _inputs(a: AssembledInputs) -> dict[str, dict]:
             out[f"{prefix}.kg_ha"] = target.yield_kg_ha.to_dict()
             out[f"{prefix}.cv_pct"] = target.cv_pct.to_dict()
             out[f"{prefix}.basis"] = {"value": target.basis, "years": list(target.years)}
+    m = a.management
+    for name, value in (("strategy", m.strategy), ("tillage", m.tillage),
+                        ("irrigated", m.irrigated), ("rotation_years", a.rotation_years),
+                        ("previous_residues_burned", a.previous_residues_burned)):
+        out[f"management.{name}"] = Sourced(value, DECLARED, "plan").to_dict()
     out.update({f"soil.{k}": v.to_dict() for k, v in a.soil.values.items()})
     out["soil.analysis_id"] = {"value": a.soil.analysis_id, "sampling_date": a.soil.sampling_date}
     for name in ("n_kg_ha", "uptake", "water_m3_ha", "no3_mg_l"):
@@ -252,4 +257,7 @@ def calculate(a: AssembledInputs) -> SheetResult:
         status=status, provisional=a.soil.provisional, n=n, p2o5=p2o5, k2o=k2o,
         inputs=_inputs(a), notices=tuple(_notices(a)), missing=_dedupe(missing),
         versions={"engine": ENGINE_VERSION, "calc": CALC_VERSION,
-                  "coefficients": a.crop.dataset_version, "organic_table": ORGANIC_TABLE_VERSION})
+                  "coefficients": a.crop.dataset_version,
+                  "previous_coefficients": (a.previous_crop.dataset_version
+                                            if a.previous_crop is not None else None),
+                  "organic_table": ORGANIC_TABLE_VERSION})

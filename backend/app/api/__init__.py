@@ -6,7 +6,7 @@ import logging
 import re
 from contextlib import asynccontextmanager
 from typing import Annotated
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -83,7 +83,7 @@ class SheetIn(BaseModel):
     water_quality_id: str | None = Field(default=None, pattern=WATER_QUALITY_PATTERN,
                                          max_length=200)
     no3_mg_l: float | None = Field(default=None, ge=0, le=1000)
-    nuts: str | None = Field(default=None, pattern=r"^[A-Z]{2}[0-9A-Z]{1,3}$")
+    nuts: str | None = Field(default=None, pattern=r"^[A-Z]{2}[0-9A-Z]{2}$")
     overrides: list[OverrideIn] = Field(default_factory=list, max_length=100)
 
     @field_validator("declared_yields", "previous_declared_yields")
@@ -100,7 +100,7 @@ def _urn(parcel_id: str) -> str:
 
 
 def _overrides(items: list[OverrideIn], auth: AuthContext) -> tuple[Override, ...]:
-    at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    at = datetime.now(UTC).isoformat(timespec="seconds")
     out = []
     for item in items:
         if not farmer_may_override(item.param) and TECHNICIAN not in auth.roles:

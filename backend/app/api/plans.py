@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Path, Query
@@ -14,6 +13,7 @@ from app.inputs.organic import OrganicApplication
 from app.inputs.parcel import is_parcel_identifier
 from app.middleware import AuthContext, require_auth
 from app.plans import repo, service, signing
+from app.plans.clock import legal_today
 from app.plans.applications import ApplicationIn
 from app.plans.states import Action
 
@@ -154,7 +154,7 @@ async def calculate_plan(plan_id: uuid.UUID, body: RowVersion,
                          sources_factory=Depends(get_sources_factory)) -> dict:
     async with sources_factory(auth.tenant_id) as sources:
         return await service.calculate_plan(pool, sources, _actor(auth), plan_id,
-                                            body.row_version, date.today())
+                                            body.row_version, legal_today())
 
 
 @router.post("/{plan_id}/rain-normal")
@@ -203,14 +203,14 @@ async def put_declarations(plan_id: uuid.UUID, body: DeclarationsPut,
 @router.post("/{plan_id}/sign")
 async def sign_plan(plan_id: uuid.UUID, body: RowVersion,
                     auth: AuthContext = require_auth(SIGN_ROLES), pool=Depends(get_db)) -> dict:
-    return await signing.sign(pool, _actor(auth), plan_id, body.row_version, date.today())
+    return await signing.sign(pool, _actor(auth), plan_id, body.row_version, legal_today())
 
 
 @router.post("/{plan_id}/close")
 async def close_plan(plan_id: uuid.UUID, body: CloseIn,
                      auth: AuthContext = require_auth(WRITE_ROLES), pool=Depends(get_db)) -> dict:
     return await signing.close(pool, _actor(auth), plan_id, body.row_version, body.closure_basis,
-                               body.signer_name, date.today())
+                               body.signer_name, legal_today())
 
 
 @router.post("/{plan_id}/revise", status_code=201)

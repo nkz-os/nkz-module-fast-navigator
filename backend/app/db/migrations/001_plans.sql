@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS fast.crop_sheets (
 
 CREATE TABLE IF NOT EXISTS fast.sheet_parcels (
     sheet_id   UUID NOT NULL REFERENCES fast.crop_sheets (id) ON DELETE CASCADE,
+    ord        INTEGER NOT NULL,       -- the client's order: the first parcel decides crop and soil
     parcel_urn TEXT NOT NULL,
     sigpac     TEXT,
     PRIMARY KEY (sheet_id, parcel_urn)

@@ -72,7 +72,8 @@ async def test_replacing_keeps_overrides_of_kept_sheets_and_drops_orphans(pool):
             {"param": "organic.1.availability", "value": 0.6, "reason": "own", "user": "u1",
              "at": "x"}])
         dropped = await repo.replace_sheets(c, plan.id, [_sheet("a", organic=1), _sheet("c")])
-        assert dropped == ["a:organic.1.availability"]
+        assert dropped == [{"sheet": "a", "param": "organic.1.availability", "value": 0.6,
+                            "user": "u1"}]
         sheets = await repo.get_sheets(c, plan.id)
         assert [s.key for s in sheets] == ["a", "c"]
         assert sheets[0].id == a.id
@@ -123,3 +124,81 @@ async def test_a_lock_can_be_taken(pool):
         plan = await _plan(c)
         assert (await repo.get_plan(c, T, plan.id, for_update=True)).id == plan.id
     assert isinstance(plan.id, uuid.UUID)
+
+
+def _mat(material="slurry", rate=30, n=0.5, p=0.2, k=0.6):
+    return {"material": material, "rate_t_ha": rate, "n_pct": n, "p2o5_pct": p, "k2o_pct": k}
+
+
+def _organic_sheet(*items):
+    base = _sheet("a")
+    return repo.SheetData("a", {**base.inputs, "organic": list(items)}, base.parcels, ())
+
+
+async def _with_overrides(c, plan, items, params):
+    await repo.replace_sheets(c, plan.id, [_organic_sheet(*items)])
+    (a,) = await repo.get_sheets(c, plan.id)
+    await repo.set_overrides(c, a.id, [
+        {"param": f"organic.{i}.availability", "value": v, "reason": "own", "user": "u1",
+         "at": "x"} for i, v in params])
+
+
+async def _overrides(c, plan):
+    (a,) = await repo.get_sheets(c, plan.id)
+    return {o["param"]: (o["value"], o["user"], o["reason"], o["at"]) for o in a.overrides}
+
+
+async def test_organic_override_follows_its_input_when_one_before_it_is_removed(pool):
+    async with pool.acquire() as c:
+        plan = await _plan(c)
+        first, second = _mat("slurry"), _mat("compost", n=1.2)
+        await _with_overrides(c, plan, [first, second], [(0, 0.1), (1, 0.6)])
+        dropped = await repo.replace_sheets(c, plan.id, [_organic_sheet(second)])
+        assert await _overrides(c, plan) == {"organic.0.availability": (0.6, "u1", "own", "x")}
+        assert dropped == [{"sheet": "a", "param": "organic.0.availability", "value": 0.1,
+                            "user": "u1"}]
+
+
+async def test_organic_overrides_swap_with_reordered_inputs(pool):
+    async with pool.acquire() as c:
+        plan = await _plan(c)
+        first, second = _mat("slurry"), _mat("compost", n=1.2)
+        await _with_overrides(c, plan, [first, second], [(0, 0.1), (1, 0.6)])
+        assert await repo.replace_sheets(c, plan.id, [_organic_sheet(second, first)]) == []
+        assert await _overrides(c, plan) == {"organic.1.availability": (0.1, "u1", "own", "x"),
+                                             "organic.0.availability": (0.6, "u1", "own", "x")}
+
+
+async def test_organic_override_is_dropped_when_the_material_at_its_index_changes(pool):
+    async with pool.acquire() as c:
+        plan = await _plan(c)
+        await _with_overrides(c, plan, [_mat("slurry")], [(0, 0.1)])
+        dropped = await repo.replace_sheets(c, plan.id, [_organic_sheet(_mat("compost"))])
+        assert await _overrides(c, plan) == {}
+        assert [d["param"] for d in dropped] == ["organic.0.availability"]
+
+
+async def test_organic_override_survives_a_change_of_rate_only(pool):
+    async with pool.acquire() as c:
+        plan = await _plan(c)
+        await _with_overrides(c, plan, [_mat("slurry", rate=30)], [(0, 0.1)])
+        assert await repo.replace_sheets(c, plan.id, [_organic_sheet(_mat("slurry", rate=45))]) == []
+        assert await _overrides(c, plan) == {"organic.0.availability": (0.1, "u1", "own", "x")}
+
+
+async def test_identical_inputs_are_matched_in_order(pool):
+    async with pool.acquire() as c:
+        plan = await _plan(c)
+        same = _mat("slurry")
+        await _with_overrides(c, plan, [same, same], [(1, 0.7)])
+        assert await repo.replace_sheets(c, plan.id, [_organic_sheet(same, same)]) == []
+        assert await _overrides(c, plan) == {"organic.1.availability": (0.7, "u1", "own", "x")}
+
+
+async def test_parcels_keep_the_client_order(pool):
+    parcels = tuple((f"urn:ngsi-ld:AgriParcel:{n}", None) for n in ("z", "a", "m"))
+    async with pool.acquire() as c:
+        plan = await _plan(c)
+        await repo.replace_sheets(c, plan.id, [_sheet("a", parcels=parcels)])
+        (a,) = await repo.get_sheets(c, plan.id)
+        assert [p["urn"] for p in a.parcels] == [p[0] for p in parcels]

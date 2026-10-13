@@ -112,28 +112,58 @@ async def set_rain(conn: asyncpg.Connection, plan_id: uuid.UUID, rain: dict) -> 
     return _plan(row)
 
 
+def _organic_key(item: dict) -> tuple:
+    """What an organic input is for the availability override: the material and its composition
+    (the dose does not change how much of its N is available)."""
+    return (item.get("material"), item.get("n_pct"), item.get("p2o5_pct"), item.get("k2o_pct"))
+
+
+def _carry_overrides(key: str, old_inputs: dict, old_overrides: list[dict],
+                     new_inputs: dict) -> tuple[list[dict], list[dict]]:
+    """Overrides of the new sheet, and the dropped ones. An organic override follows its input
+    (matched by content, first unused match in order), not its list position."""
+    old_organic = old_inputs.get("organic") or []
+    new_organic = new_inputs.get("organic") or []
+    new_index: dict[int, int] = {}
+    used: set[int] = set()
+    for i, item in enumerate(old_organic):
+        for j, candidate in enumerate(new_organic):
+            if j not in used and _organic_key(candidate) == _organic_key(item):
+                used.add(j)
+                new_index[i] = j
+                break
+    kept, dropped = [], []
+    for override in old_overrides:
+        match = _ORGANIC_PARAM.fullmatch(override["param"])
+        if not match:
+            kept.append(override)
+        elif int(match.group(1)) in new_index:
+            kept.append({**override, "param": f"organic.{new_index[int(match.group(1))]}"
+                                              ".availability"})
+        else:
+            dropped.append({"sheet": key, "param": override["param"], "value": override["value"],
+                            "user": override["user"]})
+    return kept, dropped
+
+
 async def replace_sheets(conn: asyncpg.Connection, plan_id: uuid.UUID,
-                         sheets: list[SheetData]) -> list[str]:
-    """Make the plan's sheets exactly `sheets`. A kept key keeps its id and its overrides, except
-    overrides of organic inputs that no longer exist, which are dropped and returned."""
+                         sheets: list[SheetData]) -> list[dict]:
+    """Make the plan's sheets exactly `sheets`. A kept key keeps its id and its overrides; an
+    organic override follows its input, and those of inputs that no longer exist are dropped
+    and returned (sheet, param, value, user) for the audit."""
     existing = {r["key"]: r for r in await conn.fetch(
-        "SELECT id, key, overrides FROM crop_sheets WHERE plan_id = $1", plan_id)}
+        "SELECT id, key, inputs, overrides FROM crop_sheets WHERE plan_id = $1", plan_id)}
     keys = [s.key for s in sheets]
     await conn.execute("DELETE FROM crop_sheets WHERE plan_id = $1 AND NOT (key = ANY($2::text[]))",
                        plan_id, keys)
     await conn.execute("UPDATE crop_sheets SET seq = -seq - 1 WHERE plan_id = $1", plan_id)
-    dropped: list[str] = []
+    dropped: list[dict] = []
     for seq, sheet in enumerate(sheets):
-        n_organic = len(sheet.inputs.get("organic") or [])
         if sheet.key in existing:
-            sheet_id = existing[sheet.key]["id"]
-            kept = []
-            for override in existing[sheet.key]["overrides"]:
-                match = _ORGANIC_PARAM.fullmatch(override["param"])
-                if match and int(match.group(1)) >= n_organic:
-                    dropped.append(f"{sheet.key}:{override['param']}")
-                else:
-                    kept.append(override)
+            old = existing[sheet.key]
+            sheet_id = old["id"]
+            kept, lost = _carry_overrides(sheet.key, old["inputs"], old["overrides"], sheet.inputs)
+            dropped += lost
             await conn.execute("UPDATE crop_sheets SET seq = $2, inputs = $3, overrides = $4 "
                                "WHERE id = $1", sheet_id, seq, sheet.inputs, kept)
         else:
@@ -143,8 +173,9 @@ async def replace_sheets(conn: asyncpg.Connection, plan_id: uuid.UUID,
                                sheet.inputs)
         await conn.execute("DELETE FROM sheet_parcels WHERE sheet_id = $1", sheet_id)
         await conn.executemany(
-            "INSERT INTO sheet_parcels (sheet_id, parcel_urn, sigpac) VALUES ($1, $2, $3)",
-            [(sheet_id, urn, sigpac) for urn, sigpac in sheet.parcels])
+            "INSERT INTO sheet_parcels (sheet_id, ord, parcel_urn, sigpac) "
+            "VALUES ($1, $2, $3, $4)",
+            [(sheet_id, i, urn, sigpac) for i, (urn, sigpac) in enumerate(sheet.parcels)])
         await conn.execute("DELETE FROM applications WHERE sheet_id = $1", sheet_id)
         await conn.executemany(
             "INSERT INTO applications (id, sheet_id, seq, data) VALUES ($1, $2, $3, $4)",
@@ -158,7 +189,7 @@ async def get_sheets(conn: asyncpg.Connection, plan_id: uuid.UUID) -> list[Sheet
     ids = [r["id"] for r in rows]
     parcels: dict[uuid.UUID, list[dict]] = {i: [] for i in ids}
     for p in await conn.fetch("SELECT sheet_id, parcel_urn, sigpac FROM sheet_parcels "
-                              "WHERE sheet_id = ANY($1::uuid[]) ORDER BY parcel_urn", ids):
+                              "WHERE sheet_id = ANY($1::uuid[]) ORDER BY sheet_id, ord", ids):
         parcels[p["sheet_id"]].append({"urn": p["parcel_urn"], "sigpac": p["sigpac"]})
     apps: dict[uuid.UUID, list[dict]] = {i: [] for i in ids}
     for a in await conn.fetch("SELECT sheet_id, data FROM applications "

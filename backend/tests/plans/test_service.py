@@ -132,7 +132,62 @@ async def test_overrides_keep_their_author(pool):
     plan = await service.edit_sheets(pool, FARMER, pid, plan["row_version"], [sheet()])
     assert [o["param"] for o in plan["sheets"][0]["overrides"]] == ["soil.ph"]
     log = await service.audit(pool, FARMER, pid)
-    assert log[-1]["detail"]["dropped_overrides"] == ["wheat:organic.0.availability"]
+    assert log[-1]["detail"]["dropped_overrides"] == [
+        {"sheet": "wheat", "param": "organic.0.availability", "value": 0.6, "user": "u-farmer"}]
+
+
+COMPOST = {"material": "compost", "rate_t_ha": 20.0, "n_pct": 1.2, "p2o5_pct": 0.5,
+           "k2o_pct": 0.8}
+
+
+async def _two_organics_with_overrides(pool):
+    plan = await _ready(pool, [sheet(organic=[SLURRY, COMPOST])])
+    pid = uuid.UUID(plan["id"])
+    plan = await service.set_override(pool, FARMER, pid, plan["row_version"], "wheat",
+                                      "organic.0.availability", 0.1, "slurry analysis")
+    plan = await service.set_override(pool, TECH, pid, plan["row_version"], "wheat",
+                                      "organic.1.availability", 0.6, "compost analysis")
+    return pid, plan
+
+
+def _by_param(plan):
+    return {o["param"]: (o["value"], o["user"], o["reason"]) for o in plan["sheets"][0]["overrides"]}
+
+
+async def test_removing_an_organic_input_moves_the_other_override_with_its_input(pool):
+    pid, plan = await _two_organics_with_overrides(pool)
+    plan = await service.edit_sheets(pool, FARMER, pid, plan["row_version"],
+                                     [sheet(organic=[COMPOST])])
+    assert _by_param(plan) == {"organic.0.availability": (0.6, "u-tech", "compost analysis")}
+    detail = (await service.audit(pool, FARMER, pid))[-1]["detail"]
+    assert detail["dropped_overrides"] == [
+        {"sheet": "wheat", "param": "organic.0.availability", "value": 0.1, "user": "u-farmer"}]
+
+
+async def test_reordering_organic_inputs_swaps_the_overrides(pool):
+    pid, plan = await _two_organics_with_overrides(pool)
+    plan = await service.edit_sheets(pool, FARMER, pid, plan["row_version"],
+                                     [sheet(organic=[COMPOST, SLURRY])])
+    assert _by_param(plan) == {"organic.1.availability": (0.1, "u-farmer", "slurry analysis"),
+                               "organic.0.availability": (0.6, "u-tech", "compost analysis")}
+
+
+async def test_changing_the_material_at_an_index_drops_its_override(pool):
+    pid, plan = await _two_organics_with_overrides(pool)
+    other = {**SLURRY, "material": "other"}
+    plan = await service.edit_sheets(pool, FARMER, pid, plan["row_version"],
+                                     [sheet(organic=[other, COMPOST])])
+    assert list(_by_param(plan)) == ["organic.1.availability"]
+    detail = (await service.audit(pool, FARMER, pid))[-1]["detail"]
+    assert [d["param"] for d in detail["dropped_overrides"]] == ["organic.0.availability"]
+
+
+async def test_changing_only_the_rate_keeps_the_override(pool):
+    pid, plan = await _two_organics_with_overrides(pool)
+    plan = await service.edit_sheets(pool, FARMER, pid, plan["row_version"],
+                                     [sheet(organic=[{**SLURRY, "rate_t_ha": 50.0}, COMPOST])])
+    assert set(_by_param(plan)) == {"organic.0.availability", "organic.1.availability"}
+    assert (await service.audit(pool, FARMER, pid))[-1]["detail"]["dropped_overrides"] == []
 
 
 async def test_override_permissions_and_values(pool):

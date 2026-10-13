@@ -114,7 +114,7 @@ async def test_an_unknown_parcel_leaves_the_plan_untouched(pool):
 
 async def test_a_plan_without_sheets_is_not_calculated(pool):
     plan = await service.create(pool, FARMER, 2027, "tenant")
-    with pytest.raises(ValueError):
+    with pytest.raises(service.Invalid):
         await service.calculate_plan(pool, FakeSources(**complete_data()), FARMER,
                                      uuid.UUID(plan["id"]), plan["row_version"], TODAY)
 
@@ -142,10 +142,10 @@ async def test_override_permissions_and_values(pool):
         await service.set_override(pool, FARMER, pid, plan["row_version"], "wheat",
                                    "irrigation.uptake", 0.5, "x")
     assert err.value.code == "forbidden"
-    with pytest.raises(ValueError):
+    with pytest.raises(service.Invalid):
         await service.set_override(pool, TECH, pid, plan["row_version"], "wheat", "soil.ph",
                                    99.0, "typo")
-    with pytest.raises(ValueError):
+    with pytest.raises(service.Invalid):
         await service.set_override(pool, FARMER, pid, plan["row_version"], "wheat",
                                    "organic.3.availability", 0.5, "x")
     with pytest.raises(service.NotFound):
@@ -174,7 +174,7 @@ async def test_submit_return_and_review_edits(pool):
     assert err.value.code == "forbidden"
     plan = await service.edit_sheets(pool, TECH, pid, plan["row_version"], [sheet()])
     assert plan["state"] == "in_review" and not plan["calc_fresh"]
-    with pytest.raises(ValueError):
+    with pytest.raises(service.Invalid):
         await service.transition(pool, TECH, pid, plan["row_version"], Action.RETURN)
     plan = await service.transition(pool, TECH, pid, plan["row_version"], Action.RETURN,
                                     comment="soil analysis missing")
@@ -202,3 +202,20 @@ async def test_rain_normal_is_stored(pool):
     plan = await service.store_rain_normal(pool, src, FARMER, pid)
     assert plan["rain_normal"]["years"] == [] and plan["state"] == "draft"
     assert [c[1] for c in src.calls if c[0] == "daily"] == list(range(2016, 2026))
+
+
+async def test_rain_normal_is_not_stored_if_the_plan_is_signed_meanwhile(pool):
+    plan = await _ready(pool)
+    pid = uuid.UUID(plan["id"])
+
+    class Signing(FakeSources):
+        async def daily(self, *args, **kwargs):
+            async with pool.acquire() as conn:
+                await conn.execute("UPDATE plans SET state = 'signed' WHERE id = $1", pid)
+            return await super().daily(*args, **kwargs)
+
+    with pytest.raises(TransitionError) as err:
+        await service.store_rain_normal(pool, Signing(**complete_data()), FARMER, pid)
+    assert err.value.code == "not_allowed"
+    async with pool.acquire() as conn:
+        assert (await repo.get_plan(conn, "tenant-a", pid)).rain is None

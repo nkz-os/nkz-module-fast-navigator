@@ -250,6 +250,8 @@ async def store_rain_normal(pool: asyncpg.Pool, sources, actor: Actor,
     normal["parcel"] = parcel
     async with pool.acquire() as conn, conn.transaction():
         plan = await _load(conn, actor, plan_id, for_update=True)
+        if State(plan.state) not in _RAIN_STATES:
+            raise TransitionError("not_allowed", f"the plan is {plan.state}")
         plan = await repo.set_rain(conn, plan.id, normal)
         await repo.append_audit(conn, plan.id, actor.user_id, "rain_normal",
                                 {"parcel": parcel, "years": normal["years"]})

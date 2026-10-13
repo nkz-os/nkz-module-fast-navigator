@@ -58,5 +58,11 @@ async def fetch_harvests(orion, parcel_urn: str) -> list[dict]:
     return await _query_all(orion, "AgriParcelOperation", q)
 
 
+async def fetch_fertilizations(orion, parcel_urn: str) -> list[dict]:
+    """Completed fertilizations of the parcel (field notebook); "issued" is an unexecuted order."""
+    q = f'hasAgriParcel=="{parcel_urn}";operationType=="fertilization";status=="completed"'
+    return await _query_all(orion, "AgriParcelOperation", q)
+
+
 async def fetch_water_quality(orion, entity_id: str) -> dict | None:
     return await _get(orion, entity_id)

@@ -27,6 +27,10 @@ class FakeSources:
         self._hit("harvests", urn)
         return self.data.get("harvests", {}).get(urn, [])
 
+    async def fertilizations(self, urn):
+        self._hit("fertilizations", urn)
+        return self.data.get("fertilizations", {}).get(urn, [])
+
     async def timeline(self, urn, at):
         self._hit("timeline", urn)
         return self.data.get("timelines", {}).get(urn)

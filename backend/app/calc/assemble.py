@@ -95,6 +95,9 @@ class Sources:
     async def harvests(self, urn: str) -> list[dict]:
         return await broker.fetch_harvests(self._orion, urn)
 
+    async def fertilizations(self, urn: str) -> list[dict]:
+        return await broker.fetch_fertilizations(self._orion, urn)
+
     async def water_quality(self, entity_id: str) -> dict | None:
         return await broker.fetch_water_quality(self._orion, entity_id)
 

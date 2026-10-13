@@ -1,0 +1,83 @@
+{
+ "eppo": "TRZAX",
+ "crop_type": "cereal",
+ "harvest_product": "grain",
+ "residue_product": "straw",
+ "n_fixing": false,
+ "dataset_version": "2026-10-11.1",
+ "missing": [
+  "dm_residue_pct"
+ ],
+ "source_ids": [
+  "essd_2024_s3",
+  "mapa_guia_2010",
+  "panagos_2022"
+ ],
+ "values": {
+  "dm_product_pct": {
+   "value": 86.0,
+   "unit": "% fresh weight",
+   "source_id": "panagos_2022",
+   "ref": "Suppl. Table S1 (not viewed; value read from Dryad Combined_crop_data.csv, rows citing Panagos 2022, variable DM_pc, original_crop \"Soft wheat\")"
+  },
+  "n_product_pct": {
+   "value": 2.442,
+   "unit": "% DM",
+   "source_id": "essd_2024_s3",
+   "ref": "Table S3, p. 11 (PDF) (row \"Wheat\")"
+  },
+  "p_product_pct": {
+   "value": 0.3559,
+   "unit": "% DM",
+   "source_id": "panagos_2022",
+   "ref": "Table 1, p. 9 (row \"Soft wheat\")"
+  },
+  "k_product_pct": {
+   "value": 0.6047,
+   "unit": "% DM",
+   "source_id": "essd_2024_s3",
+   "ref": "Table S3, p. 11 (PDF) (row \"Wheat\")"
+  },
+  "n_residue_pct": {
+   "value": 1.574,
+   "unit": "% DM",
+   "source_id": "mapa_guia_2010",
+   "ref": "Tabla 16.2, p. 125 (Parte II PDF p. 5), row Trigo"
+  },
+  "p_residue_pct": {
+   "value": 0.2637,
+   "unit": "% DM",
+   "source_id": "mapa_guia_2010",
+   "ref": "Tabla 16.2, p. 125 (Parte II PDF p. 5), row Trigo"
+  },
+  "k_residue_pct": {
+   "value": 2.134,
+   "unit": "% DM",
+   "source_id": "mapa_guia_2010",
+   "ref": "Tabla 16.2, p. 125 (Parte II PDF p. 5), row Trigo"
+  },
+  "balance_harvest_index_pct": {
+   "value": 51.02,
+   "unit": "%",
+   "source_id": "panagos_2022",
+   "ref": "Table 2, p. 11 (row \"Soft wheat\", Rres) + eq. (6), p. 10"
+  },
+  "residue_left_pct": {
+   "value": 50.0,
+   "unit": "%",
+   "source_id": "panagos_2022",
+   "ref": "Table 2, p. 11 (row \"Soft wheat\", Rrem) and text p. 11"
+  }
+ },
+ "attributions": [
+  {
+   "source_id": "essd_2024_s3"
+  },
+  {
+   "source_id": "mapa_guia_2010"
+  },
+  {
+   "source_id": "panagos_2022"
+  }
+ ]
+}

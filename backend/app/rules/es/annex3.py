@@ -111,20 +111,21 @@ def _five_years(oxide: str, factor: float):
             calculated = ((sheet.result or {}).get(oxide) or {}).get("before_organic_kg_ha")
             if planned is None or calculated is None:
                 continue          # no result: FAST-sheet-incomplete already blocks the sheet
-            years = []
+            years, sources = [], set()
             for h in sheet.history:
                 hp, hc = h.get(f"{oxide}_planned_kg_ha"), h.get(f"{oxide}_calculated_kg_ha")
                 if hp is None or hc is None:
                     continue
                 planned, calculated = planned + hp, calculated + hc
                 years.append(h["campaign"])
+                sources.add(h.get("source", "planned"))
             limit = calculated * factor
             if planned > limit + _EPS:
                 hits.append(({"planned_kg_ha": round(planned, 1),
                               "calculated_kg_ha": round(calculated, 1),
                               "limit_kg_ha": round(limit, 1),
                               "years": sorted(years) + [ctx.campaign],
-                              "history": "planned"}, sheet.key))
+                              "history": sorted(sources)}, sheet.key))
         return hits
     return check
 

@@ -21,4 +21,5 @@ def test_holder_qualification_routes(client):  # noqa: F811
     assert client.put(url, json=body, headers=FARMER).status_code == 403
     assert client.put(url, json={**body, "reference": ""}, headers=TECH).status_code == 422
     assert client.put(url, json=body, headers=TECH).status_code == 200
-    assert client.get(url, headers=FARMER).json()["reference"] == "COIA 1"
+    got = client.get(url, headers=FARMER).json()
+    assert got["reference"] == "COIA 1" and got["updated_by"] == "u-tech" and got["updated_at"]

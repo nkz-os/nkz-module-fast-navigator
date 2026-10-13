@@ -63,3 +63,6 @@ async def test_holder_qualification(pool):
         assert q == {"holder_name": "Juan Pérez", "qualification": "Ingeniero Agrónomo",
                      "reference": "COIA 124"}
         assert await repo.get_holder_qualification(c, "tenant-b") is None
+        got = await repo.get_holder_qualification(c, T)
+        assert got["updated_by"] == "u-tech" and got["reference"] == "COIA 124"
+        datetime.datetime.fromisoformat(got["updated_at"])         # an ISO string

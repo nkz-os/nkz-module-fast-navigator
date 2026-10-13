@@ -90,7 +90,7 @@ def _soil_findings(ctx: PlanContext):
 # RD 1311/2012 annex III part I C.i (as amended by RD 1051/2022): soil data are not mandatory
 # until one year after the MAPA publishes its soil sampling and analysis guides. Not published
 # as of 2026-10-13 (owner): when they are, set publication + 1 year in a new rules version.
-# Sewage sludge (always analysed) is not a material FaST plans.
+# Sludge-specific analyses (RD 1310/1990, heavy metals) are not checked by FaST.
 SOIL_DATA_MANDATORY_FROM: date | None = None
 
 

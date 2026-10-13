@@ -76,7 +76,8 @@ class ApplicationIn(BaseModel):
     def _consistent(self) -> ApplicationIn:
         if len(set(self.annex_v)) != len(self.annex_v):
             raise ValueError("annex V measures must not repeat")
-        own = (self.n_pct, self.n_ureic_pct, self.p2o5_pct, self.k2o_pct, self.product_rate_kg_ha, self.n_form)
+        own = (self.n_pct, self.n_ureic_pct, self.p2o5_pct, self.k2o_pct,
+               self.product_rate_kg_ha, self.n_form)
         if self.kind == "organic":
             if self.organic_index is None:
                 raise ValueError("an organic application points at the sheet's organic input")

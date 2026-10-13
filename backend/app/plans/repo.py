@@ -224,9 +224,12 @@ async def set_n_adjustment(conn: asyncpg.Connection, sheet_id: uuid.UUID,
 
 
 async def get_holder_qualification(conn: asyncpg.Connection, tenant_id: str) -> dict | None:
-    row = await conn.fetchrow("SELECT holder_name, qualification, reference "
-                              "FROM holder_qualifications WHERE tenant_id = $1", tenant_id)
-    return dict(row) if row else None
+    row = await conn.fetchrow("SELECT holder_name, qualification, reference, updated_by, "
+                              "updated_at FROM holder_qualifications WHERE tenant_id = $1",
+                              tenant_id)
+    if row is None:
+        return None
+    return {**row, "updated_at": row["updated_at"].isoformat(timespec="seconds")}
 
 
 async def put_holder_qualification(conn: asyncpg.Connection, tenant_id: str, holder_name: str,

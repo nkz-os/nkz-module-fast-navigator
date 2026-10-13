@@ -290,3 +290,11 @@ async def test_irrigated_spring_2026_is_declared_sealed_and_revised(pool):
     new = await signing.revise(pool, FARMER, pid, plan["row_version"])
     assert new["declarations"]["irrigated_spring_2026"] is False
 
+
+async def test_an_adjustment_needs_a_fresh_calculation(pool):
+    pid, plan = await _over_limit_plan(pool)
+    plan = await service.edit_sheets(pool, FARMER, pid, plan["row_version"],
+                                     [sheet_of((URN,), apps=(APP,))])
+    assert plan["calc_fresh"] is False
+    with pytest.raises(service.Invalid, match="recalculate the plan"):
+        await service.set_n_adjustment(pool, TECH, pid, plan["row_version"], "wheat", ADJ)

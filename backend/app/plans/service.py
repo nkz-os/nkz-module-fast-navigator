@@ -282,6 +282,8 @@ async def set_n_adjustment(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID,
             stored = (await repo.get_results(conn, plan.id)).get(sheet.id)
             if stored is None:
                 raise Invalid("calculate the plan before justifying an N adjustment")
+            if not plan.calc_fresh:
+                raise Invalid("recalculate the plan before justifying an N adjustment")
             if valid_adjustment(adjustment, legal_today(), campaign=plan.campaign) is None:
                 raise Invalid("incomplete, future-dated or out-of-campaign justification")
             known = {k: adjustment.get(k) for k in _ADJUSTMENT_FIELDS}

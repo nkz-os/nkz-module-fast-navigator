@@ -1,6 +1,7 @@
 """Plans API (spec §9): plans, crop sheets, overrides, calculation and review round."""
 from __future__ import annotations
 
+import datetime as dt
 import uuid
 from typing import Annotated, Literal
 
@@ -148,6 +149,32 @@ async def delete_override(plan_id: uuid.UUID, row_version: int = Query(),
     return await service.delete_override(pool, _actor(auth), plan_id, row_version, key, param)
 
 
+class NAdjustmentPut(BaseModel):
+    row_version: int
+    basis: Literal["foliar_analysis", "other_technique", "year_evolution"]
+    date: dt.date
+    reference: str | None = Field(default=None, max_length=200)
+    description: str = Field(min_length=1, max_length=1000)
+    justified_n_kg_ha: float = Field(gt=0, le=1000)
+
+
+@router.put("/{plan_id}/sheets/{key}/n-adjustment")
+async def put_n_adjustment(plan_id: uuid.UUID, body: NAdjustmentPut,
+                           key: str = Path(pattern=KEY_PATTERN),
+                           auth: AuthContext = require_auth(WRITE_ROLES),
+                           pool=Depends(get_db)) -> dict:
+    adj = body.model_dump(exclude={"row_version"}, mode="json")
+    return await service.set_n_adjustment(pool, _actor(auth), plan_id, body.row_version, key, adj)
+
+
+@router.delete("/{plan_id}/sheets/{key}/n-adjustment")
+async def delete_n_adjustment(plan_id: uuid.UUID, row_version: int = Query(),
+                              key: str = Path(pattern=KEY_PATTERN),
+                              auth: AuthContext = require_auth(WRITE_ROLES),
+                              pool=Depends(get_db)) -> dict:
+    return await service.set_n_adjustment(pool, _actor(auth), plan_id, row_version, key, None)
+
+
 @router.post("/{plan_id}/calculate")
 async def calculate_plan(plan_id: uuid.UUID, body: RowVersion,
                          auth: AuthContext = require_auth(WRITE_ROLES), pool=Depends(get_db),
@@ -239,3 +266,29 @@ async def my_advisor(auth: AuthContext = require_auth(SIGN_ROLES), pool=Depends(
 async def put_my_advisor(body: AdvisorPut, auth: AuthContext = require_auth(SIGN_ROLES),
                          pool=Depends(get_db)) -> dict:
     return await signing.put_advisor(pool, _actor(auth), body.name, body.registration_number)
+
+
+holder_router = APIRouter(prefix="/holder-qualification", tags=["FaST holder"])
+
+
+class HolderQualificationPut(BaseModel):
+    holder_name: str = Field(min_length=1, max_length=200)
+    qualification: str = Field(min_length=1, max_length=200)
+    reference: str = Field(min_length=1, max_length=200)
+
+
+@holder_router.get("")
+async def get_holder_qualification(auth: AuthContext = require_auth(WRITE_ROLES),
+                                   pool=Depends(get_db)) -> dict:
+    found = await signing.get_holder_qualification(pool, _actor(auth))
+    if found is None:
+        raise service.NotFound("no holder qualification recorded")
+    return found
+
+
+@holder_router.put("")
+async def put_holder_qualification(body: HolderQualificationPut,
+                                   auth: AuthContext = require_auth(SIGN_ROLES),
+                                   pool=Depends(get_db)) -> dict:
+    return await signing.put_holder_qualification(pool, _actor(auth), body.holder_name,
+                                                  body.qualification, body.reference)

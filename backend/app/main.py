@@ -19,7 +19,7 @@ from app.db.pool import create_pool
 from app.logging_setup import configure_logging
 from app.api import router as api_router
 from app.api.internal import router as internal_router
-from app.api.plans import advisors_router, router as plans_router
+from app.api.plans import advisors_router, holder_router, router as plans_router
 from app.calc.assemble import ParcelNotFound
 from app.plans.service import Conflict, Invalid, NotFound
 from app.plans.states import TransitionError
@@ -135,6 +135,7 @@ def create_app() -> FastAPI:
     app.include_router(api_router, prefix=settings.api_prefix)
     app.include_router(plans_router, prefix=settings.api_prefix)
     app.include_router(advisors_router, prefix=settings.api_prefix)
+    app.include_router(holder_router, prefix=settings.api_prefix)
 
     # Internal routes (entity-manager, other in-cluster callers) — authenticated
     # by X-Internal-Service-Secret, NOT gateway headers. See app/api/internal.py.

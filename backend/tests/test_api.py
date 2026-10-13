@@ -34,13 +34,13 @@ class TestAPI:
 
     def test_docs_available(self, client):
         """Test OpenAPI docs are available."""
-        response = client.get("/api/fast-navigator/docs")
+        response = client.get("/api/fast/docs")
         # Should return HTML or redirect
         assert response.status_code in [200, 307]
 
     def test_openapi_schema(self, client):
         """Test OpenAPI schema is generated."""
-        response = client.get("/api/fast-navigator/openapi.json")
+        response = client.get("/api/fast/openapi.json")
         assert response.status_code == 200
 
         schema = response.json()
@@ -49,13 +49,13 @@ class TestAPI:
 
     def test_list_data_requires_auth(self, client):
         """Requests without gateway headers (X-Tenant-ID / X-User-ID) are rejected."""
-        response = client.get("/api/fast-navigator/data")
+        response = client.get("/api/fast/data")
         assert response.status_code == 401
 
     def test_list_data_with_gateway_headers(self, client):
         """Gateway-injected headers are trusted directly — no JWT/JWKS involved."""
         response = client.get(
-            "/api/fast-navigator/data",
+            "/api/fast/data",
             headers={"X-Tenant-ID": "test-tenant", "X-User-ID": "test-user"},
         )
         assert response.status_code == 200
@@ -72,19 +72,19 @@ class TestInternal:
         get_settings.cache_clear()
 
     def test_internal_rejects_missing_secret(self, client):
-        response = client.post("/api/fast-navigator/internal/ping")
+        response = client.post("/api/fast/internal/ping")
         assert response.status_code == 401
 
     def test_internal_rejects_wrong_secret(self, client):
         response = client.post(
-            "/api/fast-navigator/internal/ping",
+            "/api/fast/internal/ping",
             headers={"X-Internal-Service-Secret": "wrong"},
         )
         assert response.status_code == 401
 
     def test_internal_accepts_correct_secret(self, client):
         response = client.post(
-            "/api/fast-navigator/internal/ping",
+            "/api/fast/internal/ping",
             headers={"X-Internal-Service-Secret": "test-internal-secret"},
         )
         assert response.status_code == 200

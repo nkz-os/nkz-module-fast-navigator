@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"  # level for this module's own loggers; see app.logging_setup
 
     # API
-    api_prefix: str = "/api/fast-navigator"
+    api_prefix: str = "/api/fast"
     cors_origins: list[str] = []  # Set via CORS_ORIGINS env var; empty = deny all cross-origin
 
     # Internal service-to-service auth (entity-manager, other in-cluster
@@ -27,6 +27,16 @@ class Settings(BaseSettings):
     # that one is user-bound (gateway -> backend proxy hop only). K8s Secret
     # `internal-service-secret` (org-level) in production. No default.
     internal_service_secret: str = ""
+
+    # Outbound calls to other modules are signed like the api-gateway does
+    # (X-Auth-Signature over an empty token and the tenant). K8s Secret in production.
+    hmac_secret: str = ""
+
+    # Platform services FaST reads (service names inside the platform namespace).
+    bioorch_url: str = "http://bioorchestrator-api-service:8420"
+    soil_url: str = "http://soil-module-service:8000"
+    weather_api_url: str = "http://weather-api-service:8000"
+    entity_manager_url: str = "http://entity-manager-service:5000"
 
     # Database (optional). Only set this if your module writes admin/metadata
     # to PostgreSQL directly (tenants, credentials, non-timeseries state) —

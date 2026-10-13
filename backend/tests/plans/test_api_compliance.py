@@ -96,3 +96,17 @@ def test_pdf_route(client_with_ops, pg_url):
     assert "fast-plan-2027-v1.pdf" in r.headers["content-disposition"]
     assert client_with_ops.get(f"{BASE}/plans/{pid}/pdf", params={"lang": "xx"},
                                headers=FARMER).status_code == 422
+
+
+def test_pdf_route_concurrent_requests(client_with_ops, pg_url):
+    from concurrent.futures import ThreadPoolExecutor
+    pid, _ = _calculated(client_with_ops, pg_url)
+
+    def get(_):
+        return client_with_ops.get(f"{BASE}/plans/{pid}/pdf", headers=FARMER)
+
+    with ThreadPoolExecutor(2) as ex:
+        results = list(ex.map(get, range(2)))
+    assert all(r.status_code == 200 and r.content.startswith(b"%PDF") for r in results)
+    from app.api import plans
+    assert plans._PDF_LIMIT is not None

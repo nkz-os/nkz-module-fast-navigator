@@ -201,13 +201,17 @@ async def plan_compliance(plan_id: uuid.UUID, auth: AuthContext = require_auth(P
                                                    legal_today())
 
 
+_PDF_LIMIT = asyncio.Semaphore(1)
+
+
 @router.get("/{plan_id}/pdf")
 async def plan_pdf(plan_id: uuid.UUID, lang: Literal["es", "en"] = Query(default="es"),
                    auth: AuthContext = require_auth(PLAN_ROLES), pool=Depends(get_db)) -> Response:
     async with pool.acquire() as conn:
         plan = await service._load(conn, _actor(auth), plan_id)
         doc = await plan_document(conn, plan)
-    pdf = await asyncio.to_thread(render.plan_pdf, doc, lang)
+    async with _PDF_LIMIT:      # one render at a time per process: WeasyPrint is CPU and memory heavy
+        pdf = await asyncio.to_thread(render.plan_pdf, doc, lang)
     name = f"fast-plan-{doc['plan']['campaign']}-v{doc['plan']['version']}.pdf"
     return Response(pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="{name}"'})

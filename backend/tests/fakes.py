@@ -67,10 +67,10 @@ def complete_data() -> dict:
         "parcels": {URN: {"id": URN, "type": "AgriParcel", "area": 10.0, "name": "North",
                           "location": {"type": "Polygon", "coordinates": [RING]}}},
         "timelines": {URN: {"cycles": [
-            {"crop_id": "c1", "role": "main", "species": "TRZAX",
+            {"crop_id": "c1", "role": "main_crop", "species": "TRZAX",
              "start": {"date": "2025-10-25"}, "end": {"date": "2026-07-10"},
              "campaign_label": 2026},
-            {"crop_id": "c2", "role": "main", "species": "TRZAX",
+            {"crop_id": "c2", "role": "main_crop", "species": "TRZAX",
              "start": {"date": "2026-10-25"}, "end": {"date": "2027-07-10"},
              "campaign_label": 2027}]}},
         "analyses": {URN: [{"id": "a1", "samplingDate": "2026-09-01", "horizons": [H]}]},

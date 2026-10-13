@@ -9,6 +9,7 @@ from .provenance import DECLARED, MEASURED, MissingInput, Notice, Sourced, missi
 
 EPPO = re.compile(r"^[A-Z0-9]{5,6}$")
 FALLOW = "fallow"
+MAIN_ROLE = "main_crop"   # the platform's crop-cycle vocabulary; "cover_crop" is the other one
 _SOURCE = "entity-manager:crop-cycles"
 
 
@@ -19,6 +20,11 @@ class CropChoice:
     previous_campaign: int | None
     notices: tuple[Notice, ...]
     missing: tuple[MissingInput, ...]
+
+
+def is_main(cycle: dict) -> bool:
+    """A cycle without a role is a main crop (the platform's default)."""
+    return (cycle.get("role") or MAIN_ROLE) == MAIN_ROLE
 
 
 def _date(cycle: dict, key: str) -> date | None:
@@ -39,7 +45,7 @@ def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
                        declared_previous: str | None = None) -> CropChoice:
     notices: list[Notice] = []
     absent: list[MissingInput] = []
-    mains = sorted((c for c in cycles if c.get("role") == "main"),
+    mains = sorted((c for c in cycles if is_main(c)),
                    key=lambda c: _date(c, "start") or date.min)
     of_campaign = [c for c in mains if c.get("campaign_label") == campaign]
     if len(of_campaign) > 1:

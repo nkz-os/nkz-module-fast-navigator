@@ -5,6 +5,7 @@ import statistics
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+from .crops import is_main
 from .provenance import (
     DECLARED,
     MEASURED,
@@ -65,7 +66,7 @@ def history_yields(cycles: list[dict], harvests: list[dict], eppo: str, area_ha:
     out: dict[int, float] = {}
     notices: list[Notice] = []
     for cy in cycles:
-        if cy.get("role") != "main" or cy.get("species") != eppo:
+        if not is_main(cy) or cy.get("species") != eppo:
             continue
         end = _day((cy.get("end") or {}).get("date"))
         label = cy.get("campaign_label")

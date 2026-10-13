@@ -18,9 +18,9 @@ COEFF = load_contract("bioorch_coefficients_trzax.json")
 H = {"depthFrom": 0, "depthTo": 30, "sand": 40.0, "clay": 25.0, "ph": 7.8,
      "organicMatter": 1.9, "phosphorusAvailable": 14.0, "phosphorusMethod": "olsen",
      "potassiumExchangeable": 220.0, "potassiumMethod": "ammonium_acetate"}
-CYCLES = [{"crop_id": "c1", "role": "main", "species": "TRZAX", "start": {"date": "2025-10-25"},
+CYCLES = [{"crop_id": "c1", "role": "main_crop", "species": "TRZAX", "start": {"date": "2025-10-25"},
            "end": {"date": "2026-07-10"}, "campaign_label": 2026},
-          {"crop_id": "c2", "role": "main", "species": "TRZAX", "start": {"date": "2026-10-25"},
+          {"crop_id": "c2", "role": "main_crop", "species": "TRZAX", "start": {"date": "2026-10-25"},
            "end": {"date": "2027-07-10"}, "campaign_label": 2027}]
 DECLARED_YIELDS = {2022: 5200.0, 2023: 6100.0, 2024: 5600.0, 2025: 5900.0, 2026: 5400.0}
 

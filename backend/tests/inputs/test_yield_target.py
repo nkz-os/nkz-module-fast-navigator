@@ -16,7 +16,7 @@ ZONE = load_contract("bioorch_regional_yields_trzax_es22.json")
 TODAY = date(2026, 10, 13)
 
 
-def cycle(species, label, start, end, role="main"):
+def cycle(species, label, start, end, role="main_crop"):
     return {"crop_id": f"urn:ngsi-ld:AgriCrop:{species}{label}", "role": role,
             "species": species, "status": "harvested",
             "start": {"date": start, "provenance": "operation"},
@@ -57,7 +57,7 @@ def test_a_harvest_long_after_the_cycle_is_not_counted():
 
 
 def test_cover_crops_never_enter_the_history():
-    cycles = [cycle("TRZAX", 2024, "2023-10-20", "2024-07-10", role="cover")]
+    cycles = [cycle("TRZAX", 2024, "2023-10-20", "2024-07-10", role="cover_crop")]
     got, _ = history_yields(cycles, [harvest("2024-07-10", 50000)], "TRZAX", 10.0)
     assert got == {}
 
@@ -131,3 +131,10 @@ def test_when_the_zone_is_needed():
     assert zone_needed(2026, {}, {2025: 6000.0}, {})
     assert zone_needed(2026, {2025: 1.0}, {}, {})
     assert not zone_needed(2026, {}, {}, {**_o("yield.kg_ha", 1.0), **_o("yield.cv_pct", 1.0)})
+
+
+def test_history_reads_the_cycles_the_platform_sdk_emits():
+    from tests.inputs.test_crops import _sdk_cycles
+    harvests = [harvest("2026-07-10", 80000)]
+    got, _ = history_yields(_sdk_cycles(), harvests, "TRZAX", 10.0)
+    assert got == {2026: 8000.0}

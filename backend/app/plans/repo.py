@@ -107,7 +107,7 @@ async def update_plan(conn: asyncpg.Connection, plan_id: uuid.UUID, *, state: st
 
 async def set_rain(conn: asyncpg.Connection, plan_id: uuid.UUID, rain: dict) -> PlanRow:
     row = await conn.fetchrow(
-        f"UPDATE plans SET rain = $2, row_version = row_version + 1, updated_at = now() "
+        f"UPDATE plans SET rain = $2, updated_at = now() "      # derived data: no row_version bump
         f"WHERE id = $1 RETURNING {_PLAN_COLUMNS}", plan_id, rain)
     return _plan(row)
 

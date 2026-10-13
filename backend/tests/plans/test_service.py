@@ -259,6 +259,34 @@ async def test_rain_normal_is_stored(pool):
     assert [c[1] for c in src.calls if c[0] == "daily"] == list(range(2016, 2026))
 
 
+async def _in_review(pool):
+    plan = await _ready(pool)
+    pid = uuid.UUID(plan["id"])
+    plan = await service.calculate_plan(pool, FakeSources(**complete_data()), FARMER, pid,
+                                        plan["row_version"], TODAY)
+    plan = await service.transition(pool, FARMER, pid, plan["row_version"], Action.SUBMIT)
+    return pid, plan
+
+
+async def test_in_review_only_the_technician_stores_the_rain_normal(pool):
+    pid, plan = await _in_review(pool)
+    with pytest.raises(TransitionError) as err:
+        await service.store_rain_normal(pool, FakeSources(**complete_data()), FARMER, pid)
+    assert err.value.code == "forbidden"
+    stored = await service.store_rain_normal(pool, FakeSources(**complete_data()), TECH, pid)
+    assert stored["rain_normal"] is not None and stored["state"] == "in_review"
+
+
+async def test_storing_the_rain_normal_does_not_bump_the_row_version(pool):
+    plan = await _ready(pool)
+    pid = uuid.UUID(plan["id"])
+    stored = await service.store_rain_normal(pool, FakeSources(**complete_data()), FARMER, pid)
+    assert stored["rain_normal"] is not None
+    assert stored["row_version"] == plan["row_version"]
+    # the other user's next edit, made with the version they read, is not a conflict
+    await service.edit_sheets(pool, TECH, pid, plan["row_version"], [sheet()])
+
+
 async def test_rain_normal_is_not_stored_if_the_plan_is_signed_meanwhile(pool):
     plan = await _ready(pool)
     pid = uuid.UUID(plan["id"])

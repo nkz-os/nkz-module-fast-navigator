@@ -111,7 +111,7 @@ async def test_rain_and_audit(pool):
     async with pool.acquire() as c:
         plan = await _plan(c)
         stored = await repo.set_rain(c, plan.id, {"annual_mm": 600.0})
-        assert stored.rain == {"annual_mm": 600.0} and stored.row_version == 2
+        assert stored.rain == {"annual_mm": 600.0} and stored.row_version == plan.row_version
         await repo.append_audit(c, plan.id, "u1", "create", {"campaign": 2027})
         await repo.append_audit(c, plan.id, "u2", "edit_sheets", {"sheets": ["a"]})
         log = await repo.get_audit(c, plan.id)

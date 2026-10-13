@@ -234,15 +234,21 @@ async def calculate_plan(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uui
         return await _view(conn, plan)
 
 
+def _may_store_rain(plan: repo.PlanRow, actor: Actor) -> None:
+    if State(plan.state) not in _RAIN_STATES:
+        raise TransitionError("not_allowed", f"the plan is {plan.state}")
+    if not ({"Farmer", TECHNICIAN} & actor.roles):
+        raise TransitionError("forbidden", "only the farmer or the technician may do this")
+    if State(plan.state) == State.IN_REVIEW and TECHNICIAN not in actor.roles:
+        raise TransitionError("forbidden", "in review only the technician edits")
+
+
 async def store_rain_normal(pool: asyncpg.Pool, sources, actor: Actor,
                             plan_id: uuid.UUID) -> dict:
     async with pool.acquire() as conn:
         plan = await _load(conn, actor, plan_id)
         sheets = await repo.get_sheets(conn, plan.id)
-    if State(plan.state) not in _RAIN_STATES:
-        raise TransitionError("not_allowed", f"the plan is {plan.state}")
-    if not ({"Farmer", TECHNICIAN} & actor.roles):
-        raise TransitionError("forbidden", "only the farmer or the technician may do this")
+    _may_store_rain(plan, actor)
     parcel = next((p["urn"] for s in sheets for p in s.parcels), None)
     if parcel is None:
         raise Invalid("the plan has no parcels")
@@ -250,8 +256,7 @@ async def store_rain_normal(pool: asyncpg.Pool, sources, actor: Actor,
     normal["parcel"] = parcel
     async with pool.acquire() as conn, conn.transaction():
         plan = await _load(conn, actor, plan_id, for_update=True)
-        if State(plan.state) not in _RAIN_STATES:
-            raise TransitionError("not_allowed", f"the plan is {plan.state}")
+        _may_store_rain(plan, actor)
         plan = await repo.set_rain(conn, plan.id, normal)
         await repo.append_audit(conn, plan.id, actor.user_id, "rain_normal",
                                 {"parcel": parcel, "years": normal["years"]})

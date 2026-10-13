@@ -166,3 +166,9 @@ def test_missing_inputs_are_listed_once():
     r = calculate(assembled(choice=choice, previous_crop=None, previous_yield=None))
     fields = [m.field for m in r.missing]
     assert len(fields) == len(set(fields))
+
+
+def test_n_needs_no_soil_for_a_non_fixing_crop():
+    empty = calculate(assembled(soil=build_soil([], [], None, None, {})))
+    assert empty.n is not None
+    assert empty.n["avg_kg_ha"] == pytest.approx(calculate(assembled()).n["avg_kg_ha"])

@@ -344,7 +344,7 @@ async def _closed_with_split(pool):
 
 
 async def test_the_copy_holds_what_reproduces_the_verdict(pool):
-    pid, _, snapshot = await _closed_with_split(pool)
+    _, _, snapshot = await _closed_with_split(pool)
     assert snapshot["judged_at"] == EARLY.isoformat()
     assert snapshot["sheets"][0]["history"] == []
     split = snapshot["split_findings"]

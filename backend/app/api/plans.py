@@ -13,8 +13,8 @@ from app.inputs.organic import OrganicApplication
 from app.inputs.parcel import is_parcel_identifier
 from app.middleware import AuthContext, require_auth
 from app.plans import repo, service, signing
-from app.plans.clock import legal_today
 from app.plans.applications import ApplicationIn
+from app.plans.clock import legal_today
 from app.plans.states import Action
 
 router = APIRouter(prefix="/plans", tags=["FaST plans"])

@@ -58,10 +58,19 @@ async def fetch_harvests(orion, parcel_urn: str) -> list[dict]:
     return await _query_all(orion, "AgriParcelOperation", q)
 
 
+# Completed work, plus what was started and not closed; "issued" and "planned" are intentions.
+FERTILIZATION_STATUSES = ("completed", "incomplete", "needs_review")
+
+
 async def fetch_fertilizations(orion, parcel_urn: str) -> list[dict]:
-    """Completed fertilizations of the parcel (field notebook); "issued" is an unexecuted order."""
-    q = f'hasAgriParcel=="{parcel_urn}";operationType=="fertilization";status=="completed"'
-    return await _query_all(orion, "AgriParcelOperation", q)
+    """Fertilizations of the parcel (field notebook) that were carried out or started: completed,
+    incomplete and needs_review. The caller tells them apart by `status`."""
+    found: dict[str, dict] = {}
+    for status in FERTILIZATION_STATUSES:
+        q = f'hasAgriParcel=="{parcel_urn}";operationType=="fertilization";status=="{status}"'
+        for entity in await _query_all(orion, "AgriParcelOperation", q):
+            found.setdefault(str(entity.get("id")), entity)
+    return list(found.values())
 
 
 async def fetch_water_quality(orion, entity_id: str) -> dict | None:

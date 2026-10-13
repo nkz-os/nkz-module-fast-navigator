@@ -58,3 +58,19 @@ async def test_harvests_query_and_pagination():
     assert q == ('hasAgriParcel=="urn:ngsi-ld:AgriParcel:p1";operationType=="harvesting";'
                  'status=="completed"')
     assert [c[4] for c in orion.calls] == [0, broker.PAGE]
+
+
+async def test_fertilizations_include_started_but_not_issued_or_planned():
+    by_status = {"completed": [{"id": "a"}], "incomplete": [{"id": "b"}],
+                 "needs_review": [{"id": "a"}, {"id": "c"}]}
+
+    class ByStatus(FakeOrion):
+        async def query_entities(self, type=None, q=None, **kw):
+            self.calls.append(("query", type, q))
+            return by_status[q.rsplit('status=="', 1)[1].rstrip('"')]
+
+    orion = ByStatus()
+    got = await broker.fetch_fertilizations(orion, "urn:ngsi-ld:AgriParcel:p1")
+    assert sorted(e["id"] for e in got) == ["a", "b", "c"]          # duplicates collapse
+    assert sorted(by_status) == sorted(c[2].rsplit('status=="', 1)[1].rstrip('"')
+                                       for c in orion.calls)

@@ -16,5 +16,15 @@ def _not_checked(ctx: PlanContext):
     return []
 
 
+def _region_unknown(ctx: PlanContext):
+    """The region is resolved only when zone yields are needed; without it no regional rule
+    (Navarra's included) can be said to have been checked."""
+    keys = [s.key for s in ctx.sheets if s.value("region.nuts") is None]
+    return [({"sheets": keys}, None)] if keys else []
+
+
 RULES = [Rule("ES-NA-not-checked", "Navarra: regional rules not checked yet (spec D9)", INFO,
-              date(2023, 1, 1), None, _not_checked)]
+              date(2023, 1, 1), None, _not_checked),
+         Rule("FAST-region-unknown",
+              "FaST: regional rules cannot be checked without the NUTS 2 region (spec D9)", INFO,
+              date(2023, 1, 1), None, _region_unknown)]

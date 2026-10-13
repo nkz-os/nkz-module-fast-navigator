@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from app.rules import Rule
 
-RULES_VERSION = "es-2026.10.1"
+RULES_VERSION = "es-2026.10.2"
 
 
 def all_rules() -> list[Rule]:

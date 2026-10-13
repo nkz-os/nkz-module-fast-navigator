@@ -56,7 +56,7 @@ def ids(c, severity=None):
 
 def test_a_good_plan_has_no_blocking_findings():
     assert ids(ctx(), BLOCK) == set()
-    assert RULES_VERSION == "es-2026.10.1"
+    assert RULES_VERSION == "es-2026.10.2"
 
 
 def test_scope_hint_for_small_rainfed_units():
@@ -169,6 +169,44 @@ def test_content_needs_applications_when_there_is_a_requirement():
     assert "ES-RD1051-6.4-content" not in ids(ctx(sheet(applications=(), result=nothing)))
 
 
+MANURE_INPUT = {"kind": "manure", "kg_ha": 20000}
+
+
+def findings(c, rule_id):
+    return [f for f in evaluate(all_rules(), c) if f.rule_id == rule_id]
+
+
+def test_an_organic_input_without_an_application_blocks_6_4():
+    organic_sheet = sheet(inputs={"irrigated": False, "strategy": 2, "organic": [MANURE_INPUT]})
+    hits = findings(ctx(organic_sheet), "ES-RD1051-6.4-content")
+    assert [(f.params, f.severity) for f in hits] == [({"organic": 0}, BLOCK)]
+
+
+def test_an_organic_input_covering_the_requirement_still_needs_an_application():
+    nothing = result(n={"avg_kg_ha": 0.0}, p2o5={"rate_kg_ha": 0.0}, k2o={"rate_kg_ha": 0.0})
+    only = sheet(inputs={"irrigated": False, "strategy": 2, "organic": [MANURE_INPUT]},
+                 applications=(), result=nothing)
+    assert [f.params for f in findings(ctx(only), "ES-RD1051-6.4-content")] == [{"organic": 0}]
+
+
+def test_an_organic_input_with_its_application_passes_6_4_and_6_5():
+    manure = {**GOOD_APP, "kind": "organic", "organic_index": 0, "annex_v": ["A.i"]}
+    organic_sheet = sheet(inputs={"irrigated": False, "strategy": 2, "organic": [MANURE_INPUT]},
+                          applications=(GOOD_APP, manure))
+    c = ctx(organic_sheet)
+    assert not findings(c, "ES-RD1051-6.4-content")
+    assert not findings(c, "ES-RD1051-6.5-annexV")
+
+
+def test_only_the_organic_inputs_without_application_block():
+    manure = {**GOOD_APP, "kind": "organic", "organic_index": 1, "annex_v": ["A.i"]}
+    organic_sheet = sheet(inputs={"irrigated": False, "strategy": 2,
+                                  "organic": [MANURE_INPUT, MANURE_INPUT]},
+                          applications=(GOOD_APP, manure))
+    assert [f.params for f in findings(ctx(organic_sheet), "ES-RD1051-6.4-content")] == [
+        {"organic": 0}]
+
+
 def test_organic_applications_need_an_annex_v_a_measure():
     manure = {**GOOD_APP, "kind": "organic", "annex_v": []}
     assert "ES-RD1051-6.5-annexV" in ids(ctx(sheet(applications=(manure,))), BLOCK)
@@ -210,6 +248,14 @@ def test_mineral_product_with_ureic_n_falls_under_12_3():
     ureic = {**GOOD_APP, "kind": "mineral", "n_form": "ureic", "annex_v": []}
     assert "ES-RD1051-12.3" in ids(ctx(sheet(applications=(ureic,))), BLOCK)
     assert "ES-RD1051-12.3" not in ids(ctx(sheet(applications=({**ureic, "annex_v": ["B.a"]},))))
+
+
+def test_organo_mineral_product_with_ureic_n_falls_under_12_3():
+    mixed = {**GOOD_APP, "kind": "organo_mineral", "n_form": "ureic", "annex_v": ["A.i"]}
+    assert "ES-RD1051-12.3" in ids(ctx(sheet(applications=(mixed,))), BLOCK)
+    assert "ES-RD1051-12.3" not in ids(ctx(sheet(applications=({**mixed, "annex_v": ["B.c"]},))))
+    organic = {**mixed, "kind": "organic", "annex_v": ["A.i"]}
+    assert "ES-RD1051-12.3" not in ids(ctx(sheet(applications=(organic,))))
 
 
 def test_unknown_area_is_not_a_scope_exemption():
@@ -261,6 +307,17 @@ def test_navarra_rules_are_flagged_as_not_checked():
                              "region.nuts": {"value": "ES22", "provenance": "declared"}})
     assert "ES-NA-not-checked" in ids(ctx(sheet(result=navarra)), "info")
     assert "ES-NA-not-checked" not in ids(ctx())
+
+
+def test_an_unknown_region_is_flagged_once_for_the_plan():
+    unknown = result(inputs={k: v for k, v in result()["inputs"].items()
+                             if k != "region.nuts"})
+    second = replace(sheet(result=unknown), key="barley")
+    hits = findings(ctx(sheet(result=unknown), second), "FAST-region-unknown")
+    assert [(f.severity, f.params, f.sheet_key) for f in hits] == [
+        ("info", {"sheets": ["wheat", "barley"]}, None)]
+    assert hits[0].citation.startswith("FaST")
+    assert not findings(ctx(), "FAST-region-unknown")
 
 
 def test_every_finding_carries_its_citation():

@@ -113,7 +113,14 @@ def _requirement(result: dict | None) -> bool:
 
 
 def _content(ctx: PlanContext):
-    return [({}, s.key) for s in ctx.sheets if _requirement(s.result) and not s.applications]
+    """Art. 6.4: a requirement needs applications, and so does every organic input credited in
+    the calculation (spreading manure is a fertilization whatever the requirement)."""
+    hits = [({}, s.key) for s in ctx.sheets if _requirement(s.result) and not s.applications]
+    for s in ctx.sheets:
+        planned = {a.get("organic_index") for a in s.applications}
+        hits += [({"organic": i}, s.key)
+                 for i in range(len(s.inputs.get("organic") or [])) if i not in planned]
+    return hits
 
 
 def _measures(app: dict, part: str) -> bool:
@@ -134,7 +141,7 @@ def _ammonium_carbonate(ctx: PlanContext):
 
 def _is_ureic(app: dict) -> bool:
     return app.get("kind") in _UREA_KINDS or (
-        app.get("kind") == "mineral" and app.get("n_form") == "ureic")
+        app.get("kind") in ("mineral", "organo_mineral") and app.get("n_form") == "ureic")
 
 
 def _urea(ctx: PlanContext):

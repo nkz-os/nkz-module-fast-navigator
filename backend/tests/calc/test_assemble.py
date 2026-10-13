@@ -118,3 +118,33 @@ async def test_a_recorded_harvest_beats_the_declared_yield_of_the_previous_crop(
     a = await assemble(req, FakeSources(**data), TODAY)
     assert a.previous_yield.yield_kg_ha.value == 6000.0
     assert a.previous_yield.yield_kg_ha.provenance == "measured"
+
+
+async def test_parcels_with_different_crops_are_flagged():
+    data = complete_data()
+    other = "urn:ngsi-ld:AgriParcel:p2"
+    data["parcels"][other] = dict(data["parcels"][URN], id=other)
+    cycles = [dict(c) for c in data["timelines"][URN]["cycles"]]
+    cycles[0]["species"] = "HORVX"
+    data["timelines"][other] = {"cycles": cycles}
+    a = await assemble(replace(REQ, parcel_ids=(URN, other), nuts="ES22"), FakeSources(**data), TODAY)
+    assert Notice("parcels_crops_differ", {"parcels": [other]}) in a.notices
+    assert a.choice.previous.value == "TRZAX"
+
+
+async def test_parcels_with_the_same_crops_are_not_flagged():
+    data = complete_data()
+    other = "urn:ngsi-ld:AgriParcel:p2"
+    data["parcels"][other] = dict(data["parcels"][URN], id=other)
+    data["timelines"][other] = data["timelines"][URN]
+    a = await assemble(replace(REQ, parcel_ids=(URN, other), nuts="ES22"), FakeSources(**data), TODAY)
+    assert not any(n.code == "parcels_crops_differ" for n in a.notices)
+
+
+async def test_a_water_quality_answer_that_is_not_an_entity_is_not_found():
+    data = complete_data()
+    wq = "urn:ngsi-ld:WaterQualityObserved:w1"
+    data["water"] = {wq: [{"NO3": 50.0}]}
+    req = replace(REQ, irrigated=True, water_m3_ha=3000.0, water_quality_id=wq)
+    a = await assemble(req, FakeSources(**data), TODAY)
+    assert Notice("water_quality_not_found", {"id": wq}) in a.notices

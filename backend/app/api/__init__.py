@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 PLAN_ROLES = ["Farmer", "TechnicalConsultant", "TenantAdmin"]
 TECHNICIAN = "TechnicalConsultant"
 PARCEL_ID_PATTERN = r"^(urn:ngsi-ld:AgriParcel:)?[A-Za-z0-9._-]+$"
+WATER_QUALITY_PATTERN = r"^urn:ngsi-ld:WaterQualityObserved:[A-Za-z0-9._-]+$"
 EPPO_PATTERN = r"^[A-Z0-9]{5,6}$"
 
 router = APIRouter(tags=["FaST"])
@@ -73,13 +74,14 @@ class SheetIn(BaseModel):
     crop_eppo: str | None = Field(default=None, pattern=EPPO_PATTERN)
     previous_crop_eppo: str | None = Field(default=None, pattern=r"^([A-Z0-9]{5,6}|fallow)$")
     cycle_index: int = Field(default=0, ge=0, le=3)
-    soil_analysis_id: str | None = None
-    nmin_analysis_id: str | None = None
+    soil_analysis_id: str | None = Field(default=None, max_length=200)
+    nmin_analysis_id: str | None = Field(default=None, max_length=200)
     declared_yields: dict[int, float] = Field(default_factory=dict)
     previous_declared_yields: dict[int, float] = Field(default_factory=dict)
     organic: list[OrganicIn] = Field(default_factory=list, max_length=20)
     water_m3_ha: float | None = Field(default=None, ge=0, le=30000)
-    water_quality_id: str | None = None
+    water_quality_id: str | None = Field(default=None, pattern=WATER_QUALITY_PATTERN,
+                                         max_length=200)
     no3_mg_l: float | None = Field(default=None, ge=0, le=1000)
     nuts: str | None = Field(default=None, pattern=r"^[A-Z]{2}[0-9A-Z]{1,3}$")
     overrides: list[OverrideIn] = Field(default_factory=list, max_length=100)

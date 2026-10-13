@@ -150,9 +150,10 @@ def _merge_analyses(lists: list[list[dict]]) -> list[dict]:
 
 def _no3(req: SheetRequest, water: dict | None, notices: list[Notice]) -> Sourced:
     if req.water_quality_id:
-        value = (water or {}).get("NO3")
+        entity = water if isinstance(water, dict) else {}
+        value = entity.get("NO3")
         if isinstance(value, (int, float)) and not isinstance(value, bool):
-            observed = (water or {}).get("dateObserved")
+            observed = entity.get("dateObserved")
             return Sourced(float(value), MEASURED, f"broker:{req.water_quality_id}",
                            observed if isinstance(observed, str) else None)
         notices.append(Notice("water_quality_not_found", {"id": req.water_quality_id}))
@@ -184,8 +185,13 @@ async def assemble(req: SheetRequest, sources, today: date) -> AssembledInputs:
     )
     cycle_lists = [list((t or {}).get("cycles") or []) for t in timelines]
 
-    choice = crops_for_campaign(cycle_lists[0], req.campaign, req.cycle_index, req.crop_eppo,
-                                req.previous_crop_eppo)
+    choices = [crops_for_campaign(cycles_of, req.campaign, req.cycle_index, req.crop_eppo,
+                                  req.previous_crop_eppo) for cycles_of in cycle_lists]
+    choice = choices[0]
+    differ = [p.urn for p, c in zip(parcels[1:], choices[1:])
+              if (c.crop.value, c.previous.value) != (choice.crop.value, choice.previous.value)]
+    if differ:
+        notices.append(Notice("parcels_crops_differ", {"parcels": differ}))
     crop_eppo = choice.crop.value if choice.crop.known else None
     prev_eppo = (choice.previous.value
                  if choice.previous.known and choice.previous.value != FALLOW else None)

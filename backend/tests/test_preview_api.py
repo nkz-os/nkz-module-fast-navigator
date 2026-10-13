@@ -131,3 +131,20 @@ def test_an_override_of_a_missing_organic_application_is_rejected(client):
                                 "p2o5_pct": 0.2, "k2o_pct": 0.6}],
                 overrides=[{"param": "organic.1.availability", "value": 0.6, "reason": "x"}])
     assert client.post("/api/fast/calc/preview", json=body, headers=FARMER).status_code == 422
+
+
+@pytest.mark.parametrize("field,value", [
+    ("water_quality_id", "../types"),
+    ("water_quality_id", "urn:ngsi-ld:AgriParcel:x"),
+    ("water_quality_id", "urn:ngsi-ld:WaterQualityObserved:" + "a" * 200),
+    ("soil_analysis_id", "a" * 201),
+    ("nmin_analysis_id", "a" * 201),
+])
+def test_ids_that_reach_urls_are_validated(client, field, value):
+    assert client.post("/api/fast/calc/preview", json=dict(BODY, **{field: value}),
+                       headers=FARMER).status_code == 422
+
+
+def test_a_valid_water_quality_id_passes_validation(client):
+    body = dict(BODY, water_quality_id="urn:ngsi-ld:WaterQualityObserved:w1")
+    assert client.post("/api/fast/calc/preview", json=body, headers=FARMER).status_code == 200

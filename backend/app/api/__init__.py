@@ -1,257 +1,171 @@
-"""
-FaST Navigator Backend - API Routes
+"""FaST API: calculation preview and the data the plan wizard shows (spec §9, §10)."""
+from __future__ import annotations
 
-Example CRUD routes demonstrating SDK/platform patterns.
-Replace with your module's actual functionality.
-"""
+import asyncio
+import logging
+import re
+from contextlib import asynccontextmanager
+from typing import Annotated
+from datetime import date, datetime, timezone
 
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from pydantic import BaseModel, Field
-
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from nkz_platform_sdk import OrionClient
+from pydantic import BaseModel, Field, field_validator
 
-from app.middleware import TokenPayload, get_current_user, get_tenant_id, require_roles
+from app.calc.assemble import ParcelNotFound, SheetRequest, Sources, assemble
+from app.calc.sheet import calculate
+from app.config import Settings, get_settings
+from app.inputs.crops import crops_for_campaign
+from app.inputs.organic import OrganicApplication
+from app.inputs.overrides import check_override, farmer_may_override
+from app.inputs.parcel import parcel_info
+from app.inputs.provenance import Override
+from app.middleware import AuthContext, require_auth
 
+logger = logging.getLogger(__name__)
 
-# =============================================================================
-# Router Setup
-# =============================================================================
+PLAN_ROLES = ["Farmer", "TechnicalConsultant", "TenantAdmin"]
+TECHNICIAN = "TechnicalConsultant"
+PARCEL_ID_PATTERN = r"^(urn:ngsi-ld:AgriParcel:)?[A-Za-z0-9._-]+$"
+EPPO_PATTERN = r"^[A-Z0-9]{5,6}$"
 
-router = APIRouter(tags=["FaST Navigator"])
-
-
-# =============================================================================
-# Models
-# =============================================================================
-
-class DataItem(BaseModel):
-    """Example data model."""
-    id: str
-    name: str
-    description: Optional[str] = None
-    value: float = 0.0
-    metadata: dict = Field(default_factory=dict)
+router = APIRouter(tags=["FaST"])
 
 
-class DataItemCreate(BaseModel):
-    """Model for creating a new data item."""
-    name: str
-    description: Optional[str] = None
-    value: float = 0.0
-    metadata: dict = Field(default_factory=dict)
+def get_sources_factory(settings: Settings = Depends(get_settings)):
+    """Opens the live sources for one tenant (tests replace this dependency)."""
+    @asynccontextmanager
+    async def factory(tenant_id: str):
+        orion = OrionClient(tenant_id)
+        try:
+            async with httpx.AsyncClient() as client:
+                yield Sources(client, orion, settings, tenant_id)
+        finally:
+            await orion.close()
+
+    return factory
 
 
-class DataItemUpdate(BaseModel):
-    """Model for updating a data item."""
-    name: Optional[str] = None
-    description: Optional[str] = None
-    value: Optional[float] = None
-    metadata: Optional[dict] = None
+class OverrideIn(BaseModel):
+    param: str
+    value: bool | float | str
+    reason: str = Field(min_length=1, max_length=500)
 
 
-class DataListResponse(BaseModel):
-    """Response model for listing data items."""
-    items: list[DataItem]
-    total: int
-    page: int
-    page_size: int
+class OrganicIn(BaseModel):
+    material: str
+    rate_t_ha: float
+    n_pct: float
+    p2o5_pct: float
+    k2o_pct: float
 
 
-# =============================================================================
-# In-Memory Storage (Replace with Database in Production)
-# =============================================================================
+class SheetIn(BaseModel):
+    campaign: int = Field(ge=2000, le=2100)
+    parcel_ids: list[Annotated[str, Field(pattern=PARCEL_ID_PATTERN, max_length=200)]] = Field(
+        min_length=1, max_length=200)
+    tillage: bool
+    irrigated: bool
+    rotation_years: int = Field(ge=1, le=20)
+    strategy: int = Field(default=2, ge=1, le=4)
+    previous_residues_burned: bool = False
+    crop_eppo: str | None = Field(default=None, pattern=EPPO_PATTERN)
+    previous_crop_eppo: str | None = Field(default=None, pattern=r"^([A-Z0-9]{5,6}|fallow)$")
+    cycle_index: int = Field(default=0, ge=0, le=3)
+    soil_analysis_id: str | None = None
+    nmin_analysis_id: str | None = None
+    declared_yields: dict[int, float] = Field(default_factory=dict)
+    previous_declared_yields: dict[int, float] = Field(default_factory=dict)
+    organic: list[OrganicIn] = Field(default_factory=list, max_length=20)
+    water_m3_ha: float | None = Field(default=None, ge=0, le=30000)
+    water_quality_id: str | None = None
+    no3_mg_l: float | None = Field(default=None, ge=0, le=1000)
+    nuts: str | None = Field(default=None, pattern=r"^[A-Z]{2}[0-9A-Z]{1,3}$")
+    overrides: list[OverrideIn] = Field(default_factory=list, max_length=100)
 
-_data_store: dict[str, dict[str, DataItem]] = {}
-
-
-def _get_tenant_store(tenant_id: str) -> dict[str, DataItem]:
-    """Get or create data store for a tenant."""
-    if tenant_id not in _data_store:
-        _data_store[tenant_id] = {}
-    return _data_store[tenant_id]
-
-
-# =============================================================================
-# Routes
-# =============================================================================
-
-@router.get("/data", response_model=DataListResponse)
-async def list_data(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-    search: Optional[str] = None,
-    tenant_id: str = Depends(get_tenant_id),
-    user: TokenPayload = Depends(get_current_user),
-):
-    """
-    List all data items for the current tenant.
-    
-    - Supports pagination via `page` and `page_size` parameters
-    - Optional search filter on name
-    """
-    store = _get_tenant_store(tenant_id)
-    
-    # Filter by search term
-    items = list(store.values())
-    if search:
-        items = [item for item in items if search.lower() in item.name.lower()]
-    
-    # Paginate
-    total = len(items)
-    start = (page - 1) * page_size
-    end = start + page_size
-    paginated = items[start:end]
-    
-    return DataListResponse(
-        items=paginated,
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+    @field_validator("declared_yields", "previous_declared_yields")
+    @classmethod
+    def _yields(cls, v: dict[int, float]) -> dict[int, float]:
+        for year, kg in v.items():
+            if not 2000 <= year <= 2100 or not 0 < kg <= 200_000:
+                raise ValueError("declared yields are kg/ha > 0 per year 2000-2100")
+        return v
 
 
-@router.get("/data/{item_id}", response_model=DataItem)
-async def get_data(
-    item_id: str,
-    tenant_id: str = Depends(get_tenant_id),
-    user: TokenPayload = Depends(get_current_user),
-):
-    """Get a specific data item by ID."""
-    store = _get_tenant_store(tenant_id)
-    
-    if item_id not in store:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Item with id '{item_id}' not found"
-        )
-    
-    return store[item_id]
+def _urn(parcel_id: str) -> str:
+    return parcel_id if parcel_id.startswith("urn:") else f"urn:ngsi-ld:AgriParcel:{parcel_id}"
 
 
-@router.post("/data", response_model=DataItem, status_code=status.HTTP_201_CREATED)
-async def create_data(
-    data: DataItemCreate,
-    tenant_id: str = Depends(get_tenant_id),
-    user: TokenPayload = Depends(get_current_user),
-):
-    """
-    Create a new data item.
-    
-    The item ID is auto-generated.
-    """
-    import uuid
-    
-    store = _get_tenant_store(tenant_id)
-    
-    item_id = str(uuid.uuid4())[:8]
-    item = DataItem(
-        id=item_id,
-        name=data.name,
-        description=data.description,
-        value=data.value,
-        metadata=data.metadata,
-    )
-    
-    store[item_id] = item
-    return item
+def _overrides(items: list[OverrideIn], auth: AuthContext) -> tuple[Override, ...]:
+    at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    out = []
+    for item in items:
+        if not farmer_may_override(item.param) and TECHNICIAN not in auth.roles:
+            raise HTTPException(403, f"only a technical consultant may override {item.param}")
+        try:
+            check_override(item.param, item.value)
+            out.append(Override(item.param, item.value, item.reason, auth.user_id, at))
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+    return tuple(out)
 
 
-@router.put("/data/{item_id}", response_model=DataItem)
-async def update_data(
-    item_id: str,
-    data: DataItemUpdate,
-    tenant_id: str = Depends(get_tenant_id),
-    user: TokenPayload = Depends(get_current_user),
-):
-    """Update an existing data item."""
-    store = _get_tenant_store(tenant_id)
-    
-    if item_id not in store:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Item with id '{item_id}' not found"
-        )
-    
-    existing = store[item_id]
-    
-    # Update only provided fields
-    update_data = data.model_dump(exclude_unset=True)
-    updated_item = DataItem(
-        id=existing.id,
-        name=update_data.get("name", existing.name),
-        description=update_data.get("description", existing.description),
-        value=update_data.get("value", existing.value),
-        metadata=update_data.get("metadata", existing.metadata),
-    )
-    
-    store[item_id] = updated_item
-    return updated_item
+_ORGANIC_PARAM = re.compile(r"^organic\.(\d+)\.availability$")
 
 
-@router.delete("/data/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_data(
-    item_id: str,
-    tenant_id: str = Depends(get_tenant_id),
-    user: TokenPayload = Depends(get_current_user),
-):
-    """Delete a data item."""
-    store = _get_tenant_store(tenant_id)
-    
-    if item_id not in store:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Item with id '{item_id}' not found"
-        )
-    
-    del store[item_id]
-
-
-# =============================================================================
-# Admin Routes (Role-Protected)
-# =============================================================================
-
-@router.get("/admin/stats")
-async def get_stats(
-    user: TokenPayload = Depends(require_roles("TenantAdmin", "PlatformAdmin")),
-):
-    """
-    Get module statistics.
-
-    Requires TenantAdmin or PlatformAdmin role.
-    """
-    total_tenants = len(_data_store)
-    total_items = sum(len(store) for store in _data_store.values())
-
-    return {
-        "total_tenants": total_tenants,
-        "total_items": total_items,
-        "user": user.user_id,
-    }
-
-
-# =============================================================================
-# Orion-LD Example (nkz_platform_sdk)
-# =============================================================================
-# Replace "AgriParcel" with the entity type your module actually reads/writes.
-# Always use OrionClient/SyncOrionClient for Orion-LD access — never raw
-# requests/httpx (see nkz platform CLAUDE.md, "NEVER use raw requests.get()").
-
-@router.get("/entities")
-async def list_orion_entities(
-    entity_type: Optional[str] = Query(None, alias="type"),
-    limit: int = Query(20, ge=1, le=100),
-    tenant_id: str = Depends(get_tenant_id),
-    user: TokenPayload = Depends(get_current_user),
-):
-    """
-    Example: query NGSI-LD entities from Orion-LD, scoped to the caller's tenant.
-
-    OrionClient injects NGSILD-Tenant / Fiware-Service / @context headers
-    automatically — do not build these by hand.
-    """
-    orion = OrionClient(tenant_id)
+def _request(body: SheetIn, auth: AuthContext) -> SheetRequest:
+    for item in body.overrides:
+        m = _ORGANIC_PARAM.match(item.param)
+        if m and int(m.group(1)) >= len(body.organic):
+            raise HTTPException(422, f"{item.param} refers to an organic application that is not in the request")
     try:
-        return await orion.query_entities(type=entity_type, limit=limit)
-    finally:
-        await orion.close()
+        organic = tuple(OrganicApplication(**o.model_dump()) for o in body.organic)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    fields = body.model_dump(exclude={"parcel_ids", "organic", "overrides"})
+    return SheetRequest(parcel_ids=tuple(_urn(p) for p in body.parcel_ids), organic=organic,
+                        overrides=_overrides(body.overrides, auth), **fields)
+
+
+@router.post("/calc/preview")
+async def calc_preview(body: SheetIn, auth: AuthContext = require_auth(PLAN_ROLES),
+                       sources_factory=Depends(get_sources_factory)) -> dict:
+    req = _request(body, auth)
+    try:
+        async with sources_factory(auth.tenant_id) as sources:
+            assembled = await assemble(req, sources, date.today())
+    except ParcelNotFound as exc:
+        raise HTTPException(404, f"parcel not found: {exc.urn}") from exc
+    result = calculate(assembled)
+    logger.info("calc preview tenant=%s campaign=%s status=%s", auth.tenant_id, req.campaign,
+                result.status)
+    return result.to_dict()
+
+
+@router.get("/sources/parcels/{parcel_id}")
+async def parcel_sources(parcel_id: Annotated[str, Path(pattern=PARCEL_ID_PATTERN, max_length=200)],
+                         campaign: int = Query(ge=2000, le=2100),
+                         auth: AuthContext = require_auth(PLAN_ROLES),
+                         sources_factory=Depends(get_sources_factory)) -> dict:
+    urn = _urn(parcel_id)
+    async with sources_factory(auth.tenant_id) as sources:
+        entity = await sources.parcel(urn)
+        if entity is None:
+            raise HTTPException(404, f"parcel not found: {urn}")
+        timeline, analyses = await asyncio.gather(sources.timeline(urn, date.today()),
+                                                  sources.lab_analyses(urn))
+    info = parcel_info(entity)
+    choice = crops_for_campaign(list((timeline or {}).get("cycles") or []), campaign)
+    return {
+        "parcel": {"id": urn, "name": info.name, "area_ha": info.area_ha.to_dict(),
+                   "identifier": info.identifier.to_dict(), "farm": info.farm,
+                   "irrigation_regime": info.irrigation_regime},
+        "crop": choice.crop.to_dict(), "previous_crop": choice.previous.to_dict(),
+        "previous_campaign": choice.previous_campaign,
+        "notices": [n.to_dict() for n in (*info.notices, *choice.notices)],
+        "analyses": [{"id": a.get("id"), "samplingDate": a.get("samplingDate"),
+                      "laboratoryReference": a.get("laboratoryReference"),
+                      "fields": sorted({k for h in a.get("horizons") or [] for k in h})}
+                     for a in analyses],
+    }

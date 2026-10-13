@@ -8,11 +8,13 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.logging_setup import configure_logging
 from app.api import router as api_router
 from app.api.internal import router as internal_router
+from app.sources.errors import SourceUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +64,12 @@ def create_app() -> FastAPI:
             "version": settings.app_version,
         }
     
+    @app.exception_handler(SourceUnavailable)
+    async def source_unavailable(request, exc: SourceUnavailable):
+        """Spec §12: a failing source stops the calculation and is named; nothing is inferred."""
+        return JSONResponse(status_code=503, content={"error": "source_unavailable",
+                                                      "source": exc.source, "detail": exc.detail})
+
     # Include API routes
     app.include_router(api_router, prefix=settings.api_prefix)
 

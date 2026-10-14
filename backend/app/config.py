@@ -38,7 +38,6 @@ class Settings(BaseSettings):
     bioorch_url: str = "http://bioorchestrator-api-service:8420"
     soil_url: str = "http://soil-module-service:8000"
     weather_api_url: str = "http://weather-api-service:8000"
-    entity_manager_url: str = "http://entity-manager-service:5000"
 
     # PostgreSQL: FaST keeps its plans here, in its own `fast` schema (spec §9).
     # Never time-series/telemetry — that flows through Orion-LD subscriptions.

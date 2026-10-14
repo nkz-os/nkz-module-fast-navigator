@@ -10,7 +10,7 @@ from .provenance import DECLARED, MEASURED, MissingInput, Notice, Sourced, missi
 EPPO = re.compile(r"^[A-Z0-9]{5,6}$")
 FALLOW = "fallow"
 MAIN_ROLE = "main_crop"   # the platform's crop-cycle vocabulary; "cover_crop" is the other one
-_SOURCE = "entity-manager:crop-cycles"
+_SOURCE = "broker:crop-cycles"
 
 
 @dataclass(frozen=True)

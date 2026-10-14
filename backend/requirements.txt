@@ -10,7 +10,7 @@ python-multipart>=0.0.32
 # OrionClient/SyncOrionClient for NGSI-LD. No JWKS/JWT validation here —
 # api-gateway already authenticated the request; this module trusts its
 # X-Tenant-ID / X-User-ID / X-User-Roles headers (see app/middleware).
-nkz-platform-sdk>=0.9.1
+nkz-platform-sdk>=0.13.0
 
 # PostgreSQL (plans live in the module's own schema, spec §9)
 asyncpg>=0.29

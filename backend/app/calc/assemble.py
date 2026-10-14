@@ -110,8 +110,7 @@ class Sources:
                                                    self._s.hmac_secret, urn)
 
     async def timeline(self, urn: str, at: date) -> dict | None:
-        return await cycles.fetch_timeline(self._client, self._s.entity_manager_url,
-                                           self._s.internal_service_secret, self._tenant, urn, at)
+        return await cycles.fetch_timeline(self._orion, urn, at)
 
     async def daily(self, urn: str, start: date, end: date) -> list[dict]:
         return await weather.fetch_daily(self._client, self._s.weather_api_url, self._tenant,

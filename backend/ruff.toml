@@ -1,0 +1,6 @@
+line-length = 100
+# Third-party reference script kept byte-identical (checksum-verified test oracle).
+extend-exclude = ["tests/engine/fixtures"]
+
+[lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "app.middleware.require_auth"]

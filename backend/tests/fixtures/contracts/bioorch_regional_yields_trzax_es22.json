@@ -1,0 +1,233 @@
+{
+ "eppo": "TRZAX",
+ "nuts": "ES22",
+ "dataset": "apro_cpshr",
+ "eurostat_crop": "C1110",
+ "humidity_basis": "eu_standard",
+ "yield_method": "production_over_area",
+ "nuts_version": "as published by Eurostat (version not stated; codes of several NUTS versions)",
+ "dataset_updated": "2026-09-08T23:00:00+0200",
+ "extracted_at": "2026-10-11T15:41:25+00:00",
+ "series": [
+  {
+   "year": 2000,
+   "area_ha": 66300.0,
+   "production_t": 329180.0,
+   "yield_t_ha": 4.96500754147813,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2001,
+   "area_ha": 49400.0,
+   "production_t": 206800.0,
+   "yield_t_ha": 4.186234817813765,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2002,
+   "area_ha": 64200.0,
+   "production_t": 303400.0,
+   "yield_t_ha": 4.725856697819315,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2003,
+   "area_ha": 58100.0,
+   "production_t": 269010.0,
+   "yield_t_ha": 4.630120481927711,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2004,
+   "area_ha": 56000.0,
+   "production_t": 251620.0,
+   "yield_t_ha": 4.493214285714286,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2005,
+   "area_ha": 59000.0,
+   "production_t": 314750.0,
+   "yield_t_ha": 5.334745762711864,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2006,
+   "area_ha": 55200.0,
+   "production_t": 282110.0,
+   "yield_t_ha": 5.110688405797101,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2010,
+   "area_ha": 70600.0,
+   "production_t": 342220.0,
+   "yield_t_ha": 4.847308781869688,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2011,
+   "area_ha": 81050.0,
+   "production_t": 355590.0,
+   "yield_t_ha": 4.387291795188156,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2012,
+   "area_ha": 74680.0,
+   "production_t": 338060.0,
+   "yield_t_ha": 4.5267809319764325,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2013,
+   "area_ha": 68560.0,
+   "production_t": 312120.0,
+   "yield_t_ha": 4.552508751458577,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2014,
+   "area_ha": 71600.0,
+   "production_t": 353470.0,
+   "yield_t_ha": 4.936731843575419,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2015,
+   "area_ha": 72960.0,
+   "production_t": 325140.0,
+   "yield_t_ha": 4.456414473684211,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2016,
+   "area_ha": 76720.0,
+   "production_t": 438470.0,
+   "yield_t_ha": 5.715198123044838,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2017,
+   "area_ha": 73060.0,
+   "production_t": 374500.0,
+   "yield_t_ha": 5.125923898165891,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2018,
+   "area_ha": 78060.0,
+   "production_t": 407460.0,
+   "yield_t_ha": 5.219830899308224,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2019,
+   "area_ha": 79280.0,
+   "production_t": 445470.0,
+   "yield_t_ha": 5.618945509586276,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2020,
+   "area_ha": 77200.0,
+   "production_t": 434110.0,
+   "yield_t_ha": 5.623186528497409,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2021,
+   "area_ha": 87170.0,
+   "production_t": 432600.0,
+   "yield_t_ha": 4.9627165309166,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2022,
+   "area_ha": 83980.0,
+   "production_t": 357940.0,
+   "yield_t_ha": 4.262205286973089,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2023,
+   "area_ha": 81360.0,
+   "production_t": 331950.0,
+   "yield_t_ha": 4.080014749262537,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  },
+  {
+   "year": 2024,
+   "area_ha": 76600.0,
+   "production_t": 431910.0,
+   "yield_t_ha": 5.638511749347258,
+   "humidity_pct": 14.0,
+   "flags": [],
+   "range_check": "ok"
+  }
+ ],
+ "plausible_range": {
+  "min_t_ha": 0.5,
+  "max_t_ha": 14.0,
+  "range_id": "crop_yield.TRZAX.grain",
+  "status": "assumption",
+  "excludes": "above_max"
+ },
+ "recent_median_t_ha": 4.9627165309166,
+ "recent_years": [
+  2020,
+  2021,
+  2022,
+  2023,
+  2024
+ ],
+ "years_used": 5,
+ "latest_year": 2024,
+ "attributions": [
+  {
+   "source_id": "eurostat_apro_cpshr"
+  }
+ ]
+}

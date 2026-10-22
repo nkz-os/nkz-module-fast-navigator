@@ -1,0 +1,9 @@
+# Development and test dependencies (the runtime ones are in requirements.txt)
+-r requirements.txt
+
+pytest>=9.0.3
+pytest-asyncio>=1.4.0
+testcontainers[postgres]>=4.8
+
+black>=24.1.0
+ruff>=0.15.17

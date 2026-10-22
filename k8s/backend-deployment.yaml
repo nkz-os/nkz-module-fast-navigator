@@ -1,0 +1,104 @@
+# =============================================================================
+# FaST Navigator backend - REFERENCE TEMPLATE
+# =============================================================================
+# Reference only. The real manifests live in the GitOps configuration of each
+# installation; replace every YOUR_* marker there. Registration data
+# (k8s/registration.sql, manifest.json) is finalised when the module is
+# registered in a platform.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fast-navigator-backend
+  namespace: YOUR_NAMESPACE
+  labels:
+    app: fast-navigator-backend
+    component: backend
+    module: fast-navigator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fast-navigator-backend
+  template:
+    metadata:
+      labels:
+        app: fast-navigator-backend
+        component: backend
+        module: fast-navigator
+        nkz-os.org/postgres-client: "true"
+        nkz-os.org/orion-client: "true"
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/nkz-os/nkz-module-fast-navigator/fast-navigator-backend:YOUR_IMAGE_TAG
+          ports:
+            - name: http
+              containerPort: 8000
+          # Non-secret, installation-specific config (CORS origins, service
+          # URLs) goes in a ConfigMap kept in the installation's GitOps repo.
+          envFrom:
+            - configMapRef:
+                name: fast-navigator-config
+                optional: true
+          env:
+            - name: API_PREFIX
+              value: "/api/fast"
+            - name: CORS_ORIGINS
+              value: '["https://YOUR_FRONTEND_DOMAIN"]'
+            - name: REQUIRE_HMAC_SIGNATURE
+              value: "true"
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: YOUR_POSTGRES_SECRET
+                  key: connection-string
+            - name: HMAC_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: YOUR_HMAC_SECRET
+                  key: secret
+            - name: INTERNAL_SERVICE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: YOUR_INTERNAL_SERVICE_SECRET
+                  key: secret
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "768Mi"
+              cpu: "1"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fast-navigator-api-service
+  namespace: YOUR_NAMESPACE
+  labels:
+    app: fast-navigator-backend
+    module: fast-navigator
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app: fast-navigator-backend

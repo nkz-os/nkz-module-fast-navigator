@@ -6,6 +6,7 @@ import ca from './locales/ca.json';
 import eu from './locales/eu.json';
 import fr from './locales/fr.json';
 import pt from './locales/pt.json';
+import { PARAMS, paramLabelKey } from './model/params';
 
 const SOURCES = import.meta.glob('./**/*.{ts,tsx}', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 const FILES = Object.keys(SOURCES).filter((f) => !/\.test\.tsx?$/.test(f));
@@ -47,6 +48,10 @@ const FAMILIES = [
   ...['rainfed', 'irrigated', 'unknown'].map((r) => `wizard.regime.${r}`),
   ...[1, 2, 3, 4].map((n) => `wizard.strategy.${n}`),
   ...['regime', 'tillage', 'rotation', 'crop', 'tooManySheets', 'tooManyParcels', 'nothing'].map((b) => `wizard.blocker.${b}`),
+  ...Object.keys(PARAMS).map(paramLabelKey),
+  ...['soil', 'bioorch', 'plan', 'broker', 'unknown'].map((o) => `ownerLink.${o}`),
+  ...['zone', 'declared', 'entered', 'history', 'missing'].map((b) => `data.basis.${b}`),
+  'data.missing.title', 'workspace.signedByAdvisor', 'workspace.signedByHolder', 'param.soil_texture_class',
 ];
 
 describe('strings', () => {

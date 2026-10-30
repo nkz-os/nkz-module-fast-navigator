@@ -1,28 +1,21 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from '@nekazari/sdk';
 import { Badge, Button, Checkbox, FormField, FormGrid, Inline, Input, Select, Stack, Surface } from '@nekazari/ui-kit';
-import { calculatePlan, cropName, putSheets, storeRainNormal } from '../api/fast';
+import { calculatePlan, putSheets, storeRainNormal } from '../api/fast';
 import type { CampaignParcel, CampaignParcels, Plan } from '../api/types';
-import { useLoad } from '../hooks/useLoad';
 import { errorView } from '../model/errors';
 import { formatDate, formatHa } from '../model/format';
 import {
   defaultManagement, EPPO_RE, groupParcels, wizardBlockers, wizardSheets,
   type GroupManagement, type ParcelGroup,
 } from '../model/sheets';
+import { CropLabel } from './CropLabel';
 import { ErrorBanner } from './ErrorBanner';
 import { ProvenanceChip } from './ProvenanceChip';
 
 type Step = 1 | 2 | 3;
 
 export interface WizardInitial { step?: Step; rainError?: unknown; management?: Record<string, GroupManagement> }
-
-/** Name of a crop from its EPPO code; the code itself when the name cannot be had. */
-function CropLabel({ eppo }: { eppo: string }) {
-  const { i18n } = useTranslation('fast-navigator');
-  const name = useLoad((s) => cropName(eppo, i18n.language, s), [eppo, i18n.language], EPPO_RE.test(eppo));
-  return <span>{name.data ?? eppo}</span>;
-}
 
 function ParcelRow({ parcel, campaign }: { parcel: CampaignParcel; campaign: number }) {
   const { t, i18n } = useTranslation('fast-navigator');

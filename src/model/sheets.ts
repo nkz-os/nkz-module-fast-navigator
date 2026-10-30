@@ -1,4 +1,4 @@
-import type { CampaignParcel, PlanSheet, PlanSheetIn, SheetResult, Sourced } from '../api/types';
+import type { CampaignParcel, Plan, PlanSheet, PlanSheetIn, SheetResult, Sourced } from '../api/types';
 
 /** A stored sheet back into the body of PUT /sheets: nothing is dropped (overrides are kept by key). */
 export function toSheetIn(sheet: PlanSheet, campaign: number): PlanSheetIn {
@@ -157,4 +157,27 @@ export function wizardSheets(groups: ParcelGroup[], management: Record<string, G
     });
   }
   return out;
+}
+
+/** The same sheets as stored, with `patch` applied to the one named `key`. */
+export function editSheet(plan: Plan, key: string, patch: Partial<PlanSheetIn>): PlanSheetIn[] {
+  return plan.sheets.map((s) => {
+    const body = toSheetIn(s, plan.campaign);
+    return s.key === key ? { ...body, ...patch } : body;
+  });
+}
+
+/** The short id of a parcel URN: what the soil module reads from `?parcel=`. */
+export const shortParcelId = (urn: string) => urn.split(':').pop() ?? urn;
+
+/** Where a missing value is put, by its owner: a link for another module, or a hint. */
+export function ownerLink(owner: string, parcelIds: string[], field?: string): { key: string; href?: string } {
+  if (owner === 'soil') {
+    const first = parcelIds[0];
+    return { key: 'ownerLink.soil', href: first ? `/module/soil?parcel=${encodeURIComponent(shortParcelId(first))}` : '/module/soil' };
+  }
+  if (owner === 'bioorch') return { key: 'ownerLink.bioorch' };
+  if (owner === 'plan') return { key: 'ownerLink.plan', href: field ? `#field-${field.split('.')[0]}` : undefined };
+  if (owner === 'broker') return { key: 'ownerLink.broker' };
+  return { key: 'ownerLink.unknown' };
 }

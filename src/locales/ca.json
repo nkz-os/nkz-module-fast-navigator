@@ -228,5 +228,119 @@
       "annual": "Total anual: {{mm}} mm",
       "month": "{{month}}: {{mm}} mm"
     }
+  },
+  "param": {
+    "soil_sand_pct": "Sorra",
+    "soil_clay_pct": "Argila",
+    "soil_ph": "pH",
+    "soil_organic_matter_pct": "Matèria orgànica",
+    "soil_p_olsen_mg_kg": "Fòsfor (Olsen)",
+    "soil_k_mg_kg": "Potassi",
+    "soil_bulk_density_g_cm3": "Densitat aparent",
+    "soil_mineral_n_kg_ha": "N mineral del sòl",
+    "soil_texture_class": "Classe de textura",
+    "yield_kg_ha": "Rendiment esperat",
+    "yield_cv_pct": "Variabilitat del rendiment (CV)",
+    "irrigation_water_m3_ha": "Aigua de reg",
+    "irrigation_no3_mg_l": "Nitrat de l'aigua",
+    "irrigation_uptake": "Fracció de N de l'aigua aprofitada",
+    "irrigation_n_kg_ha": "N aportat per l'aigua",
+    "crop_dm_product_pct": "Matèria seca del producte",
+    "crop_harvest_index_pct": "Índex de collita",
+    "crop_residue_left_pct": "Residu que queda al camp",
+    "crop_n_product_pct": "N del producte",
+    "crop_n_min_product_pct": "N mínim del producte",
+    "crop_p_product_pct": "P del producte",
+    "crop_k_product_pct": "K del producte",
+    "crop_n_residue_pct": "N del residu",
+    "crop_p_residue_pct": "P del residu",
+    "crop_k_residue_pct": "K del residu"
+  },
+  "ownerLink": {
+    "soil": "Puja l'anàlisi a Sòl",
+    "bioorch": "Sense coeficients: el tècnic pot introduir-los amb motiu.",
+    "plan": "Omple-ho en aquesta pantalla.",
+    "broker": "Ho posa: la parcel·la a la plataforma.",
+    "unknown": "Revisa la font de la dada."
+  },
+  "data": {
+    "adjust": "Ajusta",
+    "unadjust": "Treu l'ajust",
+    "range": "Rang permès: {{min}} a {{max}}",
+    "reason": "Motiu (obligatori)",
+    "apply": "Aplica l'ajust",
+    "auto": "Automàtic (el més recent)",
+    "missing": {
+      "title_one": "Falta {{count}} dada per completar el càlcul",
+      "title_other": "Falten {{count}} dades per completar el càlcul",
+      "owner": "Ho posa: {{owner}}"
+    },
+    "notCalculated": "Encara no hi ha càlcul: prem «Calcula» per veure les dades amb la seva procedència.",
+    "section": {
+      "crop": "Cultiu",
+      "yield": "Rendiment",
+      "soil": "Sòl",
+      "water": "Aigua de reg",
+      "organic": "Aportacions orgàniques",
+      "parcels": "Recintes i regió"
+    },
+    "crop": "Cultiu",
+    "previousCrop": "Cultiu anterior",
+    "coefficients": "Coeficients del cultiu",
+    "coefficientsAll": "Veure i ajustar tots els coeficients",
+    "declaredCrop": "Cultiu declarat (codi EPPO)",
+    "declaredPrevious": "Cultiu anterior declarat",
+    "declaredPreviousHint": "Codi EPPO o «fallow» si va estar en guaret.",
+    "basis": {
+      "zone": "Base: rendiment de la zona, anys",
+      "declared": "Base: rendiments declarats, anys",
+      "entered": "Base: valor ajustat pel tècnic",
+      "history": "Base: historial de collites, anys",
+      "missing": "Sense base de rendiment"
+    },
+    "declaredYield": "Rendiment declarat {{year}}",
+    "addYear": "+ Declara un any",
+    "analysis": "Anàlisi {{id}} · {{date}}",
+    "soilAnalysis": "Anàlisi de sòl",
+    "nminAnalysis": "Anàlisi de N mineral",
+    "rainfed": "Secà: no hi ha aigua de reg per comptar.",
+    "noOrganic": "Sense aportacions orgàniques.",
+    "organic": {
+      "material": "Material",
+      "rate": "Dosi (t/ha)",
+      "n": "N (%)",
+      "p2o5": "P₂O₅ (%)",
+      "k2o": "K₂O (%)",
+      "remove": "Treu",
+      "add": "+ Afegeix una aportació orgànica",
+      "availability": "N disponible (fracció)"
+    },
+    "sigpacLabel": "SIGPAC",
+    "sigpacWrite": "Escriu SIGPAC",
+    "nuts": "Regió (NUTS)",
+    "save": "Desa els canvis",
+    "discard": "Descarta"
+  },
+  "workspace": {
+    "back": "Plans",
+    "title": "Pla {{campaign}} · v{{version}}",
+    "signedByAdvisor": "Signat per {{name}} ({{number}}) el {{date}} · empremta {{hash}}",
+    "signedByHolder": "Tancat per {{name}} el {{date}} · empremta {{hash}}",
+    "inReview": "En revisió pel tècnic: només lectura.",
+    "stale": "Dades canviades: recalcula.",
+    "calculate": "Calcula",
+    "recalculate": "Recalcula",
+    "addSheet": "fitxa",
+    "noSheets": "Aquest pla encara no té fitxes.",
+    "noSheetsReadOnly": "Només qui pot editar el pla en crea les fitxes.",
+    "tabs": {
+      "data": "Dades",
+      "needs": "Necessitats"
+    }
+  },
+  "sheet": {
+    "nBand": "N de {{min}} a {{max}} kg/ha, mitjà {{avg}}",
+    "nMissing": "N sense calcular",
+    "provisional": "provisional"
   }
 }

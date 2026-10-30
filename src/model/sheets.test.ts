@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CampaignParcels, PlanSheet, SheetResult } from '../api/types';
+import type { CampaignParcels, Plan, PlanSheet, SheetResult } from '../api/types';
 import parcelsFx from '../test/fixtures/campaign-parcels.json';
 import completeFx from '../test/fixtures/sheet-result-complete.json';
 import { groupParcels, sheetArea, sheetKey, toSheetIn } from './sheets';
@@ -110,5 +110,34 @@ describe('wizard', () => {
   it('does not put a parcel in two sheets', () => {
     const taken: PlanSheet = { ...SHEET, parcels: [{ urn: 'urn:ngsi-ld:AgriParcel:p1', sigpac: null }] };
     expect(wizardSheets(groups, chosen(), [taken], 2027)).toHaveLength(1);
+  });
+});
+
+import { editSheet, ownerLink, shortParcelId } from './sheets';
+
+describe('editSheet', () => {
+  const plan = {
+    campaign: 2027,
+    sheets: [SHEET, { ...SHEET, key: 'other', parcels: [{ urn: 'urn:ngsi-ld:AgriParcel:p3', sigpac: null }], applications: [] }],
+  } as unknown as Plan;
+  it('changes only the named sheet and keeps the others as stored', () => {
+    const out = editSheet(plan, 'other', { water_m3_ha: 2500 });
+    expect(out[0]).toEqual(toSheetIn(plan.sheets[0], 2027));
+    expect(out[1]).toEqual({ ...toSheetIn(plan.sheets[1], 2027), water_m3_ha: 2500 });
+  });
+  it('sending the sheets unchanged loses no input, parcel, sigpac or application', () => {
+    expect(editSheet(plan, 'nothing', {})).toEqual(plan.sheets.map((s) => toSheetIn(s, 2027)));
+  });
+});
+
+describe('ownerLink', () => {
+  it('soil reads the short parcel id, as the soil module does', () => {
+    expect(shortParcelId('urn:ngsi-ld:AgriParcel:p1')).toBe('p1');
+    expect(ownerLink('soil', ['urn:ngsi-ld:AgriParcel:p1'])).toEqual({ key: 'ownerLink.soil', href: '/module/soil?parcel=p1' });
+  });
+  it('the others are text or an anchor', () => {
+    expect(ownerLink('bioorch', [])).toEqual({ key: 'ownerLink.bioorch' });
+    expect(ownerLink('broker', [])).toEqual({ key: 'ownerLink.broker' });
+    expect(ownerLink('plan', [], 'yield.kg_ha')).toEqual({ key: 'ownerLink.plan', href: '#field-yield' });
   });
 });

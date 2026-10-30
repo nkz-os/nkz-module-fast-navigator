@@ -228,5 +228,119 @@
       "annual": "Total anual: {{mm}} mm",
       "month": "{{month}}: {{mm}} mm"
     }
+  },
+  "param": {
+    "soil_sand_pct": "Areia",
+    "soil_clay_pct": "Argila",
+    "soil_ph": "pH",
+    "soil_organic_matter_pct": "Matéria orgânica",
+    "soil_p_olsen_mg_kg": "Fósforo (Olsen)",
+    "soil_k_mg_kg": "Potássio",
+    "soil_bulk_density_g_cm3": "Densidade aparente",
+    "soil_mineral_n_kg_ha": "N mineral do solo",
+    "soil_texture_class": "Classe de textura",
+    "yield_kg_ha": "Produtividade esperada",
+    "yield_cv_pct": "Variabilidade da produtividade (CV)",
+    "irrigation_water_m3_ha": "Água de rega",
+    "irrigation_no3_mg_l": "Nitrato da água",
+    "irrigation_uptake": "Fração do N da água aproveitada",
+    "irrigation_n_kg_ha": "N fornecido pela água",
+    "crop_dm_product_pct": "Matéria seca do produto",
+    "crop_harvest_index_pct": "Índice de colheita",
+    "crop_residue_left_pct": "Resíduo que fica no campo",
+    "crop_n_product_pct": "N do produto",
+    "crop_n_min_product_pct": "N mínimo do produto",
+    "crop_p_product_pct": "P do produto",
+    "crop_k_product_pct": "K do produto",
+    "crop_n_residue_pct": "N do resíduo",
+    "crop_p_residue_pct": "P do resíduo",
+    "crop_k_residue_pct": "K do resíduo"
+  },
+  "ownerLink": {
+    "soil": "Carregar análise em Solo",
+    "bioorch": "Sem coeficientes: o técnico pode introduzi-los com motivo.",
+    "plan": "Preencha-o neste ecrã.",
+    "broker": "Fornecido pela parcela na plataforma.",
+    "unknown": "Verifique a fonte do dado."
+  },
+  "data": {
+    "adjust": "Ajustar",
+    "unadjust": "Remover ajuste",
+    "range": "Intervalo permitido: {{min}} a {{max}}",
+    "reason": "Motivo (obrigatório)",
+    "apply": "Aplicar ajuste",
+    "auto": "Automático (o mais recente)",
+    "missing": {
+      "title_one": "Falta {{count}} dado para completar o cálculo",
+      "title_other": "Faltam {{count}} dados para completar o cálculo",
+      "owner": "Fornecido por: {{owner}}"
+    },
+    "notCalculated": "Ainda não há cálculo: carregue em «Calcular» para ver os dados com a sua origem.",
+    "section": {
+      "crop": "Cultura",
+      "yield": "Produtividade",
+      "soil": "Solo",
+      "water": "Água de rega",
+      "organic": "Aportes orgânicos",
+      "parcels": "Recintos e região"
+    },
+    "crop": "Cultura",
+    "previousCrop": "Cultura anterior",
+    "coefficients": "Coeficientes da cultura",
+    "coefficientsAll": "Ver e ajustar todos os coeficientes",
+    "declaredCrop": "Cultura declarada (código EPPO)",
+    "declaredPrevious": "Cultura anterior declarada",
+    "declaredPreviousHint": "Código EPPO ou «fallow» se esteve em pousio.",
+    "basis": {
+      "zone": "Base: produtividade da zona, anos",
+      "declared": "Base: produtividades declaradas, anos",
+      "entered": "Base: valor ajustado pelo técnico",
+      "history": "Base: histórico de colheitas, anos",
+      "missing": "Sem base de produtividade"
+    },
+    "declaredYield": "Produtividade declarada {{year}}",
+    "addYear": "+ Declarar um ano",
+    "analysis": "Análise {{id}} · {{date}}",
+    "soilAnalysis": "Análise de solo",
+    "nminAnalysis": "Análise de N mineral",
+    "rainfed": "Sequeiro: não há água de rega a contar.",
+    "noOrganic": "Sem aportes orgânicos.",
+    "organic": {
+      "material": "Material",
+      "rate": "Dose (t/ha)",
+      "n": "N (%)",
+      "p2o5": "P₂O₅ (%)",
+      "k2o": "K₂O (%)",
+      "remove": "Remover",
+      "add": "+ Adicionar aporte orgânico",
+      "availability": "N disponível (fração)"
+    },
+    "sigpacLabel": "SIGPAC",
+    "sigpacWrite": "Escrever SIGPAC",
+    "nuts": "Região (NUTS)",
+    "save": "Guardar alterações",
+    "discard": "Descartar"
+  },
+  "workspace": {
+    "back": "Planos",
+    "title": "Plano {{campaign}} · v{{version}}",
+    "signedByAdvisor": "Assinado por {{name}} ({{number}}) em {{date}} · impressão {{hash}}",
+    "signedByHolder": "Encerrado por {{name}} em {{date}} · impressão {{hash}}",
+    "inReview": "Em revisão pelo técnico: só leitura.",
+    "stale": "Dados alterados: recalcule.",
+    "calculate": "Calcular",
+    "recalculate": "Recalcular",
+    "addSheet": "ficha",
+    "noSheets": "Este plano ainda não tem fichas.",
+    "noSheetsReadOnly": "Só quem pode editar o plano cria as suas fichas.",
+    "tabs": {
+      "data": "Dados",
+      "needs": "Necessidades"
+    }
+  },
+  "sheet": {
+    "nBand": "N de {{min}} a {{max}} kg/ha, médio {{avg}}",
+    "nMissing": "N por calcular",
+    "provisional": "provisório"
   }
 }

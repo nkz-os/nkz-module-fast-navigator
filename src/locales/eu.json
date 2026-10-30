@@ -228,5 +228,119 @@
       "annual": "Urteko guztira: {{mm}} mm",
       "month": "{{month}}: {{mm}} mm"
     }
+  },
+  "param": {
+    "soil_sand_pct": "Harea",
+    "soil_clay_pct": "Buztina",
+    "soil_ph": "pH",
+    "soil_organic_matter_pct": "Materia organikoa",
+    "soil_p_olsen_mg_kg": "Fosforoa (Olsen)",
+    "soil_k_mg_kg": "Potasioa",
+    "soil_bulk_density_g_cm3": "Dentsitate aparentea",
+    "soil_mineral_n_kg_ha": "Lurzoruaren N minerala",
+    "soil_texture_class": "Ehundura klasea",
+    "yield_kg_ha": "Espero den errendimendua",
+    "yield_cv_pct": "Errendimenduaren aldakortasuna (CV)",
+    "irrigation_water_m3_ha": "Ureztatze ura",
+    "irrigation_no3_mg_l": "Uraren nitratoa",
+    "irrigation_uptake": "Aprobetxatutako uraren N zatia",
+    "irrigation_n_kg_ha": "Uraren ekarritako N",
+    "crop_dm_product_pct": "Produktuaren materia lehorra",
+    "crop_harvest_index_pct": "Uzta indizea",
+    "crop_residue_left_pct": "Soroan geratzen den hondarra",
+    "crop_n_product_pct": "Produktuaren N",
+    "crop_n_min_product_pct": "Produktuaren gutxieneko N",
+    "crop_p_product_pct": "Produktuaren P",
+    "crop_k_product_pct": "Produktuaren K",
+    "crop_n_residue_pct": "Hondarraren N",
+    "crop_p_residue_pct": "Hondarraren P",
+    "crop_k_residue_pct": "Hondarraren K"
+  },
+  "ownerLink": {
+    "soil": "Igo analisia Lurzoruan",
+    "bioorch": "Koefizienterik ez: teknikariak zioarekin sar ditzake.",
+    "plan": "Bete ezazu pantaila honetan.",
+    "broker": "Plataformako lursailak jartzen du.",
+    "unknown": "Egiaztatu datuaren iturria."
+  },
+  "data": {
+    "adjust": "Doitu",
+    "unadjust": "Kendu doikuntza",
+    "range": "Onartutako tartea: {{min}} - {{max}}",
+    "reason": "Zioa (derrigorrezkoa)",
+    "apply": "Aplikatu doikuntza",
+    "auto": "Automatikoa (berriena)",
+    "missing": {
+      "title_one": "Datu {{count}} falta da kalkulua osatzeko",
+      "title_other": "{{count}} datu falta dira kalkulua osatzeko",
+      "owner": "Jartzen du: {{owner}}"
+    },
+    "notCalculated": "Oraindik ez dago kalkulurik: sakatu «Kalkulatu» datuak iturriekin ikusteko.",
+    "section": {
+      "crop": "Laborantza",
+      "yield": "Errendimendua",
+      "soil": "Lurzorua",
+      "water": "Ureztatze ura",
+      "organic": "Ekarpen organikoak",
+      "parcels": "Errekintoak eta eskualdea"
+    },
+    "crop": "Laborantza",
+    "previousCrop": "Aurreko laborantza",
+    "coefficients": "Laborantzaren koefizienteak",
+    "coefficientsAll": "Ikusi eta doitu koefiziente guztiak",
+    "declaredCrop": "Adierazitako laborantza (EPPO kodea)",
+    "declaredPrevious": "Adierazitako aurreko laborantza",
+    "declaredPreviousHint": "EPPO kodea edo «fallow» baratzean egon bada.",
+    "basis": {
+      "zone": "Oinarria: eremuaren errendimendua, urteak",
+      "declared": "Oinarria: adierazitako errendimenduak, urteak",
+      "entered": "Oinarria: teknikariak doitutako balioa",
+      "history": "Oinarria: uzten historia, urteak",
+      "missing": "Errendimendu oinarririk gabe"
+    },
+    "declaredYield": "{{year}}ko errendimendu adierazia",
+    "addYear": "+ Adierazi urte bat",
+    "analysis": "{{id}} analisia · {{date}}",
+    "soilAnalysis": "Lurzoru analisia",
+    "nminAnalysis": "N mineral analisia",
+    "rainfed": "Ureztatu gabea: ez dago kontatzeko ureztatze urik.",
+    "noOrganic": "Ekarpen organikorik gabe.",
+    "organic": {
+      "material": "Materiala",
+      "rate": "Dosia (t/ha)",
+      "n": "N (%)",
+      "p2o5": "P₂O₅ (%)",
+      "k2o": "K₂O (%)",
+      "remove": "Kendu",
+      "add": "+ Gehitu ekarpen organikoa",
+      "availability": "N eskuragarria (zatia)"
+    },
+    "sigpacLabel": "SIGPAC",
+    "sigpacWrite": "Idatzi SIGPAC",
+    "nuts": "Eskualdea (NUTS)",
+    "save": "Gorde aldaketak",
+    "discard": "Baztertu"
+  },
+  "workspace": {
+    "back": "Planak",
+    "title": "{{campaign}} plana · v{{version}}",
+    "signedByAdvisor": "{{name}} ({{number}}) sinatu zuen {{date}}(a)n · aztarna {{hash}}",
+    "signedByHolder": "{{name}}(e)k itxi zuen {{date}}(a)n · aztarna {{hash}}",
+    "inReview": "Teknikariak berrikusten ari da: irakurtzeko soilik.",
+    "stale": "Datuak aldatu dira: birkalkulatu.",
+    "calculate": "Kalkulatu",
+    "recalculate": "Birkalkulatu",
+    "addSheet": "orria",
+    "noSheets": "Plan honek ez du orririk oraindik.",
+    "noSheetsReadOnly": "Plana editatu dezakeenak soilik sortzen ditu orriak.",
+    "tabs": {
+      "data": "Datuak",
+      "needs": "Beharrak"
+    }
+  },
+  "sheet": {
+    "nBand": "N {{min}}-{{max}} kg/ha, batez bestekoa {{avg}}",
+    "nMissing": "N kalkulatu gabe",
+    "provisional": "behin-behinekoa"
   }
 }

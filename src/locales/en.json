@@ -1,5 +1,147 @@
 {
   "app": {
     "title": "FaST · Nutrient plan"
+  },
+  "common": {
+    "retry": "Retry",
+    "loading": "Loading…",
+    "yes": "Yes",
+    "no": "No",
+    "close": "Close",
+    "unit": {
+      "kgHa": "kg/ha",
+      "ha": "ha",
+      "mgKg": "mg/kg"
+    }
+  },
+  "provenance": {
+    "measured": "measured",
+    "table": "table",
+    "declared": "declared",
+    "entered": "adjusted",
+    "estimated": "estimated",
+    "missing": "missing",
+    "plannedBioorch": "planned in BioOrch",
+    "sown": "sown",
+    "unknown": "unclassified",
+    "tip": {
+      "measured": "Measured value ({{source}})",
+      "table": "Value from a cited table ({{id}})",
+      "declared": "Value declared in the plan",
+      "entered": "Adjustment with a reason: {{note}} ({{source}})",
+      "estimated": "Estimate: the plan stays provisional",
+      "missing": "Missing. Provided by: {{owner}}",
+      "planned": "Cycle planned in BioOrch, not sown yet"
+    }
+  },
+  "state": {
+    "draft": "Draft",
+    "calculated": "Calculated",
+    "in_review": "In review",
+    "signed": "Signed",
+    "superseded": "Superseded"
+  },
+  "error": {
+    "session": "Session expired: reload the page.",
+    "forbidden": "Your role cannot do this.",
+    "planNotFound": "The plan does not exist.",
+    "parcelNotFound": "Parcel {{urn}} no longer exists.",
+    "conflict": "Someone else changed it; review and repeat.",
+    "gatewayTimeout": "It took too long; try again.",
+    "sourceUnavailable": "Could not calculate: {{source}} is not answering.",
+    "planStays": "The plan stays «{{state}}».",
+    "invalid": "Some data is not valid: check the marked fields.",
+    "generic": "The operation could not be completed. Try again.",
+    "rules": "Rules: {{rules}}",
+    "transition": {
+      "stale_calculation": "The data changed: recalculate first.",
+      "blocking_findings": "There are blocking findings.",
+      "advice_required": "Technical advice is required.",
+      "not_allowed": "Action not allowed in this state."
+    }
+  },
+  "source": {
+    "bioorch": "BioOrch (crop coefficients)",
+    "soil": "Soil (analyses)",
+    "weather_api": "the weather service",
+    "broker": "the platform (parcels)",
+    "broker_crop_cycles": "the platform (crop cycles)"
+  },
+  "owner": {
+    "plan": "the plan (right here)",
+    "soil": "Soil",
+    "bioorch": "BioOrch",
+    "broker": "the parcel in the platform"
+  },
+  "missing": {
+    "crop": "Crop of the campaign",
+    "previous_crop": "Previous crop",
+    "yield": "Expected yield",
+    "previous_yield": "Yield of the previous crop",
+    "soil": "Soil analysis (texture, pH, P, K)",
+    "irrigation": "Irrigation water data",
+    "parcel": "Parcel data",
+    "organic": "Organic input data",
+    "region": "Region (NUTS)"
+  },
+  "soilClass": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High"
+  },
+  "basis": {
+    "buildup": "build-up",
+    "buildup_and_export": "build-up + export",
+    "export": "export",
+    "half_export": "half of the export",
+    "none": "no input"
+  },
+  "pdf": {
+    "button": "PDF",
+    "busy": "Generating…"
+  },
+  "footer": {
+    "attribution": "Nekazari platform · FIWARE · AGPL-3.0",
+    "source": "Source code",
+    "credit": "Calculation based on FertiliCalc (F. J. Villalobos, University of Córdoba, GPL-3.0).",
+    "sourcesOpen": "Data sources",
+    "sourcesClose": "Hide sources",
+    "sourcesNote": "The figures shown are Nekazari calculations, not data published by the sources.",
+    "licence": "Licence",
+    "link": "Source"
+  },
+  "notice": {
+    "parcel_identifier_unrecognized": "The parcel identifier ({{value}}) is neither a SIGPAC enclosure nor a cadastral reference.",
+    "irrigation_no3_unknown": "The nitrate of the irrigation water is unknown: its N is not credited.",
+    "soil_p_methods_mixed": "The analysis mixes phosphorus methods: P is not used.",
+    "soil_p_method_unknown": "The analysis does not state the phosphorus method: P is not used.",
+    "soil_p_method_unsupported": "Unsupported phosphorus method ({{method}}): P is not used.",
+    "soil_k_methods_mixed": "The analysis mixes potassium methods: K is not used.",
+    "soil_k_method_unknown": "The analysis does not state the potassium method: K is not used.",
+    "soil_k_method_unsupported": "Unsupported potassium method ({{method}}): K is not used.",
+    "nmin_form_not_measured": "The mineral N analysis lacks one form ({{missing}}): mineral N is incomplete.",
+    "soil_analysis_not_found": "The chosen soil analysis ({{analysis}}) was not found.",
+    "soil_estimate_out_of_range": "The estimate of {{field}} ({{value}}) is out of range and is discarded.",
+    "soil_texture_invalid": "Sand and clay do not give a valid texture: discarded.",
+    "nmin_analysis_not_found": "The chosen mineral N analysis ({{analysis}}) was not found.",
+    "nmin_no_values": "The mineral N analysis has no usable values ({{analysis}}).",
+    "nmin_bulk_density_unknown": "Without bulk density the mineral N cannot be converted to kg/ha ({{analysis}}).",
+    "rain_years_incomplete": "Incomplete rainfall years discarded: {{years}}.",
+    "rain_normal_short_series": "The normal rainfall uses only {{years}} complete years.",
+    "parcels_in_several_regions": "The parcels are in several regions ({{regions}}): set the region.",
+    "region_not_found": "The parcels' region was not found: set the region (NUTS).",
+    "water_quality_not_found": "The chosen water quality ({{id}}) was not found.",
+    "parcels_crops_differ": "The sheet's parcels do not have the same crop: the first one's is used.",
+    "harvest_zero_ignored": "A harvest recorded with weight 0 is ignored.",
+    "zone_yield_stale": "The zone yield is old (latest year {{latest_year}}).",
+    "yield_cv_out_of_range": "The yield variability ({{cv_pct}} %) is too high and is discarded.",
+    "declared_years_ignored": "Declared years outside the window, ignored: {{years}}.",
+    "history_too_short": "Short history ({{years}}): the variability is not reliable.",
+    "n_min_fallback_typical": "No minimum product N for {{eppo}}: the typical N is used.",
+    "cycle_species_not_eppo": "Cycle {{crop_id}} does not use an EPPO code ({{species}}): it is not taken as the crop.",
+    "previous_cycle_pending": "The previous cycle ({{crop_id}}) was never confirmed: it is not taken as the previous crop.",
+    "double_crop_campaign": "Campaign {{campaign}} has {{count}} cycles: this sheet uses one.",
+    "crop_differs_from_cycle": "The declared crop ({{declared}}) differs from the cycle ({{cycle}}); the declared one prevails.",
+    "double_crop_first_cycle_unknown": "The first cycle of campaign {{campaign}} is unknown."
   }
 }

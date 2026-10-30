@@ -1,5 +1,147 @@
 {
   "app": {
     "title": "FaST · Plan de abonado"
+  },
+  "common": {
+    "retry": "Reintentar",
+    "loading": "Cargando…",
+    "yes": "Sí",
+    "no": "No",
+    "close": "Cerrar",
+    "unit": {
+      "kgHa": "kg/ha",
+      "ha": "ha",
+      "mgKg": "mg/kg"
+    }
+  },
+  "provenance": {
+    "measured": "medido",
+    "table": "tabla",
+    "declared": "declarado",
+    "entered": "ajustado",
+    "estimated": "estimado",
+    "missing": "falta",
+    "plannedBioorch": "planificado en BioOrch",
+    "sown": "sembrado",
+    "unknown": "sin clasificar",
+    "tip": {
+      "measured": "Dato medido ({{source}})",
+      "table": "Valor de una tabla citada ({{id}})",
+      "declared": "Dato declarado en el plan",
+      "entered": "Ajuste con motivo: {{note}} ({{source}})",
+      "estimated": "Estimación: el plan queda provisional",
+      "missing": "Falta. Lo pone: {{owner}}",
+      "planned": "Ciclo planificado en BioOrch, aún sin siembra"
+    }
+  },
+  "state": {
+    "draft": "Borrador",
+    "calculated": "Calculado",
+    "in_review": "En revisión",
+    "signed": "Firmado",
+    "superseded": "Sustituido"
+  },
+  "error": {
+    "session": "Sesión caducada: recarga la página.",
+    "forbidden": "Tu rol no puede hacer esto.",
+    "planNotFound": "El plan no existe.",
+    "parcelNotFound": "La parcela {{urn}} ya no existe.",
+    "conflict": "Otra persona lo cambió; revisa y repite.",
+    "gatewayTimeout": "Tardó demasiado; reintenta.",
+    "sourceUnavailable": "No se pudo calcular: no responde {{source}}.",
+    "planStays": "El plan sigue «{{state}}».",
+    "invalid": "Hay datos no válidos: revisa los campos marcados.",
+    "generic": "No se pudo completar la operación. Reintenta.",
+    "rules": "Reglas: {{rules}}",
+    "transition": {
+      "stale_calculation": "Los datos cambiaron: recalcula antes.",
+      "blocking_findings": "Hay hallazgos que bloquean.",
+      "advice_required": "Hace falta asesoramiento técnico.",
+      "not_allowed": "Acción no permitida en este estado."
+    }
+  },
+  "source": {
+    "bioorch": "BioOrch (coeficientes de cultivo)",
+    "soil": "Suelo (análisis)",
+    "weather_api": "el servicio meteorológico",
+    "broker": "la plataforma (parcelas)",
+    "broker_crop_cycles": "la plataforma (ciclos de cultivo)"
+  },
+  "owner": {
+    "plan": "el plan (aquí mismo)",
+    "soil": "Suelo",
+    "bioorch": "BioOrch",
+    "broker": "la parcela en la plataforma"
+  },
+  "missing": {
+    "crop": "Cultivo de la campaña",
+    "previous_crop": "Cultivo anterior",
+    "yield": "Rendimiento esperado",
+    "previous_yield": "Rendimiento del cultivo anterior",
+    "soil": "Análisis de suelo (textura, pH, P, K)",
+    "irrigation": "Datos del agua de riego",
+    "parcel": "Datos de la parcela",
+    "organic": "Datos del aporte orgánico",
+    "region": "Región (NUTS)"
+  },
+  "soilClass": {
+    "low": "Bajo",
+    "medium": "Medio",
+    "high": "Alto"
+  },
+  "basis": {
+    "buildup": "subida",
+    "buildup_and_export": "subida + exportación",
+    "export": "exportación",
+    "half_export": "media exportación",
+    "none": "sin aporte"
+  },
+  "pdf": {
+    "button": "PDF",
+    "busy": "Generando…"
+  },
+  "footer": {
+    "attribution": "Plataforma Nekazari · FIWARE · AGPL-3.0",
+    "source": "Código fuente",
+    "credit": "Cálculo basado en FertiliCalc (F. J. Villalobos, Universidad de Córdoba, GPL-3.0).",
+    "sourcesOpen": "Fuentes de datos",
+    "sourcesClose": "Ocultar fuentes",
+    "sourcesNote": "Las cifras mostradas son cálculos de Nekazari, no datos publicados por las fuentes.",
+    "licence": "Licencia",
+    "link": "Fuente"
+  },
+  "notice": {
+    "parcel_identifier_unrecognized": "El identificador de la parcela ({{value}}) no es un recinto SIGPAC ni una referencia catastral.",
+    "irrigation_no3_unknown": "Se desconoce el nitrato del agua de riego: no se descuenta su N.",
+    "soil_p_methods_mixed": "El análisis mezcla métodos de fósforo: no se usa el P.",
+    "soil_p_method_unknown": "El análisis no indica el método del fósforo: no se usa el P.",
+    "soil_p_method_unsupported": "Método de fósforo no admitido ({{method}}): no se usa el P.",
+    "soil_k_methods_mixed": "El análisis mezcla métodos de potasio: no se usa el K.",
+    "soil_k_method_unknown": "El análisis no indica el método del potasio: no se usa el K.",
+    "soil_k_method_unsupported": "Método de potasio no admitido ({{method}}): no se usa el K.",
+    "nmin_form_not_measured": "Al análisis de N mineral le falta una forma ({{missing}}): el N mineral queda incompleto.",
+    "soil_analysis_not_found": "No se encuentra el análisis de suelo elegido ({{analysis}}).",
+    "soil_estimate_out_of_range": "La estimación de {{field}} ({{value}}) queda fuera de rango y se descarta.",
+    "soil_texture_invalid": "Arena y arcilla no dan una textura válida: se descarta.",
+    "nmin_analysis_not_found": "No se encuentra el análisis de N mineral elegido ({{analysis}}).",
+    "nmin_no_values": "El análisis de N mineral no trae valores utilizables ({{analysis}}).",
+    "nmin_bulk_density_unknown": "Sin densidad aparente no se puede pasar el N mineral a kg/ha ({{analysis}}).",
+    "rain_years_incomplete": "Años de lluvia incompletos descartados: {{years}}.",
+    "rain_normal_short_series": "La lluvia normal usa solo {{years}} años completos.",
+    "parcels_in_several_regions": "Las parcelas están en varias regiones ({{regions}}): indica la región.",
+    "region_not_found": "No se encontró la región de las parcelas: indica la región (NUTS).",
+    "water_quality_not_found": "No se encuentra la calidad de agua elegida ({{id}}).",
+    "parcels_crops_differ": "Las parcelas de la hoja no tienen el mismo cultivo: se usa el de la primera.",
+    "harvest_zero_ignored": "Se ignora una cosecha registrada con peso 0.",
+    "zone_yield_stale": "El rendimiento de la zona es antiguo (último año {{latest_year}}).",
+    "yield_cv_out_of_range": "La variabilidad del rendimiento ({{cv_pct}} %) es demasiado alta y se descarta.",
+    "declared_years_ignored": "Años declarados fuera de la ventana, ignorados: {{years}}.",
+    "history_too_short": "Historial corto ({{years}}): la variabilidad no es fiable.",
+    "n_min_fallback_typical": "Sin N mínimo del producto para {{eppo}}: se usa el N típico.",
+    "cycle_species_not_eppo": "El ciclo {{crop_id}} no usa un código EPPO ({{species}}): no se toma como cultivo.",
+    "previous_cycle_pending": "El ciclo anterior ({{crop_id}}) sigue sin confirmar: no se toma como cultivo anterior.",
+    "double_crop_campaign": "La campaña {{campaign}} tiene {{count}} ciclos: esta hoja usa uno.",
+    "crop_differs_from_cycle": "El cultivo declarado ({{declared}}) difiere del ciclo ({{cycle}}); manda lo declarado.",
+    "double_crop_first_cycle_unknown": "No se conoce el primer ciclo de la campaña {{campaign}}."
   }
 }

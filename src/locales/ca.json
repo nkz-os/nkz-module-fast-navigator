@@ -1,5 +1,147 @@
 {
   "app": {
     "title": "FaST · Pla d'adobat"
+  },
+  "common": {
+    "retry": "Reintenta",
+    "loading": "Carregant…",
+    "yes": "Sí",
+    "no": "No",
+    "close": "Tanca",
+    "unit": {
+      "kgHa": "kg/ha",
+      "ha": "ha",
+      "mgKg": "mg/kg"
+    }
+  },
+  "provenance": {
+    "measured": "mesurat",
+    "table": "taula",
+    "declared": "declarat",
+    "entered": "ajustat",
+    "estimated": "estimat",
+    "missing": "falta",
+    "plannedBioorch": "planificat a BioOrch",
+    "sown": "sembrat",
+    "unknown": "sense classificar",
+    "tip": {
+      "measured": "Dada mesurada ({{source}})",
+      "table": "Valor d'una taula citada ({{id}})",
+      "declared": "Dada declarada al pla",
+      "entered": "Ajust amb motiu: {{note}} ({{source}})",
+      "estimated": "Estimació: el pla queda provisional",
+      "missing": "Falta. Ho posa: {{owner}}",
+      "planned": "Cicle planificat a BioOrch, encara sense sembra"
+    }
+  },
+  "state": {
+    "draft": "Esborrany",
+    "calculated": "Calculat",
+    "in_review": "En revisió",
+    "signed": "Signat",
+    "superseded": "Substituït"
+  },
+  "error": {
+    "session": "Sessió caducada: recarrega la pàgina.",
+    "forbidden": "El teu rol no pot fer això.",
+    "planNotFound": "El pla no existeix.",
+    "parcelNotFound": "La parcel·la {{urn}} ja no existeix.",
+    "conflict": "Una altra persona ho ha canviat; revisa i repeteix.",
+    "gatewayTimeout": "Ha trigat massa; reintenta.",
+    "sourceUnavailable": "No s'ha pogut calcular: {{source}} no respon.",
+    "planStays": "El pla continua «{{state}}».",
+    "invalid": "Hi ha dades no vàlides: revisa els camps marcats.",
+    "generic": "No s'ha pogut completar l'operació. Reintenta.",
+    "rules": "Regles: {{rules}}",
+    "transition": {
+      "stale_calculation": "Les dades han canviat: recalcula abans.",
+      "blocking_findings": "Hi ha troballes que bloquegen.",
+      "advice_required": "Cal assessorament tècnic.",
+      "not_allowed": "Acció no permesa en aquest estat."
+    }
+  },
+  "source": {
+    "bioorch": "BioOrch (coeficients de cultiu)",
+    "soil": "Sòl (anàlisis)",
+    "weather_api": "el servei meteorològic",
+    "broker": "la plataforma (parcel·les)",
+    "broker_crop_cycles": "la plataforma (cicles de cultiu)"
+  },
+  "owner": {
+    "plan": "el pla (aquí mateix)",
+    "soil": "Sòl",
+    "bioorch": "BioOrch",
+    "broker": "la parcel·la a la plataforma"
+  },
+  "missing": {
+    "crop": "Cultiu de la campanya",
+    "previous_crop": "Cultiu anterior",
+    "yield": "Rendiment esperat",
+    "previous_yield": "Rendiment del cultiu anterior",
+    "soil": "Anàlisi de sòl (textura, pH, P, K)",
+    "irrigation": "Dades de l'aigua de reg",
+    "parcel": "Dades de la parcel·la",
+    "organic": "Dades de l'aportació orgànica",
+    "region": "Regió (NUTS)"
+  },
+  "soilClass": {
+    "low": "Baix",
+    "medium": "Mitjà",
+    "high": "Alt"
+  },
+  "basis": {
+    "buildup": "pujada",
+    "buildup_and_export": "pujada + exportació",
+    "export": "exportació",
+    "half_export": "meitat de l'exportació",
+    "none": "sense aportació"
+  },
+  "pdf": {
+    "button": "PDF",
+    "busy": "Generant…"
+  },
+  "footer": {
+    "attribution": "Plataforma Nekazari · FIWARE · AGPL-3.0",
+    "source": "Codi font",
+    "credit": "Càlcul basat en FertiliCalc (F. J. Villalobos, Universitat de Còrdova, GPL-3.0).",
+    "sourcesOpen": "Fonts de dades",
+    "sourcesClose": "Amaga les fonts",
+    "sourcesNote": "Les xifres mostrades són càlculs de Nekazari, no dades publicades per les fonts.",
+    "licence": "Llicència",
+    "link": "Font"
+  },
+  "notice": {
+    "parcel_identifier_unrecognized": "L'identificador de la parcel·la ({{value}}) no és un recinte SIGPAC ni una referència cadastral.",
+    "irrigation_no3_unknown": "Es desconeix el nitrat de l'aigua de reg: no es descompta el seu N.",
+    "soil_p_methods_mixed": "L'anàlisi barreja mètodes de fòsfor: no s'usa el P.",
+    "soil_p_method_unknown": "L'anàlisi no indica el mètode del fòsfor: no s'usa el P.",
+    "soil_p_method_unsupported": "Mètode de fòsfor no admès ({{method}}): no s'usa el P.",
+    "soil_k_methods_mixed": "L'anàlisi barreja mètodes de potassi: no s'usa el K.",
+    "soil_k_method_unknown": "L'anàlisi no indica el mètode del potassi: no s'usa el K.",
+    "soil_k_method_unsupported": "Mètode de potassi no admès ({{method}}): no s'usa el K.",
+    "nmin_form_not_measured": "A l'anàlisi de N mineral li falta una forma ({{missing}}): el N mineral queda incomplet.",
+    "soil_analysis_not_found": "No es troba l'anàlisi de sòl triada ({{analysis}}).",
+    "soil_estimate_out_of_range": "L'estimació de {{field}} ({{value}}) és fora de rang i es descarta.",
+    "soil_texture_invalid": "Sorra i argila no donen una textura vàlida: es descarta.",
+    "nmin_analysis_not_found": "No es troba l'anàlisi de N mineral triada ({{analysis}}).",
+    "nmin_no_values": "L'anàlisi de N mineral no porta valors utilitzables ({{analysis}}).",
+    "nmin_bulk_density_unknown": "Sense densitat aparent no es pot passar el N mineral a kg/ha ({{analysis}}).",
+    "rain_years_incomplete": "Anys de pluja incomplets descartats: {{years}}.",
+    "rain_normal_short_series": "La pluja normal només usa {{years}} anys complets.",
+    "parcels_in_several_regions": "Les parcel·les són a diverses regions ({{regions}}): indica la regió.",
+    "region_not_found": "No s'ha trobat la regió de les parcel·les: indica la regió (NUTS).",
+    "water_quality_not_found": "No es troba la qualitat d'aigua triada ({{id}}).",
+    "parcels_crops_differ": "Les parcel·les de la fitxa no tenen el mateix cultiu: s'usa el de la primera.",
+    "harvest_zero_ignored": "S'ignora una collita registrada amb pes 0.",
+    "zone_yield_stale": "El rendiment de la zona és antic (últim any {{latest_year}}).",
+    "yield_cv_out_of_range": "La variabilitat del rendiment ({{cv_pct}} %) és massa alta i es descarta.",
+    "declared_years_ignored": "Anys declarats fora de la finestra, ignorats: {{years}}.",
+    "history_too_short": "Historial curt ({{years}}): la variabilitat no és fiable.",
+    "n_min_fallback_typical": "Sense N mínim del producte per a {{eppo}}: s'usa el N típic.",
+    "cycle_species_not_eppo": "El cicle {{crop_id}} no usa un codi EPPO ({{species}}): no es pren com a cultiu.",
+    "previous_cycle_pending": "El cicle anterior ({{crop_id}}) no s'ha confirmat mai: no es pren com a cultiu anterior.",
+    "double_crop_campaign": "La campanya {{campaign}} té {{count}} cicles: aquesta fitxa en fa servir un.",
+    "crop_differs_from_cycle": "El cultiu declarat ({{declared}}) difereix del cicle ({{cycle}}); mana el declarat.",
+    "double_crop_first_cycle_unknown": "No es coneix el primer cicle de la campanya {{campaign}}."
   }
 }

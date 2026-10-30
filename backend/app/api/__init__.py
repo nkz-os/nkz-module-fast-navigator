@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import time
 from contextlib import asynccontextmanager
 from typing import Annotated
 from datetime import UTC, date, datetime
@@ -145,18 +146,14 @@ async def calc_preview(body: SheetIn, auth: AuthContext = require_auth(PLAN_ROLE
     return result.to_dict()
 
 
-@router.get("/sources/parcels/{parcel_id}")
-async def parcel_sources(parcel_id: Annotated[str, Path(pattern=PARCEL_ID_PATTERN, max_length=200)],
-                         campaign: int = Query(ge=2000, le=2100),
-                         auth: AuthContext = require_auth(PLAN_ROLES),
-                         sources_factory=Depends(get_sources_factory)) -> dict:
-    urn = _urn(parcel_id)
-    async with sources_factory(auth.tenant_id) as sources:
-        entity = await sources.parcel(urn)
-        if entity is None:
-            raise HTTPException(404, f"parcel not found: {urn}")
-        timeline, analyses = await asyncio.gather(sources.timeline(urn, date.today()),
-                                                  sources.lab_analyses(urn))
+CAMPAIGN_PARCELS_CONCURRENCY = 8
+
+
+async def _parcel_summary(sources, entity: dict, campaign: int, today: date,
+                          urn: str | None = None) -> dict:
+    urn = urn or entity["id"]
+    timeline, analyses = await asyncio.gather(sources.timeline(urn, today),
+                                              sources.lab_analyses(urn))
     info = parcel_info(entity)
     cycles = list((timeline or {}).get("cycles") or [])
     choice = crops_for_campaign(cycles, campaign)
@@ -174,3 +171,38 @@ async def parcel_sources(parcel_id: Annotated[str, Path(pattern=PARCEL_ID_PATTER
                       "fields": sorted({k for h in a.get("horizons") or [] for k in h})}
                      for a in analyses],
     }
+
+
+@router.get("/sources/parcels/{parcel_id}")
+async def parcel_sources(parcel_id: Annotated[str, Path(pattern=PARCEL_ID_PATTERN, max_length=200)],
+                         campaign: int = Query(ge=2000, le=2100),
+                         auth: AuthContext = require_auth(PLAN_ROLES),
+                         sources_factory=Depends(get_sources_factory)) -> dict:
+    urn = _urn(parcel_id)
+    async with sources_factory(auth.tenant_id) as sources:
+        entity = await sources.parcel(urn)
+        if entity is None:
+            raise HTTPException(404, f"parcel not found: {urn}")
+        return await _parcel_summary(sources, entity, campaign, date.today(), urn)
+
+
+@router.get("/sources/campaigns/{campaign}/parcels")
+async def campaign_parcels(campaign: Annotated[int, Path(ge=2000, le=2100)],
+                           auth: AuthContext = require_auth(PLAN_ROLES),
+                           sources_factory=Depends(get_sources_factory)) -> dict:
+    started = time.monotonic()
+    today = date.today()
+    gate = asyncio.Semaphore(CAMPAIGN_PARCELS_CONCURRENCY)
+
+    async def one(sources, entity: dict) -> dict:
+        async with gate:
+            body = await _parcel_summary(sources, entity, campaign, today)
+        return {**body["parcel"], **{k: v for k, v in body.items() if k != "parcel"}}
+
+    async with sources_factory(auth.tenant_id) as sources:
+        entities = [e for e in await sources.parcels() if e.get("id")]
+        parcels = await asyncio.gather(*(one(sources, e) for e in entities))
+    parcels = sorted(parcels, key=lambda p: (p["name"] is None, p["name"] or "", p["id"]))
+    logger.info("campaign parcels tenant=%s campaign=%s count=%d ms=%d", auth.tenant_id,
+                campaign, len(parcels), int((time.monotonic() - started) * 1000))
+    return {"campaign": campaign, "parcels": parcels}

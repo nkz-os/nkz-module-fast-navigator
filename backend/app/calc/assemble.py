@@ -92,6 +92,9 @@ class Sources:
     async def parcel(self, urn: str) -> dict | None:
         return await broker.fetch_parcel(self._orion, urn)
 
+    async def parcels(self) -> list[dict]:
+        return await broker.fetch_parcels(self._orion)
+
     async def harvests(self, urn: str) -> list[dict]:
         return await broker.fetch_harvests(self._orion, urn)
 

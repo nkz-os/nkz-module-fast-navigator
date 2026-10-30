@@ -74,3 +74,13 @@ async def test_fertilizations_include_started_but_not_issued_or_planned():
     assert sorted(e["id"] for e in got) == ["a", "b", "c"]          # duplicates collapse
     assert sorted(by_status) == sorted(c[2].rsplit('status=="', 1)[1].rstrip('"')
                                        for c in orion.calls)
+
+
+async def test_fetch_parcels_pages_through_all():
+    pages = [[{"id": f"p{i}"} for i in range(100)], [{"id": f"p{i}"} for i in range(100, 200)],
+             [{"id": f"p{i}"} for i in range(200, 250)]]
+    orion = FakeOrion(pages=pages)
+    got = await broker.fetch_parcels(orion)
+    assert len(got) == 250
+    assert [c[4] for c in orion.calls] == [0, 100, 200]
+    assert all(c[1] == "AgriParcel" and c[5] == "keyValues" for c in orion.calls)

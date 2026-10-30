@@ -1,5 +1,5 @@
 import type {
-  CampaignParcels, PdfEnvelope, Plan, PlanListItem, PlanSheetIn, RainNormal,
+  CampaignParcels, PdfEnvelope, Plan, PlanListItem, PlanSheetIn,
 } from './types';
 import { apiOrigin, request, requestUrl, FastApiError } from './client';
 
@@ -18,8 +18,9 @@ export const putSheets = (id: string, rowVersion: number, sheets: PlanSheetIn[])
 export const calculatePlan = (id: string, rowVersion: number) =>
   request<Plan>('POST', `/plans/${encodeURIComponent(id)}/calculate`, { row_version: rowVersion });
 
+/** Needs a plan with saved sheets; answers with the whole plan (`rain_normal` filled). */
 export const storeRainNormal = (id: string) =>
-  request<RainNormal>('POST', `/plans/${encodeURIComponent(id)}/rain-normal`);
+  request<Plan>('POST', `/plans/${encodeURIComponent(id)}/rain-normal`);
 
 const overridePath = (id: string, key: string, param: string) =>
   `/plans/${encodeURIComponent(id)}/sheets/${encodeURIComponent(key)}/overrides/${encodeURIComponent(param)}`;

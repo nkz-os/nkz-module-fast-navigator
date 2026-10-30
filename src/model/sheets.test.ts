@@ -69,3 +69,46 @@ describe('sheetArea', () => {
     expect(sheetArea(RESULT, PARCELS, [urn, 'urn:ngsi-ld:AgriParcel:nope'])).toBeNull();
   });
 });
+
+import { defaultManagement, wizardBlockers, wizardSheets, type GroupManagement } from './sheets';
+
+describe('wizard', () => {
+  const groups = groupParcels(PARCELS);
+  const wheat = groups[0];
+  const chosen = (over: Partial<GroupManagement> = {}): Record<string, GroupManagement> =>
+    ({ [wheat.id]: { ...defaultManagement(wheat), irrigated: false, tillage: true, rotationYears: 4, ...over } });
+
+  it('asks for the regime, the tillage and the rotation: nothing is assumed', () => {
+    const blockers = wizardBlockers(groups, { [wheat.id]: defaultManagement(wheat) });
+    expect(blockers).toEqual(expect.arrayContaining(['wizard.blocker.regime', 'wizard.blocker.tillage', 'wizard.blocker.rotation']));
+  });
+  it('a group with a known regime does not ask for it again', () => {
+    const rainfed = groupParcels([{ ...PARCELS[1], irrigation_regime: 'rainfed' }])[0];
+    expect(wizardBlockers([rainfed], { [rainfed.id]: defaultManagement(rainfed) })).not.toContain('wizard.blocker.regime');
+  });
+  it('is clear once everything is chosen', () => {
+    expect(wizardBlockers(groups, chosen())).toEqual([]);
+    expect(wizardBlockers(groups, chosen({ rotationYears: null }))).toContain('wizard.blocker.rotation');
+  });
+  it('the group without a crop needs a valid declared crop to be included', () => {
+    const none = groups[1];
+    const m = { ...chosen(), [none.id]: { ...defaultManagement(none), included: true, irrigated: false, tillage: true, rotationYears: 3 } };
+    expect(wizardBlockers(groups, m)).toContain('wizard.blocker.crop');
+    m[none.id].declaredCrop = 'HORVX';
+    expect(wizardBlockers(groups, m)).toEqual([]);
+  });
+  it('keeps an existing sheet identical and adds the new one with strategy 2 and no applications', () => {
+    const elsewhere: PlanSheet = { ...SHEET, parcels: [{ urn: 'urn:ngsi-ld:AgriParcel:p9', sigpac: null }] };
+    const sheets = wizardSheets(groups, chosen(), [elsewhere], 2027);
+    expect(sheets[0]).toEqual(toSheetIn(elsewhere, 2027));
+    expect(sheets).toHaveLength(2);
+    expect(sheets[1]).toMatchObject({
+      key: 'trzax-rainfed-2', strategy: 2, previous_residues_burned: false, applications: [], sigpac: {},
+      parcel_ids: ['urn:ngsi-ld:AgriParcel:p1'], irrigated: false, tillage: true, rotation_years: 4, crop_eppo: null,
+    });
+  });
+  it('does not put a parcel in two sheets', () => {
+    const taken: PlanSheet = { ...SHEET, parcels: [{ urn: 'urn:ngsi-ld:AgriParcel:p1', sigpac: null }] };
+    expect(wizardSheets(groups, chosen(), [taken], 2027)).toHaveLength(1);
+  });
+});

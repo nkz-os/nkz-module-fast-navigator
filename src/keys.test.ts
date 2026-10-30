@@ -42,6 +42,11 @@ const FAMILIES = [
   ...['buildup', 'buildup_and_export', 'export', 'half_export', 'none'].map((b) => `basis.${b}`),
   ...['session', 'forbidden', 'planNotFound', 'parcelNotFound', 'conflict', 'gatewayTimeout', 'sourceUnavailable', 'invalid', 'generic', 'planStays', 'rules'].map((k) => `error.${k}`),
   ...['stale_calculation', 'blocking_findings', 'advice_required', 'not_allowed'].map((c) => `error.transition.${c}`),
+  // Keys the wizard picks at run time.
+  ...[1, 2, 3].map((n) => `wizard.step${n}`),
+  ...['rainfed', 'irrigated', 'unknown'].map((r) => `wizard.regime.${r}`),
+  ...[1, 2, 3, 4].map((n) => `wizard.strategy.${n}`),
+  ...['regime', 'tillage', 'rotation', 'crop', 'tooManySheets', 'tooManyParcels', 'nothing'].map((b) => `wizard.blocker.${b}`),
 ];
 
 describe('strings', () => {

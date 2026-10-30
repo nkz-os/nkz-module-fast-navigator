@@ -158,5 +158,75 @@
     "sheets_one": "{{count}} ficha",
     "sheets_other": "{{count}} fichas",
     "open": "Abrir"
+  },
+  "wizard": {
+    "step1": "Passo 1 · Parcelas da campanha {{campaign}}",
+    "step2": "Passo 2 · Gestão de cada ficha",
+    "step3": "Passo 3 · Chuva normal",
+    "next": "Seguinte",
+    "back": "Voltar",
+    "saveCalc": "Guardar e calcular",
+    "include": "Incluir",
+    "parcels_one": "{{count}} parcela",
+    "parcels_other": "{{count}} parcelas",
+    "previous": "anterior:",
+    "noParcels": "Não há parcelas por adicionar nesta campanha.",
+    "regime": {
+      "rainfed": "sequeiro",
+      "irrigated": "regadio",
+      "unknown": "regime não definido"
+    },
+    "noCrop": {
+      "title": "Sem cultura para {{campaign}} ({{count}})",
+      "hint": "Declare a cultura (código EPPO) ou deixe estas parcelas fora do plano."
+    },
+    "declare": {
+      "label": "Cultura declarada (código EPPO)",
+      "hint": "Cinco ou seis letras ou algarismos.",
+      "placeholder": "p. ex. TRZAX",
+      "invalid": "Código EPPO inválido"
+    },
+    "existing": {
+      "title": "Fichas que o plano já tem",
+      "remove": "Remover",
+      "keep": "Manter",
+      "confirm": "Os ajustes do técnico desta ficha perdem-se. Removê-la?",
+      "yes": "Sim, remover",
+      "cancel": "Cancelar"
+    },
+    "form": {
+      "regime": "Regime de rega",
+      "choose": "Escolha…",
+      "tillage": "Mobilização do solo",
+      "tillageYes": "Com mobilização",
+      "tillageNo": "Sem mobilização (sementeira direta)",
+      "rotation": "Anos de rotação",
+      "strategy": "Estratégia de P e K",
+      "residues": "Os restos da cultura anterior são queimados"
+    },
+    "strategy": {
+      "1": "1 · Apenas corrigir a carência do solo",
+      "2": "2 · Corrigir e repor o exportado (habitual)",
+      "3": "3 · Limiar de fósforo um pouco mais alto",
+      "4": "4 · Sem ter em conta o solo (aviso legal)"
+    },
+    "blocker": {
+      "regime": "Escolha sequeiro ou regadio em todos os grupos incluídos.",
+      "tillage": "Indique se há mobilização em todos os grupos incluídos.",
+      "rotation": "Indique os anos de rotação (1 a 20).",
+      "crop": "Declare uma cultura válida ou deixe o grupo de fora.",
+      "tooManySheets": "Um plano aceita no máximo 20 fichas.",
+      "tooManyParcels": "Uma ficha aceita no máximo 200 parcelas.",
+      "nothing": "Não há nada a guardar: inclua pelo menos um grupo."
+    },
+    "rain": {
+      "hint": "Obtém-se da meteorologia da primeira parcela e pode demorar. Não é necessária para calcular.",
+      "get": "Obter a chuva normal",
+      "getting": "A obter…",
+      "years_one": "{{count}} ano completo",
+      "years_other": "{{count}} anos completos",
+      "annual": "Total anual: {{mm}} mm",
+      "month": "{{month}}: {{mm}} mm"
+    }
   }
 }

@@ -158,5 +158,75 @@
     "sheets_one": "orri {{count}}",
     "sheets_other": "{{count}} orri",
     "open": "Ireki"
+  },
+  "wizard": {
+    "step1": "1. urratsa · {{campaign}} kanpainako lursailak",
+    "step2": "2. urratsa · Orri bakoitzaren kudeaketa",
+    "step3": "3. urratsa · Euri normala",
+    "next": "Hurrengoa",
+    "back": "Atzera",
+    "saveCalc": "Gorde eta kalkulatu",
+    "include": "Sartu",
+    "parcels_one": "lursail {{count}}",
+    "parcels_other": "{{count}} lursail",
+    "previous": "aurrekoa:",
+    "noParcels": "Kanpaina honetan ez dago gehitzeko lursailik.",
+    "regime": {
+      "rainfed": "ureztatu gabea",
+      "irrigated": "ureztatua",
+      "unknown": "araubidea zehaztu gabe"
+    },
+    "noCrop": {
+      "title": "{{campaign}}rako laborantzarik gabe ({{count}})",
+      "hint": "Adierazi laborantza (EPPO kodea) edo utzi lursail hauek planetik kanpo."
+    },
+    "declare": {
+      "label": "Adierazitako laborantza (EPPO kodea)",
+      "hint": "Bost edo sei letra edo zifra.",
+      "placeholder": "adib. TRZAX",
+      "invalid": "EPPO kode baliogabea"
+    },
+    "existing": {
+      "title": "Planak dituen orriak",
+      "remove": "Kendu",
+      "keep": "Mantendu",
+      "confirm": "Orri honen teknikariaren doikuntzak galduko dira. Kendu?",
+      "yes": "Bai, kendu",
+      "cancel": "Utzi"
+    },
+    "form": {
+      "regime": "Ureztatze araubidea",
+      "choose": "Aukeratu…",
+      "tillage": "Lur-lanketa",
+      "tillageYes": "Lur-lanketarekin",
+      "tillageNo": "Lur-lanketarik gabe (zuzeneko hazkuntza)",
+      "rotation": "Txandakatze urteak",
+      "strategy": "P eta K estrategia",
+      "residues": "Aurreko laboreen hondarrak erretzen dira"
+    },
+    "strategy": {
+      "1": "1 · Lurzoruaren gabezia zuzendu soilik",
+      "2": "2 · Zuzendu eta esportatutakoa ordezkatu (ohikoa)",
+      "3": "3 · Fosforo-atalase apur bat altuagoa",
+      "4": "4 · Lurzorua kontuan hartu gabe (ohar legala)"
+    },
+    "blocker": {
+      "regime": "Aukeratu ureztatu gabea edo ureztatua sartutako talde guztietan.",
+      "tillage": "Adierazi lur-lanketa dagoen sartutako talde guztietan.",
+      "rotation": "Adierazi txandakatze urteak (1etik 20ra).",
+      "crop": "Adierazi baliozko laborantza bat edo utzi taldea kanpoan.",
+      "tooManySheets": "Plan batek gehienez 20 orri onartzen ditu.",
+      "tooManyParcels": "Orri batek gehienez 200 lursail onartzen ditu.",
+      "nothing": "Ez dago gordetzeko ezer: sartu gutxienez talde bat."
+    },
+    "rain": {
+      "hint": "Lehen lursailaren eguraldi datuetatik dator eta denbora har dezake. Ez da beharrezkoa kalkulatzeko.",
+      "get": "Lortu euri normala",
+      "getting": "Lortzen…",
+      "years_one": "urte oso {{count}}",
+      "years_other": "{{count}} urte oso",
+      "annual": "Urteko guztira: {{mm}} mm",
+      "month": "{{month}}: {{mm}} mm"
+    }
   }
 }

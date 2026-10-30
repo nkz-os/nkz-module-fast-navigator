@@ -158,5 +158,75 @@
     "sheets_one": "{{count}} sheet",
     "sheets_other": "{{count}} sheets",
     "open": "Open"
+  },
+  "wizard": {
+    "step1": "Step 1 · Parcels of campaign {{campaign}}",
+    "step2": "Step 2 · Management of each sheet",
+    "step3": "Step 3 · Normal rainfall",
+    "next": "Next",
+    "back": "Back",
+    "saveCalc": "Save and calculate",
+    "include": "Include",
+    "parcels_one": "{{count}} parcel",
+    "parcels_other": "{{count}} parcels",
+    "previous": "previous:",
+    "noParcels": "There are no parcels left to add in this campaign.",
+    "regime": {
+      "rainfed": "rainfed",
+      "irrigated": "irrigated",
+      "unknown": "regime not set"
+    },
+    "noCrop": {
+      "title": "No crop for {{campaign}} ({{count}})",
+      "hint": "Declare the crop (EPPO code) or leave these parcels out of the plan."
+    },
+    "declare": {
+      "label": "Declared crop (EPPO code)",
+      "hint": "Five or six letters or digits.",
+      "placeholder": "e.g. TRZAX",
+      "invalid": "Not a valid EPPO code"
+    },
+    "existing": {
+      "title": "Sheets the plan already has",
+      "remove": "Remove",
+      "keep": "Keep",
+      "confirm": "The technician's adjustments of this sheet are lost. Remove it?",
+      "yes": "Yes, remove",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "regime": "Irrigation regime",
+      "choose": "Choose…",
+      "tillage": "Tillage",
+      "tillageYes": "With tillage",
+      "tillageNo": "No tillage (direct sowing)",
+      "rotation": "Rotation years",
+      "strategy": "P and K strategy",
+      "residues": "The previous crop residues are burned"
+    },
+    "strategy": {
+      "1": "1 · Only correct the soil deficit",
+      "2": "2 · Correct and replace what is exported (usual)",
+      "3": "3 · Slightly higher phosphorus threshold",
+      "4": "4 · Ignoring the soil (legal warning)"
+    },
+    "blocker": {
+      "regime": "Choose rainfed or irrigated in every included group.",
+      "tillage": "Say whether there is tillage in every included group.",
+      "rotation": "Give the rotation years (1 to 20).",
+      "crop": "Declare a valid crop or leave the group out.",
+      "tooManySheets": "A plan accepts 20 sheets at most.",
+      "tooManyParcels": "A sheet accepts 200 parcels at most.",
+      "nothing": "There is nothing to save: include at least one group."
+    },
+    "rain": {
+      "hint": "It comes from the first parcel's weather record and can take a while. It is not needed to calculate.",
+      "get": "Get normal rainfall",
+      "getting": "Getting…",
+      "years_one": "{{count}} complete year",
+      "years_other": "{{count}} complete years",
+      "annual": "Annual total: {{mm}} mm",
+      "month": "{{month}}: {{mm}} mm"
+    }
   }
 }

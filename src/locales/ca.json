@@ -158,5 +158,75 @@
     "sheets_one": "{{count}} fitxa",
     "sheets_other": "{{count}} fitxes",
     "open": "Obre"
+  },
+  "wizard": {
+    "step1": "Pas 1 · Parcel·les de la campanya {{campaign}}",
+    "step2": "Pas 2 · Maneig de cada fitxa",
+    "step3": "Pas 3 · Pluja normal",
+    "next": "Següent",
+    "back": "Enrere",
+    "saveCalc": "Desa i calcula",
+    "include": "Inclou",
+    "parcels_one": "{{count}} parcel·la",
+    "parcels_other": "{{count}} parcel·les",
+    "previous": "anterior:",
+    "noParcels": "No hi ha parcel·les per afegir en aquesta campanya.",
+    "regime": {
+      "rainfed": "secà",
+      "irrigated": "regadiu",
+      "unknown": "règim sense definir"
+    },
+    "noCrop": {
+      "title": "Sense cultiu per a {{campaign}} ({{count}})",
+      "hint": "Declara el cultiu (codi EPPO) o deixa aquestes parcel·les fora del pla."
+    },
+    "declare": {
+      "label": "Cultiu declarat (codi EPPO)",
+      "hint": "Cinc o sis lletres o xifres.",
+      "placeholder": "p. ex. TRZAX",
+      "invalid": "Codi EPPO no vàlid"
+    },
+    "existing": {
+      "title": "Fitxes que ja té el pla",
+      "remove": "Treu",
+      "keep": "Conserva",
+      "confirm": "Es perden els ajustos del tècnic d'aquesta fitxa. La treus?",
+      "yes": "Sí, treu",
+      "cancel": "Cancel·la"
+    },
+    "form": {
+      "regime": "Règim de reg",
+      "choose": "Tria…",
+      "tillage": "Laboreig",
+      "tillageYes": "Amb laboreig",
+      "tillageNo": "Sense laboreig (sembra directa)",
+      "rotation": "Anys de rotació",
+      "strategy": "Estratègia de P i K",
+      "residues": "Es cremen les restes del cultiu anterior"
+    },
+    "strategy": {
+      "1": "1 · Només corregir la carència del sòl",
+      "2": "2 · Corregir i reposar el que s'ha extret (habitual)",
+      "3": "3 · Llindar de fòsfor una mica més alt",
+      "4": "4 · Sense tenir en compte el sòl (avís legal)"
+    },
+    "blocker": {
+      "regime": "Tria secà o regadiu a tots els grups inclosos.",
+      "tillage": "Indica si hi ha laboreig a tots els grups inclosos.",
+      "rotation": "Indica els anys de rotació (d'1 a 20).",
+      "crop": "Declara un cultiu vàlid o deixa el grup fora.",
+      "tooManySheets": "Un pla admet 20 fitxes com a màxim.",
+      "tooManyParcels": "Una fitxa admet 200 parcel·les com a màxim.",
+      "nothing": "No hi ha res per desar: inclou almenys un grup."
+    },
+    "rain": {
+      "hint": "S'obté de la meteorologia de la primera parcel·la i pot trigar. No cal per calcular.",
+      "get": "Obtén la pluja normal",
+      "getting": "Obtenint…",
+      "years_one": "{{count}} any complet",
+      "years_other": "{{count}} anys complets",
+      "annual": "Total anual: {{mm}} mm",
+      "month": "{{month}}: {{mm}} mm"
+    }
   }
 }

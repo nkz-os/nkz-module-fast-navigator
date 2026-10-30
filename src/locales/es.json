@@ -158,5 +158,75 @@
     "sheets_one": "{{count}} hoja",
     "sheets_other": "{{count}} hojas",
     "open": "Abrir"
+  },
+  "wizard": {
+    "step1": "Paso 1 · Parcelas de la campaña {{campaign}}",
+    "step2": "Paso 2 · Manejo de cada hoja",
+    "step3": "Paso 3 · Lluvia normal",
+    "next": "Siguiente",
+    "back": "Atrás",
+    "saveCalc": "Guardar y calcular",
+    "include": "Incluir",
+    "parcels_one": "{{count}} parcela",
+    "parcels_other": "{{count}} parcelas",
+    "previous": "anterior:",
+    "noParcels": "No hay parcelas por añadir en esta campaña.",
+    "regime": {
+      "rainfed": "secano",
+      "irrigated": "regadío",
+      "unknown": "régimen sin definir"
+    },
+    "noCrop": {
+      "title": "Sin cultivo para {{campaign}} ({{count}})",
+      "hint": "Declara el cultivo (código EPPO) o deja estas parcelas fuera del plan."
+    },
+    "declare": {
+      "label": "Cultivo declarado (código EPPO)",
+      "hint": "Cinco o seis letras o cifras.",
+      "placeholder": "p. ej. TRZAX",
+      "invalid": "Código EPPO no válido"
+    },
+    "existing": {
+      "title": "Hojas que ya tiene el plan",
+      "remove": "Quitar",
+      "keep": "Conservar",
+      "confirm": "Se pierden los ajustes del técnico de esta hoja. ¿Quitarla?",
+      "yes": "Sí, quitar",
+      "cancel": "Cancelar"
+    },
+    "form": {
+      "regime": "Régimen de riego",
+      "choose": "Elige…",
+      "tillage": "Laboreo",
+      "tillageYes": "Con laboreo",
+      "tillageNo": "Sin laboreo (siembra directa)",
+      "rotation": "Años de rotación",
+      "strategy": "Estrategia de P y K",
+      "residues": "Se queman los restos del cultivo anterior"
+    },
+    "strategy": {
+      "1": "1 · Solo corregir la carencia del suelo",
+      "2": "2 · Corregir y reponer lo extraído (habitual)",
+      "3": "3 · Umbral de fósforo algo más alto",
+      "4": "4 · Sin tener en cuenta el suelo (aviso legal)"
+    },
+    "blocker": {
+      "regime": "Elige secano o regadío en todos los grupos incluidos.",
+      "tillage": "Indica si hay laboreo en todos los grupos incluidos.",
+      "rotation": "Indica los años de rotación (de 1 a 20).",
+      "crop": "Declara un cultivo válido o deja el grupo fuera.",
+      "tooManySheets": "Un plan admite 20 hojas como máximo.",
+      "tooManyParcels": "Una hoja admite 200 parcelas como máximo.",
+      "nothing": "No hay nada que guardar: incluye al menos un grupo."
+    },
+    "rain": {
+      "hint": "Se obtiene de la meteorología de la primera parcela y puede tardar. No hace falta para calcular.",
+      "get": "Obtener lluvia normal",
+      "getting": "Obteniendo…",
+      "years_one": "{{count}} año completo",
+      "years_other": "{{count}} años completos",
+      "annual": "Total anual: {{mm}} mm",
+      "month": "{{month}}: {{mm}} mm"
+    }
   }
 }

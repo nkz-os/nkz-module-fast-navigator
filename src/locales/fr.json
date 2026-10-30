@@ -158,5 +158,75 @@
     "sheets_one": "{{count}} fiche",
     "sheets_other": "{{count}} fiches",
     "open": "Ouvrir"
+  },
+  "wizard": {
+    "step1": "Étape 1 · Parcelles de la campagne {{campaign}}",
+    "step2": "Étape 2 · Gestion de chaque fiche",
+    "step3": "Étape 3 · Pluie normale",
+    "next": "Suivant",
+    "back": "Retour",
+    "saveCalc": "Enregistrer et calculer",
+    "include": "Inclure",
+    "parcels_one": "{{count}} parcelle",
+    "parcels_other": "{{count}} parcelles",
+    "previous": "précédente :",
+    "noParcels": "Il n'y a plus de parcelles à ajouter dans cette campagne.",
+    "regime": {
+      "rainfed": "sec (pluvial)",
+      "irrigated": "irrigué",
+      "unknown": "régime non défini"
+    },
+    "noCrop": {
+      "title": "Sans culture pour {{campaign}} ({{count}})",
+      "hint": "Déclarez la culture (code EPPO) ou laissez ces parcelles hors du plan."
+    },
+    "declare": {
+      "label": "Culture déclarée (code EPPO)",
+      "hint": "Cinq ou six lettres ou chiffres.",
+      "placeholder": "p. ex. TRZAX",
+      "invalid": "Code EPPO non valide"
+    },
+    "existing": {
+      "title": "Fiches déjà dans le plan",
+      "remove": "Retirer",
+      "keep": "Conserver",
+      "confirm": "Les ajustements du technicien de cette fiche seront perdus. La retirer ?",
+      "yes": "Oui, retirer",
+      "cancel": "Annuler"
+    },
+    "form": {
+      "regime": "Régime d'irrigation",
+      "choose": "Choisissez…",
+      "tillage": "Travail du sol",
+      "tillageYes": "Avec travail du sol",
+      "tillageNo": "Sans travail du sol (semis direct)",
+      "rotation": "Années de rotation",
+      "strategy": "Stratégie P et K",
+      "residues": "Les résidus de la culture précédente sont brûlés"
+    },
+    "strategy": {
+      "1": "1 · Corriger seulement la carence du sol",
+      "2": "2 · Corriger et remplacer ce qui est exporté (usuel)",
+      "3": "3 · Seuil de phosphore un peu plus élevé",
+      "4": "4 · Sans tenir compte du sol (avertissement légal)"
+    },
+    "blocker": {
+      "regime": "Choisissez sec ou irrigué dans chaque groupe inclus.",
+      "tillage": "Indiquez le travail du sol dans chaque groupe inclus.",
+      "rotation": "Indiquez les années de rotation (1 à 20).",
+      "crop": "Déclarez une culture valide ou laissez le groupe de côté.",
+      "tooManySheets": "Un plan accepte 20 fiches au plus.",
+      "tooManyParcels": "Une fiche accepte 200 parcelles au plus.",
+      "nothing": "Il n'y a rien à enregistrer : incluez au moins un groupe."
+    },
+    "rain": {
+      "hint": "Elle provient de la météo de la première parcelle et peut prendre du temps. Elle n'est pas nécessaire au calcul.",
+      "get": "Obtenir la pluie normale",
+      "getting": "Récupération…",
+      "years_one": "{{count}} année complète",
+      "years_other": "{{count}} années complètes",
+      "annual": "Total annuel : {{mm}} mm",
+      "month": "{{month}} : {{mm}} mm"
+    }
   }
 }

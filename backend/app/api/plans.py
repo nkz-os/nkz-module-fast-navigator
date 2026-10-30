@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import datetime as dt
 import uuid
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Path, Query, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, model_validator
 
 from app.api import PLAN_ROLES, SheetIn, _urn, get_sources_factory
@@ -206,6 +208,7 @@ _PDF_LIMIT = asyncio.Semaphore(1)
 
 @router.get("/{plan_id}/pdf")
 async def plan_pdf(plan_id: uuid.UUID, lang: Literal["es", "en"] = Query(default="es"),
+                   envelope: Literal["json"] | None = Query(default=None),
                    auth: AuthContext = require_auth(PLAN_ROLES), pool=Depends(get_db)) -> Response:
     async with pool.acquire() as conn:
         plan = await service._load(conn, _actor(auth), plan_id)
@@ -213,6 +216,9 @@ async def plan_pdf(plan_id: uuid.UUID, lang: Literal["es", "en"] = Query(default
     async with _PDF_LIMIT:      # one render at a time per process: WeasyPrint is CPU and memory heavy
         pdf = await asyncio.to_thread(render.plan_pdf, doc, lang)
     name = f"fast-plan-{doc['plan']['campaign']}-v{doc['plan']['version']}.pdf"
+    if envelope == "json":      # the gateway proxy only carries JSON
+        return JSONResponse({"filename": name, "media_type": "application/pdf",
+                             "content_base64": base64.b64encode(pdf).decode("ascii")})
     return Response(pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="{name}"'})
 

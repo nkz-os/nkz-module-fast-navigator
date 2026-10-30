@@ -128,6 +128,21 @@ def rule_findings(ctx: PlanContext, sheets: list[repo.SheetRow]) -> list[dict]:
              "sheet_id": ids.get(f.sheet_key)} for f in evaluate(all_rules(), ctx)]
 
 
+async def shown_findings(conn: asyncpg.Connection, plan: repo.PlanRow) -> tuple[list[dict], str]:
+    """The findings and rules version a plan shows: sealed ones once signed or superseded."""
+    findings = await repo.get_findings(conn, plan.id)
+    rules_version = RULES_VERSION
+    if plan.state in (State.SIGNED, State.SUPERSEDED) and plan.snapshot_sha256:
+        # a signed plan shows the verdict it was sealed with, not today's rules
+        sealed = await repo.get_snapshot(conn, plan.id) or {}
+        rules_version = (sealed.get("versions") or {}).get("rules", rules_version)
+        findings = [*(sealed.get("split_findings") or []),
+                    *({"rule_id": f["rule_id"], "severity": f["severity"],
+                       "params": {**f["params"], "citation": f["citation"]},
+                       "sheet_key": f["sheet_key"]} for f in sealed.get("findings") or [])]
+    return findings, rules_version
+
+
 async def _view(conn: asyncpg.Connection, plan: repo.PlanRow) -> dict:
     sheets = await repo.get_sheets(conn, plan.id)
     results = await repo.get_results(conn, plan.id)
@@ -141,16 +156,7 @@ async def _view(conn: asyncpg.Connection, plan: repo.PlanRow) -> dict:
             "result": stored["result"] if stored else None,
             "applications_summary": stored["applications_summary"] if stored else None,
         })
-    findings = await repo.get_findings(conn, plan.id)
-    rules_version = RULES_VERSION
-    if plan.state in (State.SIGNED, State.SUPERSEDED) and plan.snapshot_sha256:
-        # a signed plan shows the verdict it was sealed with, not today's rules
-        sealed = await repo.get_snapshot(conn, plan.id) or {}
-        rules_version = (sealed.get("versions") or {}).get("rules", rules_version)
-        findings = [*(sealed.get("split_findings") or []),
-                    *({"rule_id": f["rule_id"], "severity": f["severity"],
-                       "params": {**f["params"], "citation": f["citation"]},
-                       "sheet_key": f["sheet_key"]} for f in sealed.get("findings") or [])]
+    findings, rules_version = await shown_findings(conn, plan)
     return {
         "id": str(plan.id), "farm": plan.farm, "campaign": plan.campaign,
         "version": plan.version, "state": plan.state, "row_version": plan.row_version,
@@ -201,9 +207,17 @@ async def get(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID) -> dict:
 async def list_(pool: asyncpg.Pool, actor: Actor, campaign: int | None) -> list[dict]:
     async with pool.acquire() as conn:
         plans = await repo.list_plans(conn, actor.tenant_id, campaign)
-        return [{"id": str(p.id), "farm": p.farm, "campaign": p.campaign, "version": p.version,
-                 "state": p.state, "row_version": p.row_version, "calc_fresh": p.calc_fresh,
-                 "updated_at": _iso(p.updated_at)} for p in plans]
+        counts = await repo.sheet_counts(conn, [p.id for p in plans])
+        out = []
+        for p in plans:
+            shown, _ = await shown_findings(conn, p)
+            out.append({"id": str(p.id), "farm": p.farm, "campaign": p.campaign,
+                        "version": p.version, "state": p.state, "row_version": p.row_version,
+                        "calc_fresh": p.calc_fresh, "updated_at": _iso(p.updated_at),
+                        "findings": {sev: sum(1 for f in shown if f["severity"] == sev)
+                                     for sev in ("block", "warn", "info")},
+                        "sheets_count": counts.get(p.id, 0), "signed_at": _iso(p.signed_at)})
+        return out
 
 
 async def audit(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID) -> list[dict]:

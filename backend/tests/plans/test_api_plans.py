@@ -328,3 +328,34 @@ def test_the_calculate_audit_records_status_and_versions_per_sheet(client):
     assert set(detail["status"]) == {"wheat", "barley"}
     assert set(detail["versions"]) == {"wheat", "barley"}
     assert all(isinstance(v, dict) and v for v in detail["versions"].values())
+
+
+def _count(findings):
+    return {sev: sum(1 for f in findings if f["severity"] == sev)
+            for sev in ("block", "warn", "info")}
+
+
+def test_list_counts_the_findings_of_the_view(client):
+    plan = _with_sheet(client)
+    client.post(f"{BASE}/{plan['id']}/calculate", json={"row_version": plan["row_version"]},
+                headers=FARMER)
+    shown = client.get(f"{BASE}/{plan['id']}", headers=FARMER).json()["findings"]
+    listed = client.get(f"{BASE}?campaign=2027", headers=FARMER).json()
+    assert listed[0]["findings"] == _count(shown)
+    assert sum(listed[0]["findings"].values()) == len(shown)
+
+
+def test_list_gives_sheets_count_and_signed_at(client):
+    plan = _new(client)
+    plan = client.put(f"{BASE}/{plan['id']}/sheets", headers=FARMER,
+                      json={"row_version": plan["row_version"],
+                            "sheets": [SHEET, {**SHEET, "key": "wheat-b"}]}).json()
+    item = client.get(BASE, headers=FARMER).json()[0]
+    assert item["sheets_count"] == 2 and item["signed_at"] is None
+
+
+def test_list_of_a_new_plan(client):
+    _new(client)
+    item = client.get(BASE, headers=FARMER).json()[0]
+    assert item["findings"] == {"block": 0, "warn": 0, "info": 0}
+    assert item["sheets_count"] == 0 and item["signed_at"] is None

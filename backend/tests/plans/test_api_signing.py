@@ -142,3 +142,19 @@ def test_signing_with_a_blocking_finding_is_a_409(client, pg_url):
     assert r.status_code == 409 and r.json()["error"] == "blocking_findings"
     assert "ES-RD1051-6.4-content" in r.json()["detail"]
     assert r.json()["rules"] == ["ES-RD1051-6.4-content"]
+
+
+def test_list_of_a_signed_plan_counts_the_sealed_findings(client, pg_url):
+    pid, plan = _calculated(client, pg_url)
+    plan = client.post(f"{BASE}/plans/{pid}/submit", json={"row_version": plan["row_version"]},
+                       headers=FARMER).json()
+    client.put(f"{BASE}/advisors/me", json={"name": "Ana", "registration_number": "NA-1"},
+               headers=TECH)
+    signed = client.post(f"{BASE}/plans/{pid}/sign", json={"row_version": plan["row_version"]},
+                         headers=TECH).json()
+    shown = client.get(f"{BASE}/plans/{pid}", headers=FARMER).json()
+    item = client.get(f"{BASE}/plans?campaign=2027", headers=FARMER).json()[0]
+    assert item["signed_at"] == signed["signed_at"] is not None
+    assert item["sheets_count"] == 1
+    assert item["findings"] == {sev: sum(1 for f in shown["findings"] if f["severity"] == sev)
+                                for sev in ("block", "warn", "info")}

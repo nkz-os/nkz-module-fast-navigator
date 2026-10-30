@@ -11,5 +11,5 @@ const INTENT: Record<PlanState, BadgeIntent> = {
 export function StateBadge({ state }: { state: PlanState }) {
   const { t } = useTranslation('fast-navigator');
   const label = t(`state.${state}`);
-  return <Badge intent={INTENT[state]}>{state === 'superseded' ? <span className="line-through">{label}</span> : label}</Badge>;
+  return <Badge intent={INTENT[state]}>{state === 'superseded' ? <s>{label}</s> : label}</Badge>;
 }

@@ -123,7 +123,7 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
     const current = s && typeof s.value === 'number' ? s.value : null;
     return (
       <Inline key={param} gap="inline" align="center" wrap>
-        <span className="w-56 text-nkz-sm text-nkz-text-secondary">{t(paramLabelKey(param), { defaultValue: param })}</span>
+        <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t(paramLabelKey(param), { defaultValue: param })}</span>
         <SourcedValue value={s} unit={info?.unit ?? undefined} format={(v) => formatParam(param, v, lang)} />
         {editable && mayAdjust(param, roles) && <AdjustControl plan={plan} sheet={sheet} param={param} current={current} onSaved={onSaved} />}
       </Inline>
@@ -184,17 +184,17 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
         <Stack gap="inline">
           <h3 id="field-crop" className="font-semibold text-nkz-text-primary">{t('data.section.crop')}</h3>
           <Inline gap="inline" align="center" wrap>
-            <span className="w-56 text-nkz-sm text-nkz-text-secondary">{t('data.crop')}</span>
+            <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.crop')}</span>
             <CropLabel eppo={(inputs['crop.eppo']?.value as string | null) ?? sheet.inputs.crop_eppo} />
             <ProvenanceChip value={inputs['crop.eppo']} />
           </Inline>
           <Inline gap="inline" align="center" wrap>
-            <span className="w-56 text-nkz-sm text-nkz-text-secondary">{t('data.previousCrop')}</span>
+            <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.previousCrop')}</span>
             <CropLabel eppo={(inputs['previous_crop.eppo']?.value as string | null) ?? sheet.inputs.previous_crop_eppo} />
             <ProvenanceChip value={inputs['previous_crop.eppo']} />
           </Inline>
           <Inline gap="inline" align="center" wrap>
-            <span className="w-56 text-nkz-sm text-nkz-text-secondary">{t('data.coefficients')}</span>
+            <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.coefficients')}</span>
             <ProvenanceChip value={inputs['crop.n_product_pct']} />
           </Inline>
           {roles.technician && result && (
@@ -229,7 +229,7 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
           )}
           {Object.entries(declared).map(([year, kg]) => (
             <Inline key={year} gap="inline" align="center">
-              <span className="w-56 text-nkz-sm text-nkz-text-secondary">{t('data.declaredYield', { year })}</span>
+              <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.declaredYield', { year })}</span>
               {editable ? (
                 <Input type="number" value={kg} min={1} step="any" aria-label={t('data.declaredYield', { year })}
                   onChange={(e) => { const n = num(e.target.value); const next = { ...declared }; if (n === null) delete next[year]; else next[year] = n; set({ declared_yields: next }); }} />
@@ -314,7 +314,7 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
                   <p className="text-nkz-sm text-nkz-text-primary">{o.material} · {o.rate_t_ha} t/ha · N {o.n_pct} % · P₂O₅ {o.p2o5_pct} % · K₂O {o.k2o_pct} %</p>
                 )}
                 <Inline gap="inline" align="center" wrap>
-                  <span className="w-56 text-nkz-sm text-nkz-text-secondary">{t('data.organic.availability')}</span>
+                  <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.organic.availability')}</span>
                   <SourcedValue value={a} format={(v) => formatParam('irrigation.uptake', v, lang)} />
                   {editable && mayAdjust(param, roles) && (
                     <AdjustControl plan={plan} sheet={sheet} param={param} current={a && typeof a.value === 'number' ? a.value : null} onSaved={onSaved} />
@@ -341,7 +341,7 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
             const typed = sigpac[p.urn];
             return (
               <Inline key={p.urn} gap="inline" align="center" wrap>
-                <span className="w-56 text-nkz-sm text-nkz-text-primary">{name}</span>
+                <span className="w-64 text-nkz-sm text-nkz-text-primary">{name}</span>
                 {known
                   ? <span className="text-nkz-sm">{p.sigpac ?? String(id?.value)}</span>
                   : <span className="text-nkz-sm text-nkz-text-muted">—</span>}
@@ -363,7 +363,7 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
           )}
           {inputs['region.nuts'] && (
             <Inline gap="inline" align="center">
-              <span className="w-56 text-nkz-sm text-nkz-text-secondary">{t('data.nuts')}</span>
+              <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.nuts')}</span>
               <SourcedValue value={inputs['region.nuts']} format={(v) => String(v)} />
             </Inline>
           )}

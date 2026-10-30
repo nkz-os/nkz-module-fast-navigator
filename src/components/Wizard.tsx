@@ -186,7 +186,7 @@ export function Wizard({ plan, parcels, onSaved, initial }: {
                 <p className="text-nkz-sm font-medium text-nkz-text-primary">{t('wizard.existing.title')}</p>
                 {plan.sheets.map((s) => (
                   <Inline key={s.key} gap="inline" align="center" wrap>
-                    <span className={removed.has(s.key) ? 'line-through' : ''}>{s.key}</span>
+                    {removed.has(s.key) ? <s>{s.key}</s> : <span>{s.key}</span>}
                     <span className="text-nkz-xs text-nkz-text-muted">{t('wizard.parcels', { count: s.parcels.length })}</span>
                     {removed.has(s.key) ? (
                       <Button size="sm" variant="ghost" onClick={() => { setRemoved((r) => { const n = new Set(r); n.delete(s.key); return n; }); setDirty(true); }}>

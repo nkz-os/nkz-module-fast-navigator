@@ -50,7 +50,7 @@ describe('common pieces (es)', () => {
 
   it('the state badge uses the state word', () => {
     expect(renderToStaticMarkup(<StateBadge state="signed" />)).toContain('Firmado');
-    expect(renderToStaticMarkup(<StateBadge state="superseded" />)).toContain('line-through');
+    expect(renderToStaticMarkup(<StateBadge state="superseded" />)).toContain('<s>Sustituido</s>');
   });
 
   it('the PDF button is busy while generating', () => {

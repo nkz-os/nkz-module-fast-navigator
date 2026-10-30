@@ -342,5 +342,43 @@
     "nBand": "N de {{min}} à {{max}} kg/ha, moyen {{avg}}",
     "nMissing": "N non calculé",
     "provisional": "provisoire"
+  },
+  "needs": {
+    "nTitle": "N (kg N/ha)",
+    "min": "min",
+    "avg": "moyen",
+    "max": "max",
+    "bandLabel": "Bande de N : minimum {{min}}, moyen {{avg}}, maximum {{max}} kg/ha",
+    "beforeCredits": "avant crédits",
+    "level": "Niveau de rendement {{i}} : {{v}} kg/ha",
+    "breakdown": "Détail",
+    "term": {
+      "crop_uptake": "Prélèvement de la culture",
+      "n_end": "N final (Nend)",
+      "previous_residues": "Résidus de la culture précédente",
+      "previous_roots": "Racines de la culture précédente",
+      "n_other": "Autres apports (dont le N de l'eau d'irrigation)",
+      "fixation": "Fixation symbiotique",
+      "loss_divisor": "Pertes",
+      "soil_mineral_n": "N minéral du sol",
+      "organic_available_n": "N disponible des organiques"
+    },
+    "nMissing": "N non calculé : manquent",
+    "oxideMissing": "{{oxide}} non calculé : manquent",
+    "p2o5": "P₂O₅",
+    "k2o": "K₂O",
+    "soilClass": "Sol : {{class}}",
+    "soilBar": "Sol {{value}} mg/kg ; seuil {{threshold}} ; élevé à partir de {{high}}",
+    "soilNow": "Dans le sol : {{value}} mg/kg",
+    "thresholds": "seuil {{low}} mg/kg · élevé à partir de {{high}} mg/kg",
+    "strategy4": "Stratégie 4 : le sol n'est pas pris en compte",
+    "doseIs": "Dose =",
+    "component": {
+      "export": "exportation",
+      "buildup": "enrichissement par an"
+    },
+    "organicCredit": "crédit organique",
+    "versions": "Versions : moteur {{engine}} · calcul {{calc}}",
+    "coefficientsVersion": "coefficients {{v}}"
   }
 }

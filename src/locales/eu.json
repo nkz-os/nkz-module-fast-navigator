@@ -342,5 +342,43 @@
     "nBand": "N {{min}}-{{max}} kg/ha, batez bestekoa {{avg}}",
     "nMissing": "N kalkulatu gabe",
     "provisional": "behin-behinekoa"
+  },
+  "needs": {
+    "nTitle": "N (kg N/ha)",
+    "min": "gutx.",
+    "avg": "batez b.",
+    "max": "gehien.",
+    "bandLabel": "N banda: gutxienekoa {{min}}, batez bestekoa {{avg}}, gehienekoa {{max}} kg/ha",
+    "beforeCredits": "kredituen aurretik",
+    "level": "{{i}}. errendimendu maila: {{v}} kg/ha",
+    "breakdown": "Banaketa",
+    "term": {
+      "crop_uptake": "Laborantzaren xurgapena",
+      "n_end": "Azken N (Nend)",
+      "previous_residues": "Aurreko laborantzaren hondarrak",
+      "previous_roots": "Aurreko laborantzaren sustraiak",
+      "n_other": "Beste ekarpenak (ureztatze uraren N barne)",
+      "fixation": "Finkapen sinbiotikoa",
+      "loss_divisor": "Galerak",
+      "soil_mineral_n": "Lurzoruaren N minerala",
+      "organic_available_n": "Organikoen N eskuragarria"
+    },
+    "nMissing": "N kalkulatu gabe: falta dira",
+    "oxideMissing": "{{oxide}} kalkulatu gabe: falta dira",
+    "p2o5": "P₂O₅",
+    "k2o": "K₂O",
+    "soilClass": "Lurzorua: {{class}}",
+    "soilBar": "Lurzorua {{value}} mg/kg; atalasea {{threshold}}; altua hemendik: {{high}}",
+    "soilNow": "Lurzoruan: {{value}} mg/kg",
+    "thresholds": "atalasea {{low}} mg/kg · altua hemendik: {{high}} mg/kg",
+    "strategy4": "4. estrategia: lurzorua ez da kontuan hartzen",
+    "doseIs": "Dosia =",
+    "component": {
+      "export": "esportazioa",
+      "buildup": "urteko igoera"
+    },
+    "organicCredit": "ekarpen organikoa",
+    "versions": "Bertsioak: motorra {{engine}} · kalkulua {{calc}}",
+    "coefficientsVersion": "koefizienteak {{v}}"
   }
 }

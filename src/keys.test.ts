@@ -51,6 +51,7 @@ const FAMILIES = [
   ...Object.keys(PARAMS).map(paramLabelKey),
   ...['soil', 'bioorch', 'plan', 'broker', 'unknown'].map((o) => `ownerLink.${o}`),
   ...['zone', 'declared', 'entered', 'history', 'missing'].map((b) => `data.basis.${b}`),
+  ...['crop_uptake', 'n_end', 'previous_residues', 'previous_roots', 'n_other', 'fixation', 'loss_divisor', 'soil_mineral_n', 'organic_available_n'].map((k) => `needs.term.${k}`),
   'data.missing.title', 'workspace.signedByAdvisor', 'workspace.signedByHolder', 'param.soil_texture_class',
 ];
 

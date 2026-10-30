@@ -11,6 +11,7 @@ import { canEdit, rolesFrom } from '../model/roles';
 import { closePlanParams, openSheetParams, readPlanView, type Tab } from '../model/urlState';
 import { DataTab } from './DataTab';
 import { ErrorBanner } from './ErrorBanner';
+import { NeedsTab } from './NeedsTab';
 import { PdfButton } from './PdfButton';
 import { SheetCard } from './SheetCard';
 import { StateBadge } from './StateBadge';
@@ -132,7 +133,7 @@ export function PlanWorkspace({ planId, campaign, initial }: { planId: string; c
               <Tabs.Content value="data">
                 <DataTab plan={plan} sheet={sheet} parcels={parcels} editable={editable} roles={roles} onSaved={saved} onReload={() => { loaded.retry(); }} />
               </Tabs.Content>
-              <Tabs.Content value="needs">{null}</Tabs.Content>
+              <Tabs.Content value="needs"><NeedsTab result={sheet.result} /></Tabs.Content>
             </Tabs>
           </div>
         </div>

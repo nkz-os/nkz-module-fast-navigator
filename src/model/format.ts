@@ -3,12 +3,19 @@ const DASH = '—';
 
 function fmt(v: number | null | undefined, lang: string, digits: number): string {
   if (v == null || !Number.isFinite(v)) return DASH;
-  return new Intl.NumberFormat(lang, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(v);
+  const rounded = Number(v.toFixed(digits));
+  return new Intl.NumberFormat(lang, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(rounded === 0 ? 0 : rounded);
 }
 
 export const formatKgHa = (v: number | null | undefined, lang: string) => fmt(v, lang, 0);
 export const formatMgKg = (v: number | null | undefined, lang: string) => fmt(v, lang, 0);
 export const formatPct = (v: number | null | undefined, lang: string) => fmt(v, lang, 1);
+/** Whole kg/ha with an explicit sign: +142, −14 (a true minus sign). */
+export function formatSignedKgHa(v: number, lang: string): string {
+  const n = fmt(Math.abs(v), lang, 0);
+  return Number(v.toFixed(0)) < 0 ? `−${n}` : `+${n}`;
+}
+export const formatDecimal2 = (v: number | null | undefined, lang: string) => fmt(v, lang, 2);
 export const formatHa = (v: number | null | undefined, lang: string) => fmt(v, lang, 1);
 
 /** A date (`2026-10-14`) or a timestamp: numeric day-month-year in the language's order. */

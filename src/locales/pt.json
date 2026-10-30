@@ -342,5 +342,43 @@
     "nBand": "N de {{min}} a {{max}} kg/ha, médio {{avg}}",
     "nMissing": "N por calcular",
     "provisional": "provisório"
+  },
+  "needs": {
+    "nTitle": "N (kg N/ha)",
+    "min": "mín",
+    "avg": "médio",
+    "max": "máx",
+    "bandLabel": "Banda de N: mínimo {{min}}, médio {{avg}}, máximo {{max}} kg/ha",
+    "beforeCredits": "antes de créditos",
+    "level": "Nível de produtividade {{i}}: {{v}} kg/ha",
+    "breakdown": "Desdobramento",
+    "term": {
+      "crop_uptake": "Extração da cultura",
+      "n_end": "N final (Nend)",
+      "previous_residues": "Restos da cultura anterior",
+      "previous_roots": "Raízes da cultura anterior",
+      "n_other": "Outros aportes (inclui o N da água de rega)",
+      "fixation": "Fixação simbiótica",
+      "loss_divisor": "Perdas",
+      "soil_mineral_n": "N mineral do solo",
+      "organic_available_n": "N disponível dos orgânicos"
+    },
+    "nMissing": "N por calcular: faltam",
+    "oxideMissing": "{{oxide}} por calcular: faltam",
+    "p2o5": "P₂O₅",
+    "k2o": "K₂O",
+    "soilClass": "Solo: {{class}}",
+    "soilBar": "Solo {{value}} mg/kg; limiar {{threshold}}; alto a partir de {{high}}",
+    "soilNow": "No solo: {{value}} mg/kg",
+    "thresholds": "limiar {{low}} mg/kg · alto a partir de {{high}} mg/kg",
+    "strategy4": "Estratégia 4: o solo não é tido em conta",
+    "doseIs": "Dose =",
+    "component": {
+      "export": "exportação",
+      "buildup": "subida por ano"
+    },
+    "organicCredit": "crédito orgânico",
+    "versions": "Versões: motor {{engine}} · cálculo {{calc}}",
+    "coefficientsVersion": "coeficientes {{v}}"
   }
 }

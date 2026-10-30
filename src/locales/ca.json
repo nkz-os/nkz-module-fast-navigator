@@ -342,5 +342,43 @@
     "nBand": "N de {{min}} a {{max}} kg/ha, mitjà {{avg}}",
     "nMissing": "N sense calcular",
     "provisional": "provisional"
+  },
+  "needs": {
+    "nTitle": "N (kg N/ha)",
+    "min": "mín",
+    "avg": "mitjà",
+    "max": "màx",
+    "bandLabel": "Banda de N: mínim {{min}}, mitjà {{avg}}, màxim {{max}} kg/ha",
+    "beforeCredits": "abans de crèdits",
+    "level": "Nivell de rendiment {{i}}: {{v}} kg/ha",
+    "breakdown": "Desglossament",
+    "term": {
+      "crop_uptake": "Extracció del cultiu",
+      "n_end": "N final (Nend)",
+      "previous_residues": "Restes del cultiu anterior",
+      "previous_roots": "Arrels del cultiu anterior",
+      "n_other": "Altres aportacions (inclou el N de l'aigua de reg)",
+      "fixation": "Fixació simbiòtica",
+      "loss_divisor": "Pèrdues",
+      "soil_mineral_n": "N mineral del sòl",
+      "organic_available_n": "N disponible dels orgànics"
+    },
+    "nMissing": "N sense calcular: falten",
+    "oxideMissing": "{{oxide}} sense calcular: falten",
+    "p2o5": "P₂O₅",
+    "k2o": "K₂O",
+    "soilClass": "Sòl: {{class}}",
+    "soilBar": "Sòl {{value}} mg/kg; llindar {{threshold}}; alt des de {{high}}",
+    "soilNow": "Al sòl: {{value}} mg/kg",
+    "thresholds": "llindar {{low}} mg/kg · alt des de {{high}} mg/kg",
+    "strategy4": "Estratègia 4: no es té en compte el sòl",
+    "doseIs": "Dosi =",
+    "component": {
+      "export": "exportació",
+      "buildup": "pujada per any"
+    },
+    "organicCredit": "aportació orgànica",
+    "versions": "Versions: motor {{engine}} · càlcul {{calc}}",
+    "coefficientsVersion": "coeficients {{v}}"
   }
 }

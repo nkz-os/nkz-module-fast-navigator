@@ -342,5 +342,43 @@
     "nBand": "N de {{min}} a {{max}} kg/ha, medio {{avg}}",
     "nMissing": "N sin calcular",
     "provisional": "provisional"
+  },
+  "needs": {
+    "nTitle": "N (kg N/ha)",
+    "min": "mín",
+    "avg": "medio",
+    "max": "máx",
+    "bandLabel": "Banda de N: mínimo {{min}}, medio {{avg}}, máximo {{max}} kg/ha",
+    "beforeCredits": "antes de créditos",
+    "level": "Nivel de rendimiento {{i}}: {{v}} kg/ha",
+    "breakdown": "Desglose",
+    "term": {
+      "crop_uptake": "Extracción del cultivo",
+      "n_end": "N final (Nend)",
+      "previous_residues": "Restos del cultivo anterior",
+      "previous_roots": "Raíces del cultivo anterior",
+      "n_other": "Otros aportes (incluye el N del agua de riego)",
+      "fixation": "Fijación simbiótica",
+      "loss_divisor": "Pérdidas",
+      "soil_mineral_n": "N mineral del suelo",
+      "organic_available_n": "N disponible de orgánicos"
+    },
+    "nMissing": "N sin calcular: faltan",
+    "oxideMissing": "{{oxide}} sin calcular: faltan",
+    "p2o5": "P₂O₅",
+    "k2o": "K₂O",
+    "soilClass": "Suelo: {{class}}",
+    "soilBar": "Suelo {{value}} mg/kg; umbral {{threshold}}; alto desde {{high}}",
+    "soilNow": "En el suelo: {{value}} mg/kg",
+    "thresholds": "umbral {{low}} mg/kg · alto desde {{high}} mg/kg",
+    "strategy4": "Estrategia 4: no se tiene en cuenta el suelo",
+    "doseIs": "Dosis =",
+    "component": {
+      "export": "exportación",
+      "buildup": "subida por año"
+    },
+    "organicCredit": "aporte orgánico",
+    "versions": "Versiones: motor {{engine}} · cálculo {{calc}}",
+    "coefficientsVersion": "coeficientes {{v}}"
   }
 }

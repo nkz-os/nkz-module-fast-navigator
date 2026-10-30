@@ -111,7 +111,7 @@ export function PlanWorkspace({ planId, campaign, initial }: { planId: string; c
       {calcError != null && <ErrorBanner error={calcError} onRetry={calculate} planState={plan.state} />}
       {parcelsLoad.error != null && <ErrorBanner error={parcelsLoad.error} onRetry={parcelsLoad.retry} />}
 
-      {showWizard && parcelsLoad.data && <Wizard plan={plan} parcels={parcelsLoad.data} onSaved={saved} />}
+      {showWizard && parcelsLoad.data && <Wizard plan={plan} parcels={parcelsLoad.data} onSaved={saved} onReload={loaded.retry} />}
       {!showWizard && sheets.length === 0 && (
         <EmptyState title={t('workspace.noSheets')} description={editable ? undefined : t('workspace.noSheetsReadOnly')} />
       )}

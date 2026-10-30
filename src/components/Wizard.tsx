@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '@nekazari/sdk';
 import { Badge, Button, Checkbox, FormField, FormGrid, Inline, Input, Select, Stack, Surface } from '@nekazari/ui-kit';
 import { calculatePlan, putSheets, storeRainNormal } from '../api/fast';
@@ -91,8 +91,8 @@ function RainBars({ plan }: { plan: Plan }) {
 }
 
 /** Three steps: which parcels, how they are managed, the normal rainfall. Saves and calculates at the end. */
-export function Wizard({ plan, parcels, onSaved, initial }: {
-  plan: Plan; parcels: CampaignParcels; onSaved: (plan: Plan) => void; initial?: WizardInitial;
+export function Wizard({ plan, parcels, onSaved, onReload, initial }: {
+  plan: Plan; parcels: CampaignParcels; onSaved: (plan: Plan) => void; onReload?: () => void; initial?: WizardInitial;
 }) {
   const { t } = useTranslation('fast-navigator');
   const campaign = plan.campaign;
@@ -109,6 +109,8 @@ export function Wizard({ plan, parcels, onSaved, initial }: {
   const [confirming, setConfirming] = useState<string | null>(null);
   const [latest, setLatest] = useState<Plan>(plan);
   const [dirty, setDirty] = useState(true);
+  // A reloaded plan (someone else saved first) carries the row_version to save against.
+  useEffect(() => { setLatest(plan); setDirty(true); }, [plan.row_version]);   // eslint-disable-line react-hooks/exhaustive-deps
   const [busy, setBusy] = useState<'save' | 'rain' | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [rainError, setRainError] = useState<unknown>(initial?.rainError ?? null);
@@ -150,6 +152,7 @@ export function Wizard({ plan, parcels, onSaved, initial }: {
       onSaved(await calculatePlan(saved.id, saved.row_version));
     } catch (e) {
       setError(e);
+      if (errorView(e).reload) onReload?.();
     } finally { setBusy(null); }
   };
 

@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field, field_validator
 from app.calc.assemble import ParcelNotFound, SheetRequest, Sources, assemble
 from app.calc.sheet import calculate
 from app.config import Settings, get_settings
-from app.inputs.crops import crops_for_campaign
+from app.inputs.crops import campaign_main_cycles, crops_for_campaign, cycle_view
 from app.inputs.organic import OrganicApplication
 from app.inputs.overrides import check_override, farmer_may_override
 from app.inputs.parcel import parcel_info
@@ -158,13 +158,16 @@ async def parcel_sources(parcel_id: Annotated[str, Path(pattern=PARCEL_ID_PATTER
         timeline, analyses = await asyncio.gather(sources.timeline(urn, date.today()),
                                                   sources.lab_analyses(urn))
     info = parcel_info(entity)
-    choice = crops_for_campaign(list((timeline or {}).get("cycles") or []), campaign)
+    cycles = list((timeline or {}).get("cycles") or [])
+    choice = crops_for_campaign(cycles, campaign)
+    main = campaign_main_cycles(cycles, campaign)
     return {
         "parcel": {"id": urn, "name": info.name, "area_ha": info.area_ha.to_dict(),
                    "identifier": info.identifier.to_dict(), "farm": info.farm,
                    "irrigation_regime": info.irrigation_regime},
         "crop": choice.crop.to_dict(), "previous_crop": choice.previous.to_dict(),
         "previous_campaign": choice.previous_campaign,
+        "cycle": cycle_view(main[0] if main else None),
         "notices": [n.to_dict() for n in (*info.notices, *choice.notices)],
         "analyses": [{"id": a.get("id"), "samplingDate": a.get("samplingDate"),
                       "laboratoryReference": a.get("laboratoryReference"),

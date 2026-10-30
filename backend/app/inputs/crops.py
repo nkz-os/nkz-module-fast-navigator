@@ -57,14 +57,33 @@ def _flag_pending(cycle: dict, notices: list[Notice]) -> None:
         "crop_id": cycle.get("crop_id"), "campaign": cycle.get("campaign_label")}))
 
 
+def _mains(cycles: list[dict]) -> list[dict]:
+    return sorted((c for c in cycles if is_main(c)), key=lambda c: _date(c, "start") or date.min)
+
+
+def campaign_main_cycles(cycles: list[dict], campaign: int) -> list[dict]:
+    """Main-crop cycles of a campaign, ordered by start."""
+    return [c for c in _mains(cycles) if c.get("campaign_label") == campaign]
+
+
+def cycle_view(cycle: dict | None) -> dict | None:
+    """The chosen cycle as the UI needs it: id, start with provenance, pending, status."""
+    if cycle is None:
+        return None
+    start = cycle.get("start") or {}
+    return {"crop_id": cycle.get("crop_id"),
+            "start": {"date": start.get("date"), "provenance": start.get("provenance")},
+            "pending": cycle.get("pending") is True,
+            "status": cycle.get("status")}
+
+
 def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
                        declared_crop: str | None = None,
                        declared_previous: str | None = None) -> CropChoice:
     notices: list[Notice] = []
     absent: list[MissingInput] = []
-    mains = sorted((c for c in cycles if is_main(c)),
-                   key=lambda c: _date(c, "start") or date.min)
-    of_campaign = [c for c in mains if c.get("campaign_label") == campaign]
+    mains = _mains(cycles)
+    of_campaign = campaign_main_cycles(cycles, campaign)
     if len(of_campaign) > 1:
         notices.append(Notice("double_crop_campaign", {"campaign": campaign, "count": len(of_campaign)}))
     current = of_campaign[cycle_index] if cycle_index < len(of_campaign) else None

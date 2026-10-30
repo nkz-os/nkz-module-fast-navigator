@@ -1,11 +1,5 @@
 {
-  "example": {
-    "title": "FaST Navigator",
-    "loading": "Cargando…",
-    "authRequired": "Se requiere autenticación.",
-    "entity": "Entidad",
-    "user": "Usuario",
-    "refresh": "Actualizar",
-    "replaceHint": "Sustituye este componente por la funcionalidad de tu módulo."
+  "app": {
+    "title": "FaST · Plan de abonado"
   }
 }

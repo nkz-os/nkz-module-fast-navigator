@@ -6,7 +6,7 @@ const MODULE_ID = 'fast-navigator';
 
 export default defineConfig(nkzModulePreset({
   moduleId: MODULE_ID,
-  entry: './src/moduleEntry.ts',
+  entry: './src/Module.tsx',
   viteConfig: {
     resolve: {
       alias: { '@': path.resolve(__dirname, './src') },

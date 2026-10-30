@@ -5,7 +5,7 @@
   "license": "AGPL-3.0-or-later",
   "packageManager": "pnpm@9.0.0",
   "type": "module",
-  "main": "./src/moduleEntry.ts",
+  "main": "./src/Module.tsx",
   "nkz": {
     "moduleId": "fast-navigator"
   },
@@ -13,17 +13,20 @@
     "dev": "vite --port 5003",
     "build:module": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check:host-classes": "node scripts/check-host-classes.mjs $(find src -name '*.tsx' ! -name '*.test.tsx')"
   },
   "dependencies": {
-    "lucide-react": "^0.424.0"
+    "lucide-react": "^0.424.0",
+    "@nekazari/ui-kit": "^1.0.2-alpha.4",
+    "react-router-dom": "^6.26.0"
   },
   "devDependencies": {
     "@nekazari/design-tokens": "^0.1.0-alpha.0",
     "@nekazari/module-builder": "^2.0.3",
     "@nekazari/module-kit": "^0.6.0",
     "@nekazari/sdk": "^1.0.3",
-    "@nekazari/ui-kit": "^1.0.0",
     "@nekazari/viewer-kit": "^0.1.1-alpha.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
@@ -36,6 +39,12 @@
     "react-i18next": "^14.1.0",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.2.2",
-    "vite": "^6.4.2"
+    "vite": "^6.4.2",
+    "vitest": "^3.2.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@module-federation/vite": "1.16.8"
+    }
   }
 }

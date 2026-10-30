@@ -1,35 +1,45 @@
 {
   "id": "fast-navigator",
   "name": "fast-navigator",
-  "display_name": "FaST Navigator",
+  "display_name": "FaST · Plan de abonado",
   "version": "1.0.0",
-  "description": "FaST Navigator — description of what this module does",
+  "description": "Legal fertilisation plan per farm and campaign (RD 1051/2022).",
   "description_i18n": {
-    "es": "DESCRIPCIÓN_EN_ESPAÑOL",
-    "en": "DESCRIPTION_IN_ENGLISH",
-    "eu": "DESKRIBAPENA_EUSKARAZ",
-    "fr": "DESCRIPTION_EN_FRANÇAIS",
-    "pt": "DESCRIÇÃO_EM_PORTUGUÊS",
-    "ca": "DESCRIPCIÓ_EN_CATALÀ"
+    "es": "Plan de abonado legal por explotación y campaña (RD 1051/2022): necesidades de N, P y K con su procedencia.",
+    "en": "Legal fertilisation plan per farm and campaign (RD 1051/2022): N, P and K needs with their sources.",
+    "eu": "Ustiategi eta kanpaina bakoitzeko ongarritze-plan legala (RD 1051/2022): N, P eta K beharrak, iturriekin.",
+    "fr": "Plan de fertilisation réglementaire par exploitation et campagne (RD 1051/2022) : besoins en N, P et K avec leurs sources.",
+    "ca": "Pla d'adobat legal per explotació i campanya (RD 1051/2022): necessitats de N, P i K amb les seves fonts.",
+    "pt": "Plano de fertilização legal por exploração e campanha (RD 1051/2022): necessidades de N, P e K com as suas fontes."
   },
-  "short_description": "Short description for marketplace listing",
-  "icon": "puzzle",
-  "author": { "name": "nkz-os", "email": "", "organization": "nkz-os" },
+  "icon": "leaf",
+  "author": {
+    "name": "nkz-os",
+    "email": "",
+    "organization": "nkz-os"
+  },
   "category": "analytics",
-  "module_type": "ADDON_FREE",
-  "required_plan_type": "basic",
-  "pricing_tier": "FREE",
-  "route_path": "//fast-navigator",
-  "label": "FaST Navigator",
-  "required_roles": ["Farmer", "TenantAdmin", "PlatformAdmin"],
-  "navigation": { "enabled": true, "priority": 50, "section": "modules" },
+  "route_path": "/fast-navigator",
+  "label": "FaST · Plan de abonado",
+  "required_roles": [
+    "Farmer",
+    "TechnicalConsultant",
+    "TenantAdmin"
+  ],
+  "navigation": {
+    "enabled": true,
+    "priority": 50,
+    "section": "modules"
+  },
   "dependencies": {
     "sdk_version": "^1.0.3",
     "react_version": "^18.3.1",
     "platform_version": "^2.0.0"
   },
   "permissions": {
-    "api_access": ["/api/fast-navigator/*"],
+    "api_access": [
+      "/api/fast/*"
+    ],
     "storage_access": false,
     "external_requests": []
   },
@@ -40,14 +50,14 @@
   "slots": {
     "map-layer": [],
     "layer-toggle": [],
-    "context-panel": ["ExampleSlot"],
+    "context-panel": [],
     "bottom-panel": [],
     "entity-tree": [],
     "dashboard-widget": []
   },
   "metadata": {
-    "icon": "🔧",
-    "color": "#3B82F6",
+    "icon": "leaf",
+    "color": "#10B981",
     "features": [],
     "screenshots": []
   }

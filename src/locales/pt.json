@@ -143,5 +143,20 @@
     "double_crop_campaign": "A campanha {{campaign}} tem {{count}} ciclos: esta ficha usa um.",
     "crop_differs_from_cycle": "A cultura declarada ({{declared}}) difere do ciclo ({{cycle}}); prevalece a declarada.",
     "double_crop_first_cycle_unknown": "O primeiro ciclo da campanha {{campaign}} é desconhecido."
+  },
+  "list": {
+    "title": "Planos de fertilização",
+    "campaign": "Campanha",
+    "empty": "Não há plano para {{campaign}}",
+    "create": "Criar plano {{campaign}}",
+    "version": "{{campaign}} · v{{version}}",
+    "block_one": "{{count}} bloqueia",
+    "block_other": "{{count}} bloqueiam",
+    "warn_one": "{{count}} aviso",
+    "warn_other": "{{count}} avisos",
+    "stale": "sem recalcular",
+    "sheets_one": "{{count}} ficha",
+    "sheets_other": "{{count}} fichas",
+    "open": "Abrir"
   }
 }

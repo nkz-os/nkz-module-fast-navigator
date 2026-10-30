@@ -143,5 +143,20 @@
     "double_crop_campaign": "{{campaign}} kanpainak {{count}} ziklo ditu: orri honek bat erabiltzen du.",
     "crop_differs_from_cycle": "Adierazitako laborantza ({{declared}}) zikloarena ({{cycle}}) ez bezalakoa da; adierazitakoak nagusitzen da.",
     "double_crop_first_cycle_unknown": "{{campaign}} kanpainako lehen zikloa ezezaguna da."
+  },
+  "list": {
+    "title": "Ongarritze-planak",
+    "campaign": "Kanpaina",
+    "empty": "{{campaign}} kanpainarako planik ez dago",
+    "create": "Sortu {{campaign}} plana",
+    "version": "{{campaign}} · v{{version}}",
+    "block_one": "{{count}} blokeatzen du",
+    "block_other": "{{count}} blokeatzen dute",
+    "warn_one": "ohar {{count}}",
+    "warn_other": "{{count}} ohar",
+    "stale": "birkalkulatu gabe",
+    "sheets_one": "orri {{count}}",
+    "sheets_other": "{{count}} orri",
+    "open": "Ireki"
   }
 }

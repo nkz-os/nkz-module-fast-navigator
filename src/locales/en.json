@@ -143,5 +143,20 @@
     "double_crop_campaign": "Campaign {{campaign}} has {{count}} cycles: this sheet uses one.",
     "crop_differs_from_cycle": "The declared crop ({{declared}}) differs from the cycle ({{cycle}}); the declared one prevails.",
     "double_crop_first_cycle_unknown": "The first cycle of campaign {{campaign}} is unknown."
+  },
+  "list": {
+    "title": "Fertilisation plans",
+    "campaign": "Campaign",
+    "empty": "There is no plan for {{campaign}}",
+    "create": "Create plan {{campaign}}",
+    "version": "{{campaign}} · v{{version}}",
+    "block_one": "{{count}} blocks",
+    "block_other": "{{count}} block",
+    "warn_one": "{{count}} warning",
+    "warn_other": "{{count}} warnings",
+    "stale": "not recalculated",
+    "sheets_one": "{{count}} sheet",
+    "sheets_other": "{{count}} sheets",
+    "open": "Open"
   }
 }

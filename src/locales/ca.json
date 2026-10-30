@@ -143,5 +143,20 @@
     "double_crop_campaign": "La campanya {{campaign}} té {{count}} cicles: aquesta fitxa en fa servir un.",
     "crop_differs_from_cycle": "El cultiu declarat ({{declared}}) difereix del cicle ({{cycle}}); mana el declarat.",
     "double_crop_first_cycle_unknown": "No es coneix el primer cicle de la campanya {{campaign}}."
+  },
+  "list": {
+    "title": "Plans d'adobat",
+    "campaign": "Campanya",
+    "empty": "No hi ha pla per a {{campaign}}",
+    "create": "Crea el pla {{campaign}}",
+    "version": "{{campaign}} · v{{version}}",
+    "block_one": "{{count}} bloqueja",
+    "block_other": "{{count}} bloquegen",
+    "warn_one": "{{count}} avís",
+    "warn_other": "{{count}} avisos",
+    "stale": "sense recalcular",
+    "sheets_one": "{{count}} fitxa",
+    "sheets_other": "{{count}} fitxes",
+    "open": "Obre"
   }
 }

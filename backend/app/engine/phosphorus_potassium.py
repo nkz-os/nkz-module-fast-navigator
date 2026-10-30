@@ -4,6 +4,16 @@ from __future__ import annotations
 from . import constants as C
 from .types import CropSeason, Management, NutrientRate, SoilState
 
+SOIL_CLASSES = ("low", "medium", "high")
+DOSE_BASES = ("buildup", "buildup_and_export", "export", "half_export", "none")
+
+
+def _soil_class(value: float, threshold: float, high_from: float) -> str:
+    """Soil class from the same comparisons that pick the dose."""
+    if value < threshold:
+        return "low"
+    return "medium" if value < high_from else "high"
+
 
 def _dm(season: CropSeason) -> tuple[float, float]:
     hi = season.crop.harvest_index_pct / 100
@@ -36,19 +46,21 @@ def p_requirement(season: CropSeason, soil: SoilState, mgmt: Management,
     exported = _exported(season, season.crop.p_product_pct, season.crop.p_residue_pct)
     thres = p_threshold(season, soil, mgmt.strategy)
     if mgmt.strategy == 4:
-        return NutrientRate(exported, exported, 0.0, thres)
+        return NutrientRate(exported, exported, 0.0, thres, None, None, "export")
     bd = C.CLASS_BULK_DENSITY[soil.texture_class]
     buildup = max(10 * bd * C.SAMPLING_DEPTH_M * (thres - soil.p_olsen_mg_kg), 0.0)
     per_year = min(buildup / rotation_years, C.P_BUILDUP_MAX_KG_HA_YEAR)
+    high_from = 2 * thres
+    cls = _soil_class(soil.p_olsen_mg_kg, thres, high_from)
     if mgmt.strategy == 1:
-        rate = per_year
-    elif soil.p_olsen_mg_kg < thres:
-        rate = per_year + exported
-    elif soil.p_olsen_mg_kg < 2 * thres:
-        rate = exported
+        rate, basis = per_year, "buildup"
+    elif cls == "low":
+        rate, basis = per_year + exported, "buildup_and_export"
+    elif cls == "medium":
+        rate, basis = exported, "export"
     else:
-        rate = 0.5 * exported
-    return NutrientRate(rate, exported, per_year, thres)
+        rate, basis = 0.5 * exported, "half_export"
+    return NutrientRate(rate, exported, per_year, thres, cls, high_from, basis)
 
 
 def k_requirement(season: CropSeason, soil: SoilState, mgmt: Management,
@@ -63,16 +75,20 @@ def k_requirement(season: CropSeason, soil: SoilState, mgmt: Management,
         thres, fk = C.K_THRESHOLD_HIGH[cls], C.K_FIX_HIGH[cls]
     if mgmt.strategy == 4:
         # The reference script returns the P export here (`k_rate = p_exported`), a bug.
-        return NutrientRate(exported, exported, 0.0, thres)
+        return NutrientRate(exported, exported, 0.0, thres, None, None, "export")
     bd = C.CLASS_BULK_DENSITY[cls]
     buildup = max(10 * bd * fk * C.SAMPLING_DEPTH_M * (thres - soil.k_mg_kg), 0.0)
     per_year = min(buildup / rotation_years, C.K_BUILDUP_MAX_KG_HA_YEAR)
+    high_from = (2 if cls < 6 else 1.5) * thres
+    soil_cls = _soil_class(soil.k_mg_kg, thres, high_from)
     if mgmt.strategy == 1:
-        rate = per_year
-    elif soil.k_mg_kg < thres:
-        rate = per_year + exported
+        rate, basis = per_year, "buildup"
+    elif soil_cls == "low":
+        rate, basis = per_year + exported, "buildup_and_export"
+    elif soil_cls == "medium":
+        rate, basis = exported, "export"
     elif cls < 6:
-        rate = exported if soil.k_mg_kg < 2 * thres else 0.5 * exported
+        rate, basis = 0.5 * exported, "half_export"
     else:
-        rate = exported if soil.k_mg_kg < 1.5 * thres else 0.0
-    return NutrientRate(rate, exported, per_year, thres)
+        rate, basis = 0.0, "none"
+    return NutrientRate(rate, exported, per_year, thres, soil_cls, high_from, basis)

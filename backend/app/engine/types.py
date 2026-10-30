@@ -130,6 +130,9 @@ class NutrientRate:
     exported: float
     buildup_per_year: float
     threshold_mg_kg: float
+    soil_class: str | None = None       # low | medium | high; None for strategy 4
+    high_from_mg_kg: float | None = None
+    basis: str = "export"               # what the rate is made of
 
 
 @dataclass(frozen=True)

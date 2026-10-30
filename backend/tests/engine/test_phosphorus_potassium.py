@@ -48,3 +48,36 @@ def test_buildup_capped_per_year():
     p = p_requirement(wheat, poor, Management(1, True, False), 1)
     k = k_requirement(wheat, poor, Management(1, True, False), 1)
     assert p.rate == pytest.approx(30.0) and k.rate == pytest.approx(60.0)
+
+
+WHEAT = RICE.__class__(**{**RICE.__dict__, "eppo": "TRZAX"})
+
+
+@pytest.mark.parametrize("p_olsen,cls,basis", [(5, "low", "buildup_and_export"),
+                                               (30, "medium", "export"),
+                                               (80, "high", "half_export")])
+def test_p_soil_class_is_the_branch_taken(p_olsen, cls, basis):
+    soil = SoilState(3, 18, 7.5, 2.0, p_olsen, 150)
+    r = p_requirement(CropSeason(WHEAT, 6000, 10), soil, Management(2, True, False), 4)
+    assert (r.soil_class, r.basis) == (cls, basis)
+    assert r.high_from_mg_kg == pytest.approx(2 * r.threshold_mg_kg)
+
+
+def test_k_on_clay_is_high_from_one_and_a_half_thresholds_and_gets_nothing():
+    clay = SoilState(6, 45, 7.5, 2.0, 12, 0)
+    probe = k_requirement(CropSeason(WHEAT, 6000, 10), clay, Management(2, True, False), 4)
+    soil = SoilState(6, 45, 7.5, 2.0, 12, 1.6 * probe.threshold_mg_kg)
+    r = k_requirement(CropSeason(WHEAT, 6000, 10), soil, Management(2, True, False), 4)
+    assert r.high_from_mg_kg == pytest.approx(1.5 * r.threshold_mg_kg)
+    assert (r.soil_class, r.basis, r.rate) == ("high", "none", 0.0)
+
+
+def test_strategy_4_has_no_soil_class():
+    for fn in (p_requirement, k_requirement):
+        r = fn(CropSeason(WHEAT, 6000, 10), SOIL, Management(4, True, False), 4)
+        assert (r.soil_class, r.high_from_mg_kg, r.basis) == (None, None, "export")
+
+
+def test_strategy_1_reports_the_soil_and_builds_up():
+    r = p_requirement(CropSeason(WHEAT, 6000, 10), SOIL, Management(1, True, False), 4)
+    assert r.basis == "buildup" and r.soil_class in ("low", "medium", "high")

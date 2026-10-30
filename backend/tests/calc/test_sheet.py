@@ -222,3 +222,11 @@ def test_versions_carry_the_preceding_crop_s_coefficients():
     r = calculate(assembled())
     assert r.versions["previous_coefficients"] == r.versions["coefficients"] is not None
     assert calculate(assembled(previous_crop=None)).versions["previous_coefficients"] is None
+
+
+def test_oxide_carries_the_engine_class():
+    r = calculate(assembled())
+    assert r.p2o5["soil_class"] in ("low", "medium", "high")
+    assert r.p2o5["strategy"] == 2
+    assert r.k2o["basis"] in ("buildup", "buildup_and_export", "export", "half_export", "none")
+    assert r.versions["calc"] == "1.1.0"

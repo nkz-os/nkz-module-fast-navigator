@@ -201,7 +201,14 @@ async def campaign_parcels(campaign: Annotated[int, Path(ge=2000, le=2100)],
 
     async with sources_factory(auth.tenant_id) as sources:
         entities = [e for e in await sources.parcels() if e.get("id")]
-        parcels = await asyncio.gather(*(one(sources, e) for e in entities))
+        # TaskGroup cancels the other parcels on the first failure, before the sources client
+        # closes; the failure itself (e.g. a 503 naming its source) is re-raised unwrapped.
+        try:
+            async with asyncio.TaskGroup() as tg:
+                tasks = [tg.create_task(one(sources, e)) for e in entities]
+        except ExceptionGroup as group:
+            raise group.exceptions[0] from None
+        parcels = [t.result() for t in tasks]
     parcels = sorted(parcels, key=lambda p: (p["name"] is None, p["name"] or "", p["id"]))
     logger.info("campaign parcels tenant=%s campaign=%s count=%d ms=%d", auth.tenant_id,
                 campaign, len(parcels), int((time.monotonic() - started) * 1000))

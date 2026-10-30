@@ -95,3 +95,33 @@ def test_concurrency_is_bounded():
 def test_campaign_out_of_range_is_422():
     c = _client(lambda: FakeSources(**complete_data()))
     assert c.get("/api/fast/sources/campaigns/1999/parcels", headers=FARMER).status_code == 422
+
+
+def test_a_parcel_failure_is_503_and_cancels_the_other_parcels_before_closing_the_sources():
+    data = _two_parcels()
+    events = []
+
+    class FailingOne(FakeSources):
+        async def timeline(self, urn, at):
+            if urn == OTHER:
+                await asyncio.sleep(0.01)
+                raise SourceUnavailable("crop-cycles", "x")
+            try:
+                await asyncio.sleep(5)
+            except asyncio.CancelledError:
+                events.append("cancelled")
+                raise
+            return await super().timeline(urn, at)
+
+    @asynccontextmanager
+    async def factory(tenant_id):
+        try:
+            yield FailingOne(**data)
+        finally:
+            events.append("closed")
+
+    app.dependency_overrides[get_sources_factory] = lambda: factory
+    r = TestClient(app).get(URL, headers=FARMER)
+    assert r.status_code == 503 and r.json()["source"] == "crop-cycles"
+    # The other parcels stop before the sources client closes, not after.
+    assert "cancelled" in events and events.index("cancelled") < events.index("closed")

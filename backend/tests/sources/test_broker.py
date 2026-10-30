@@ -84,3 +84,18 @@ async def test_fetch_parcels_pages_through_all():
     assert len(got) == 250
     assert [c[4] for c in orion.calls] == [0, 100, 200]
     assert all(c[1] == "AgriParcel" and c[5] == "keyValues" for c in orion.calls)
+
+
+async def test_fetch_parcels_sends_no_q_param_with_the_real_client():
+    from nkz_platform_sdk import OrionClient
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json=[{"id": "urn:ngsi-ld:AgriParcel:p1"}])
+
+    orion = OrionClient("tenant-a", base_url="http://orion.test")
+    orion._client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    assert await broker.fetch_parcels(orion) == [{"id": "urn:ngsi-ld:AgriParcel:p1"}]
+    assert "q" not in seen[0].url.params and seen[0].url.params["type"] == "AgriParcel"
+    assert "NGSILD-Tenant" in seen[0].headers and "Link" in seen[0].headers

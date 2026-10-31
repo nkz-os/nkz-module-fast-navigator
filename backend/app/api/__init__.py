@@ -17,12 +17,15 @@ from pydantic import BaseModel, Field, field_validator
 from app.calc.assemble import ParcelNotFound, SheetRequest, Sources, assemble
 from app.calc.sheet import calculate
 from app.config import Settings, get_settings
-from app.inputs.crops import campaign_main_cycles, crops_for_campaign, cycle_view
+from app.inputs.crops import (
+    EPPO, campaign_main_cycles, cover_before, crops_for_campaign, cycle_view,
+)
 from app.inputs.organic import OrganicApplication
 from app.inputs.overrides import check_override, farmer_may_override
 from app.inputs.parcel import parcel_info
 from app.inputs.provenance import Override
 from app.middleware import AuthContext, require_auth
+from app.sources.errors import SourceUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +171,7 @@ async def _parcel_summary(sources, entity: dict, campaign: int, today: date,
         "crop": choice.crop.to_dict(), "previous_crop": choice.previous.to_dict(),
         "previous_campaign": choice.previous_campaign,
         "cycle": cycle_view(main[0] if main else None),
+        "cover_before": cover_before(cycles, campaign),
         "notices": [n.to_dict() for n in (*info.notices, *choice.notices)],
         "analyses": [{"id": a.get("id"), "samplingDate": a.get("samplingDate"),
                       "laboratoryReference": a.get("laboratoryReference"),
@@ -216,3 +220,22 @@ async def campaign_parcels(campaign: Annotated[int, Path(ge=2000, le=2100)],
     logger.info("campaign parcels tenant=%s campaign=%s count=%d ms=%d", auth.tenant_id,
                 campaign, len(parcels), int((time.monotonic() - started) * 1000))
     return {"campaign": campaign, "parcels": parcels}
+
+
+@router.get("/sources/crops")
+async def source_crops(auth: AuthContext = require_auth(PLAN_ROLES),
+                       sources_factory=Depends(get_sources_factory)) -> dict:
+    """Crops the user can pick by name, in the order BioOrch gives (by Spanish name)."""
+    async with sources_factory(auth.tenant_id) as sources:
+        answer = await sources.crop_list()
+    if not isinstance(answer, dict) or not isinstance(answer.get("crops"), list):
+        raise SourceUnavailable("bioorch", "no crop list")
+    crops = []
+    for item in answer["crops"]:
+        eppo, names = (item or {}).get("eppo"), (item or {}).get("names")
+        if not isinstance(eppo, str) or not EPPO.match(eppo) or not isinstance(names, dict):
+            logger.warning("crop list entry dropped eppo=%r", eppo)
+            continue
+        crops.append({"eppo": eppo, "names": names,
+                      "has_coefficients": item.get("has_coefficients") is True})
+    return {"crops": crops}

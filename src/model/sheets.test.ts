@@ -113,7 +113,7 @@ describe('wizard', () => {
   });
 });
 
-import { editSheet, ownerLink, shortParcelId } from './sheets';
+import { applyPreviousCrop, editSheet, lacksPreviousCrop, ownerLink, shortParcelId } from './sheets';
 
 describe('editSheet', () => {
   const plan = {
@@ -133,11 +133,36 @@ describe('editSheet', () => {
 describe('ownerLink', () => {
   it('soil reads the short parcel id, as the soil module does', () => {
     expect(shortParcelId('urn:ngsi-ld:AgriParcel:p1')).toBe('p1');
-    expect(ownerLink('soil', ['urn:ngsi-ld:AgriParcel:p1'])).toEqual({ key: 'ownerLink.soil', href: '/module/soil?parcel=p1' });
+    expect(ownerLink('soil', ['urn:ngsi-ld:AgriParcel:p1'])).toEqual({ key: 'ownerLink.soil', href: '/module/soil?parcel=p1&tab=manual' });
   });
   it('the others are text or an anchor', () => {
     expect(ownerLink('bioorch', [])).toEqual({ key: 'ownerLink.bioorch' });
     expect(ownerLink('broker', [])).toEqual({ key: 'ownerLink.broker' });
     expect(ownerLink('plan', [], 'yield.kg_ha')).toEqual({ key: 'ownerLink.plan', href: '#field-yield' });
+  });
+});
+
+describe('ownerLink without a parcel', () => {
+  it('soil still opens the manual analysis form', () => {
+    expect(ownerLink('soil', [])).toEqual({ key: 'ownerLink.soil', href: '/module/soil?tab=manual' });
+  });
+});
+
+describe('previous crop for all sheets', () => {
+  const calculated = (key: string, previous: unknown, declared: string | null = null) => ({
+    ...SHEET, key, inputs: { ...SHEET.inputs, previous_crop_eppo: declared },
+    result: { inputs: { 'previous_crop.eppo': { value: previous, provenance: previous == null ? 'missing' : 'measured' } } },
+  }) as unknown as PlanSheet;
+  const plan = { campaign: 2027, sheets: [calculated('a', null), calculated('b', null), calculated('c', 'HORVX'),
+    calculated('d', 'TRZAX', 'TRZAX'), { ...SHEET, key: 'e', result: null }] } as unknown as Plan;
+
+  it('only a calculated sheet with no previous crop lacks one', () => {
+    expect(plan.sheets.map(lacksPreviousCrop)).toEqual([true, true, false, false, false]);
+  });
+  it('sets the value on the sheets that lack it and on the current one, nothing else', () => {
+    const out = applyPreviousCrop(plan, 'a', { water_m3_ha: 10 }, 'fallow');
+    expect(out.map((s) => s.previous_crop_eppo)).toEqual(['fallow', 'fallow', null, 'TRZAX', null]);
+    expect(out[0].water_m3_ha).toBe(10);
+    expect(out[2]).toEqual(toSheetIn(plan.sheets[2], 2027));
   });
 });

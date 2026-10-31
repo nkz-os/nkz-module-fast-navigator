@@ -22,6 +22,9 @@ from .provenance import (
 )
 
 TOPSOIL_CM = 30.0
+# Organic matter = organic carbon x 1.724 (van Bemmelen factor, the one the soil module uses).
+VAN_BEMMELEN = 1.724
+ESTIMATED_OM_SOURCE = "soil:estimated"
 # The FertiliCalc K thresholds are for ammonium-acetate K; other extractions are not comparable.
 K_METHODS_SUPPORTED = frozenset({"ammonium_acetate"})
 # Mineral N has its own selector (nmin_analysis_id), so an N-only analysis is not representative.
@@ -184,6 +187,16 @@ def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | N
             return None
         return Sourced(value, ESTIMATED, "soil:horizons")
 
+    def est_om() -> Sourced | None:
+        """Provisional organic matter from the estimated organic carbon (%) of the topsoil."""
+        oc = est("organicCarbon", 0, 60)
+        if oc is None:
+            return None
+        om = oc.value * VAN_BEMMELEN
+        notices.append(Notice("soil_om_estimated", {"oc_pct": round(oc.value, 2),
+                                                    "om_pct": round(om, 2)}))
+        return Sourced(om, ESTIMATED, ESTIMATED_OM_SOURCE, f"oc_x_{VAN_BEMMELEN}")
+
     def choose(field: str, *candidates: Callable[[], Sourced | None]) -> Sourced:
         name = f"soil.{field}"
         if name in overrides:
@@ -199,7 +212,7 @@ def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | N
         "sand_pct": choose("sand_pct", lambda: lab("sand"), lambda: est("sand", 0, 100)),
         "clay_pct": choose("clay_pct", lambda: lab("clay"), lambda: est("clay", 0, 100)),
         "ph": choose("ph", lambda: lab("ph"), lambda: est("ph", 3, 10)),
-        "organic_matter_pct": choose("organic_matter_pct", lambda: lab("organicMatter")),
+        "organic_matter_pct": choose("organic_matter_pct", lambda: lab("organicMatter"), est_om),
         "p_olsen_mg_kg": choose("p_olsen_mg_kg", lambda: _lab_p(hz, lab_src, chosen_id, notices)),
         "k_mg_kg": choose("k_mg_kg", lambda: _lab_k(hz, lab_src, chosen_id, notices)),
     }

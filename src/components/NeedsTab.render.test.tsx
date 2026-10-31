@@ -45,7 +45,7 @@ describe('NeedsTab (es)', () => {
   });
 
   it('writes the engine versions', () => {
-    expect(html).toContain('Versiones: motor 1.1.0 · cálculo 1.1.0');
+    expect(html).toContain('Versiones: motor 1.1.0 · cálculo 1.2.0');
   });
 
   it('an incomplete result without N draws the gap and no band, never zeros', () => {

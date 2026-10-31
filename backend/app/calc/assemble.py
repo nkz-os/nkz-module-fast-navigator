@@ -81,6 +81,9 @@ class Sources:
     async def coefficients(self, eppo: str) -> dict | None:
         return await bioorch.fetch_coefficients(self._client, self._s.bioorch_url, eppo)
 
+    async def crop_list(self) -> dict | None:
+        return await bioorch.fetch_crop_list(self._client, self._s.bioorch_url)
+
     async def regional_yields(self, eppo: str, nuts: str) -> dict | None:
         return await bioorch.fetch_regional_yields(self._client, self._s.bioorch_url, eppo, nuts)
 

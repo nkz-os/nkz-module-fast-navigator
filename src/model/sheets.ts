@@ -167,6 +167,26 @@ export function editSheet(plan: Plan, key: string, patch: Partial<PlanSheetIn>):
   });
 }
 
+/** A calculated sheet that has no previous crop at all (neither declared nor from the crop cycles). */
+export function lacksPreviousCrop(sheet: PlanSheet): boolean {
+  if (sheet.inputs.previous_crop_eppo != null || !sheet.result) return false;
+  const prev = sheet.result.inputs['previous_crop.eppo'] as { value?: unknown } | undefined;
+  return prev == null || prev.value == null;
+}
+
+/**
+ * All the sheets to send when one previous crop is applied to every sheet that lacks one. The
+ * current sheet keeps its pending edits (`patch`) and takes the value whatever it had.
+ */
+export function applyPreviousCrop(plan: Plan, currentKey: string, patch: Partial<PlanSheetIn>,
+  value: string): PlanSheetIn[] {
+  return plan.sheets.map((s) => {
+    const body = toSheetIn(s, plan.campaign);
+    if (s.key === currentKey) return { ...body, ...patch, previous_crop_eppo: value };
+    return lacksPreviousCrop(s) ? { ...body, previous_crop_eppo: value } : body;
+  });
+}
+
 /** The short id of a parcel URN: what the soil module reads from `?parcel=`. */
 export const shortParcelId = (urn: string) => urn.split(':').pop() ?? urn;
 
@@ -174,7 +194,7 @@ export const shortParcelId = (urn: string) => urn.split(':').pop() ?? urn;
 export function ownerLink(owner: string, parcelIds: string[], field?: string): { key: string; href?: string } {
   if (owner === 'soil') {
     const first = parcelIds[0];
-    return { key: 'ownerLink.soil', href: first ? `/module/soil?parcel=${encodeURIComponent(shortParcelId(first))}` : '/module/soil' };
+    return { key: 'ownerLink.soil', href: first ? `/module/soil?parcel=${encodeURIComponent(shortParcelId(first))}&tab=manual` : '/module/soil?tab=manual' };
   }
   if (owner === 'bioorch') return { key: 'ownerLink.bioorch' };
   if (owner === 'plan') return { key: 'ownerLink.plan', href: field ? `#field-${field.split('.')[0]}` : undefined };

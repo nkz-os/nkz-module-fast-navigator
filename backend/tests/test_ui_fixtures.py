@@ -48,8 +48,23 @@ def _parcels() -> dict:
     return _answer(data, "GET", "/api/fast/sources/campaigns/2027/parcels")
 
 
+def _crops() -> dict:
+    names = {"es": "Trigo blando", "en": "Common wheat", "eu": "Gari bigun",
+             "fr": "Blé tendre", "ca": "Blat tou", "pt": "Trigo mole"}
+    data = {"crop_list": {"crops": [
+        {"eppo": "TRZAX", "slug": "wheat", "has_coefficients": True, "names": names},
+        {"eppo": "VICFX", "slug": "faba-bean", "has_coefficients": True, "names": {
+            "es": "Haba", "en": "Faba bean", "eu": "Baba", "fr": "Féverole", "ca": "Fava",
+            "pt": "Fava"}},
+        {"eppo": "CIEAR", "slug": "chickpea", "has_coefficients": False, "names": {
+            "es": "Garbanzo", "en": "Chickpea", "eu": "Txitxirioa", "fr": "Pois chiche",
+            "ca": "Cigró", "pt": "Grão-de-bico"}}]}}
+    return _answer(data, "GET", "/api/fast/sources/crops")
+
+
 BUILDERS = {"sheet-result-complete": _complete, "sheet-result-incomplete": _incomplete,
-            "campaign-parcels": _parcels}
+            "campaign-parcels": _parcels,
+            "source-crops": _crops}
 
 
 @pytest.mark.parametrize("name", sorted(BUILDERS))

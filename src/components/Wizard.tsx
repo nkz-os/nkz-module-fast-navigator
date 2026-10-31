@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '@nekazari/sdk';
 import { Badge, Button, Checkbox, FormField, FormGrid, Inline, Input, Select, Stack, Surface } from '@nekazari/ui-kit';
 import { calculatePlan, putSheets, storeRainNormal } from '../api/fast';
+import { useCrops } from '../hooks/useCrops';
 import type { CampaignParcel, CampaignParcels, Plan } from '../api/types';
 import { errorView } from '../model/errors';
 import { formatDate, formatHa } from '../model/format';
@@ -10,6 +11,7 @@ import {
   type GroupManagement, type ParcelGroup,
 } from '../model/sheets';
 import { CropLabel } from './CropLabel';
+import { CropPicker } from './CropPicker';
 import { ErrorBanner } from './ErrorBanner';
 import { ProvenanceChip } from './ProvenanceChip';
 
@@ -99,6 +101,7 @@ export function Wizard({ plan, parcels, onSaved, onReload, initial }: {
   const used = useMemo(() => new Set(plan.sheets.flatMap((s) => s.parcels.map((p) => p.urn))), [plan.sheets]);
   const groups = useMemo(() => groupParcels(parcels.parcels.filter((p) => !used.has(p.id))), [parcels.parcels, used]);
 
+  const crops = useCrops();
   const [step, setStep] = useState<Step>(initial?.step ?? 1);
   const [management, setManagement] = useState<Record<string, GroupManagement>>(() => {
     const base: Record<string, GroupManagement> = {};
@@ -222,11 +225,9 @@ export function Wizard({ plan, parcels, onSaved, onReload, initial }: {
                   <p className="text-nkz-sm text-nkz-text-secondary">{t('wizard.noCrop.hint')}</p>
                   <FormField label={t('wizard.declare.label')} description={t('wizard.declare.hint')}
                     error={management[g.id]?.declaredCrop && !EPPO_RE.test(management[g.id].declaredCrop as string) ? t('wizard.declare.invalid') : undefined}>
-                    <Inline gap="inline" align="center">
-                      <Input value={management[g.id]?.declaredCrop ?? ''} placeholder={t('wizard.declare.placeholder')}
-                        onChange={(e) => update(g.id, { ...(management[g.id] ?? defaultManagement(g)), declaredCrop: e.target.value.toUpperCase().trim() })} />
-                      {EPPO_RE.test(management[g.id]?.declaredCrop ?? '') && <CropLabel eppo={management[g.id].declaredCrop as string} />}
-                    </Inline>
+                    <CropPicker crops={crops.data} loading={crops.loading} failed={crops.error != null}
+                      value={management[g.id]?.declaredCrop || null} ariaLabel={t('wizard.declare.label')}
+                      onChange={(v) => update(g.id, { ...(management[g.id] ?? defaultManagement(g)), declaredCrop: v ?? '' })} />
                   </FormField>
                 </Stack>
               )}

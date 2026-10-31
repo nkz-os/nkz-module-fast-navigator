@@ -7,6 +7,10 @@ vi.mock('@nekazari/sdk', async () => {
   return { useTranslation: () => ({ t: esT, i18n: { language: 'es' } }), i18n: {} };
 });
 let cropNameAnswer: string | null = 'Trigo blando';
+vi.mock('../hooks/useCrops', async () => {
+  const fx = await import('../test/fixtures/source-crops.json');
+  return { useCrops: () => ({ data: fx.crops, error: null, loading: false, retry: () => undefined }) };
+});
 vi.mock('../hooks/useLoad', () => ({ useLoad: () => ({ data: cropNameAnswer, error: null, loading: false, retry: vi.fn() }) }));
 
 import { FastApiError } from '../api/client';
@@ -37,6 +41,14 @@ describe('Wizard (es)', () => {
     expect(html).toContain('10,0 ha');
     expect(html).toContain('Sin cultivo para 2027 (1)');
     expect(html).toContain('✕ falta');
+  });
+
+  it('declares the crop of the parcels without one by name, not by code', () => {
+    cropNameAnswer = 'Trigo blando';
+    const html = renderToStaticMarkup(<Wizard plan={PLAN} parcels={PARCELS} onSaved={noop} />);
+    expect(html).toContain('Escribe el nombre del cultivo…');
+    expect(html).not.toContain('código EPPO');
+    expect(html).not.toContain('p. ej. TRZAX');
   });
 
   it('shows the EPPO code when the name cannot be had', () => {

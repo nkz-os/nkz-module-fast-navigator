@@ -1,0 +1,40 @@
+{
+  "crops": [
+    {
+      "eppo": "TRZAX",
+      "has_coefficients": true,
+      "names": {
+        "ca": "Blat tou",
+        "en": "Common wheat",
+        "es": "Trigo blando",
+        "eu": "Gari bigun",
+        "fr": "Blé tendre",
+        "pt": "Trigo mole"
+      }
+    },
+    {
+      "eppo": "VICFX",
+      "has_coefficients": true,
+      "names": {
+        "ca": "Fava",
+        "en": "Faba bean",
+        "es": "Haba",
+        "eu": "Baba",
+        "fr": "Féverole",
+        "pt": "Fava"
+      }
+    },
+    {
+      "eppo": "CIEAR",
+      "has_coefficients": false,
+      "names": {
+        "ca": "Cigró",
+        "en": "Chickpea",
+        "es": "Garbanzo",
+        "eu": "Txitxirioa",
+        "fr": "Pois chiche",
+        "pt": "Grão-de-bico"
+      }
+    }
+  ]
+}

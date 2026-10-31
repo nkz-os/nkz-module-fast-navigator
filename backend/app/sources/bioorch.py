@@ -14,6 +14,11 @@ async def fetch_coefficients(client: httpx.AsyncClient, base_url: str, eppo: str
                           params={"eppo": eppo})
 
 
+async def fetch_crop_list(client: httpx.AsyncClient, base_url: str) -> dict | None:
+    """Crops with balance coefficients and their names: the same route, without `eppo`."""
+    return await get_json(client, SOURCE, f"{base_url}{_BASE}/crop-balance-coefficients")
+
+
 async def fetch_regional_yields(client: httpx.AsyncClient, base_url: str, eppo: str, nuts: str,
                                 recent: int = 5) -> dict | None:
     return await get_json(client, SOURCE, f"{base_url}{_BASE}/regional-yields",

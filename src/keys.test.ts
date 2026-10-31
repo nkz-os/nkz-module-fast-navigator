@@ -6,6 +6,7 @@ import ca from './locales/ca.json';
 import eu from './locales/eu.json';
 import fr from './locales/fr.json';
 import pt from './locales/pt.json';
+import { ORGANIC_MATERIALS } from './model/organic';
 import { PARAMS, paramLabelKey } from './model/params';
 
 const SOURCES = import.meta.glob('./**/*.{ts,tsx}', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
@@ -52,6 +53,8 @@ const FAMILIES = [
   ...['soil', 'bioorch', 'plan', 'broker', 'unknown'].map((o) => `ownerLink.${o}`),
   ...['zone', 'declared', 'entered', 'history', 'missing'].map((b) => `data.basis.${b}`),
   ...['crop_uptake', 'n_end', 'previous_residues', 'previous_roots', 'n_other', 'fixation', 'loss_divisor', 'soil_mineral_n', 'organic_available_n'].map((k) => `needs.term.${k}`),
+  ...ORGANIC_MATERIALS.map((m) => `data.organic.materials.${m}`),
+  ...['year', 'future', 'duplicate'].map((k) => `data.declareYear.problem.${k}`),
   'data.missing.title', 'workspace.signedByAdvisor', 'workspace.signedByHolder', 'param.soil_texture_class',
 ];
 

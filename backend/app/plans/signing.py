@@ -150,6 +150,21 @@ async def sign(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID, row_version
                              {"kind": "advisor", "user_id": actor.user_id, **advisor}, today)
 
 
+async def _advisor_signers(conn, plan: repo.PlanRow) -> set[str]:
+    """User ids of the advisors who signed this plan or any version it revises."""
+    signers: set[str] = set()
+    seen: set[uuid.UUID] = set()
+    current: repo.PlanRow | None = plan
+    while current is not None and current.id not in seen:
+        seen.add(current.id)
+        sig = current.signature or {}
+        if sig.get("kind") == "advisor" and sig.get("user_id"):
+            signers.add(sig["user_id"])
+        current = (await repo.get_plan(conn, plan.tenant_id, current.supersedes)
+                   if current.supersedes else None)
+    return signers
+
+
 async def close(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID, row_version: int,
                 basis: str, signer_name: str, today: date) -> dict:
     name = (signer_name or "").strip()
@@ -158,6 +173,9 @@ async def close(pool: asyncpg.Pool, actor: Actor, plan_id: uuid.UUID, row_versio
     async with pool.acquire() as conn, conn.transaction():
         plan = await _load(conn, actor, plan_id, for_update=True)
         _same_version(plan, row_version)
+        if actor.user_id in await _advisor_signers(conn, plan):
+            raise TransitionError("forbidden", "the advisor who signed a plan (or the version it "
+                                               "revises) cannot also close it as the holder")
         ctx, _, _ = await build_context(conn, plan, today)
         allowed = basis == "titular_cualificado" or not advice_required(ctx)
         signature = {"kind": "holder", "user_id": actor.user_id, "name": name,

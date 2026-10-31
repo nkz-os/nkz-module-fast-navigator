@@ -25,23 +25,25 @@ class Action(StrEnum):
     REVISE = "revise"
 
 
-FARMER = "Farmer"
+# Role matrix (owner, 2026-10-31). "Farmer" is the platform's field-worker role: read-only here.
+# TenantAdmin stands for the farm holder.
+HOLDER = "TenantAdmin"
 TECHNICIAN = "TechnicalConsultant"
-_BOTH = frozenset({FARMER, TECHNICIAN})
+_EDITORS = frozenset({HOLDER, TECHNICIAN})      # create / edit / calculate / submit / revise
 
 # (state, action) -> (next state, roles that may do it)
 TRANSITIONS = MappingProxyType({
-    (State.DRAFT, Action.EDIT): (State.DRAFT, _BOTH),
-    (State.CALCULATED, Action.EDIT): (State.DRAFT, _BOTH),
+    (State.DRAFT, Action.EDIT): (State.DRAFT, _EDITORS),
+    (State.CALCULATED, Action.EDIT): (State.DRAFT, _EDITORS),
     (State.IN_REVIEW, Action.EDIT): (State.IN_REVIEW, frozenset({TECHNICIAN})),
-    (State.DRAFT, Action.CALCULATE): (State.CALCULATED, _BOTH),
-    (State.CALCULATED, Action.CALCULATE): (State.CALCULATED, _BOTH),
+    (State.DRAFT, Action.CALCULATE): (State.CALCULATED, _EDITORS),
+    (State.CALCULATED, Action.CALCULATE): (State.CALCULATED, _EDITORS),
     (State.IN_REVIEW, Action.CALCULATE): (State.IN_REVIEW, frozenset({TECHNICIAN})),
-    (State.CALCULATED, Action.SUBMIT): (State.IN_REVIEW, _BOTH),
+    (State.CALCULATED, Action.SUBMIT): (State.IN_REVIEW, _EDITORS),
     (State.IN_REVIEW, Action.RETURN): (State.DRAFT, frozenset({TECHNICIAN})),
     (State.IN_REVIEW, Action.SIGN): (State.SIGNED, frozenset({TECHNICIAN})),
-    (State.CALCULATED, Action.CLOSE): (State.SIGNED, frozenset({FARMER})),
-    (State.SIGNED, Action.REVISE): (State.SIGNED, _BOTH),
+    (State.CALCULATED, Action.CLOSE): (State.SIGNED, frozenset({HOLDER})),
+    (State.SIGNED, Action.REVISE): (State.SIGNED, _EDITORS),
 })
 
 

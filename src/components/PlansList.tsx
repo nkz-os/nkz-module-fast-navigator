@@ -68,6 +68,7 @@ export function PlansList({ campaign, onOpen }: { campaign: number; onOpen: (pla
 
       {plans.data && plans.data.length === 0 && (
         <EmptyState title={t('list.empty', { campaign })}
+          description={roles.canWrite ? undefined : t('list.createRestricted')}
           action={roles.canWrite ? (
             <Button variant="primary" loading={creating} onClick={create}>{t('list.create', { campaign })}</Button>
           ) : undefined} />

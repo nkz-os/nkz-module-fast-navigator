@@ -24,7 +24,7 @@ export function overrideRange(param: string): [number, number] | null {
   return null;
 }
 
-/** Who sees "Adjust" on a value: the farmer only on the N availability of organic inputs. */
+/** Who sees "Adjust" on a value: the holder only on the N availability of organic inputs. */
 export function mayAdjust(param: string, roles: Roles): boolean {
   if (FARMER_PARAM.test(param)) return roles.canWrite;
   return roles.technician && overrideRange(param) !== null;

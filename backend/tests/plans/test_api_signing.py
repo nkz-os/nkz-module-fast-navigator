@@ -13,7 +13,7 @@ from app.main import app
 from tests.conftest import _truncate
 from tests.fakes import URN, FakeSources, complete_data
 
-FARMER = {"X-Tenant-ID": "tenant-a", "X-User-ID": "u-farmer", "X-User-Roles": "Farmer"}
+HOLDER = {"X-Tenant-ID": "tenant-a", "X-User-ID": "u-holder", "X-User-Roles": "TenantAdmin"}
 TECH = {"X-Tenant-ID": "tenant-a", "X-User-ID": "u-tech", "X-User-Roles": "TechnicalConsultant"}
 BASE = "/api/fast"
 SECRET = "test-internal-secret"
@@ -59,14 +59,14 @@ def store_rain(pg_url: str, plan_id: str) -> None:
 
 
 def _calculated(client, pg_url, sheet=SHEET):
-    plan = client.post(f"{BASE}/plans", json={"campaign": 2027}, headers=FARMER).json()
+    plan = client.post(f"{BASE}/plans", json={"campaign": 2027}, headers=HOLDER).json()
     pid = plan["id"]
-    plan = client.put(f"{BASE}/plans/{pid}/sheets", headers=FARMER,
+    plan = client.put(f"{BASE}/plans/{pid}/sheets", headers=HOLDER,
                       json={"row_version": plan["row_version"], "sheets": [sheet]}).json()
     store_rain(pg_url, pid)
-    plan = client.get(f"{BASE}/plans/{pid}", headers=FARMER).json()
+    plan = client.get(f"{BASE}/plans/{pid}", headers=HOLDER).json()
     plan = client.post(f"{BASE}/plans/{pid}/calculate", json={"row_version": plan["row_version"]},
-                       headers=FARMER).json()
+                       headers=HOLDER).json()
     return pid, plan
 
 
@@ -75,7 +75,7 @@ def test_advisor_profile(client):
     r = client.put(f"{BASE}/advisors/me", json={"name": "Ana", "registration_number": "NA-1"},
                    headers=TECH)
     assert r.status_code == 200 and r.json() == {"name": "Ana", "registration_number": "NA-1"}
-    assert client.get(f"{BASE}/advisors/me", headers=FARMER).status_code == 403
+    assert client.get(f"{BASE}/advisors/me", headers=HOLDER).status_code == 403
     assert client.put(f"{BASE}/advisors/me", json={"name": "", "registration_number": "x"},
                       headers=TECH).status_code == 422
 
@@ -83,7 +83,7 @@ def test_advisor_profile(client):
 def test_sign_then_revise(client, pg_url):
     pid, plan = _calculated(client, pg_url)
     plan = client.post(f"{BASE}/plans/{pid}/submit", json={"row_version": plan["row_version"]},
-                       headers=FARMER).json()
+                       headers=HOLDER).json()
     client.put(f"{BASE}/advisors/me", json={"name": "Ana", "registration_number": "NA-1"},
                headers=TECH)
     r = client.post(f"{BASE}/plans/{pid}/sign", json={"row_version": plan["row_version"]},
@@ -92,13 +92,13 @@ def test_sign_then_revise(client, pg_url):
     signed = r.json()
     assert signed["state"] == "signed" and len(signed["snapshot_sha256"]) == 64
     r = client.post(f"{BASE}/plans/{pid}/revise", json={"row_version": signed["row_version"]},
-                    headers=FARMER)
+                    headers=HOLDER)
     assert r.status_code == 201 and r.json()["version"] == 2
 
 
 def test_close_by_the_holder_and_the_internal_summary(client, pg_url):
     pid, plan = _calculated(client, pg_url)
-    r = client.post(f"{BASE}/plans/{pid}/close", headers=FARMER,
+    r = client.post(f"{BASE}/plans/{pid}/close", headers=HOLDER,
                     json={"row_version": plan["row_version"],
                           "closure_basis": "titular_sin_obligacion", "signer_name": "Juan"})
     assert r.status_code == 200, r.text
@@ -118,12 +118,12 @@ def test_close_refused_by_a_technician_and_with_a_bad_basis(client, pg_url):
             "signer_name": "Juan"}
     assert client.post(f"{BASE}/plans/{pid}/close", json=body, headers=TECH).status_code == 403
     bad = {**body, "closure_basis": "nope"}
-    assert client.post(f"{BASE}/plans/{pid}/close", json=bad, headers=FARMER).status_code == 422
+    assert client.post(f"{BASE}/plans/{pid}/close", json=bad, headers=HOLDER).status_code == 422
 
 
 def test_declarations(client, pg_url):
     pid, plan = _calculated(client, pg_url)
-    r = client.put(f"{BASE}/plans/{pid}/declarations", headers=FARMER,
+    r = client.put(f"{BASE}/plans/{pid}/declarations", headers=HOLDER,
                    json={"row_version": plan["row_version"], "vulnerable_zone": False,
                          "vulnerable_zone_source": "regional order",
                          "voluntary_digital_notebook": True})
@@ -134,7 +134,7 @@ def test_declarations(client, pg_url):
 def test_signing_with_a_blocking_finding_is_a_409(client, pg_url):
     pid, plan = _calculated(client, pg_url, {**SHEET, "applications": []})
     plan = client.post(f"{BASE}/plans/{pid}/submit", json={"row_version": plan["row_version"]},
-                       headers=FARMER).json()
+                       headers=HOLDER).json()
     client.put(f"{BASE}/advisors/me", json={"name": "Ana", "registration_number": "NA-1"},
                headers=TECH)
     r = client.post(f"{BASE}/plans/{pid}/sign", json={"row_version": plan["row_version"]},
@@ -147,14 +147,50 @@ def test_signing_with_a_blocking_finding_is_a_409(client, pg_url):
 def test_list_of_a_signed_plan_counts_the_sealed_findings(client, pg_url):
     pid, plan = _calculated(client, pg_url)
     plan = client.post(f"{BASE}/plans/{pid}/submit", json={"row_version": plan["row_version"]},
-                       headers=FARMER).json()
+                       headers=HOLDER).json()
     client.put(f"{BASE}/advisors/me", json={"name": "Ana", "registration_number": "NA-1"},
                headers=TECH)
     signed = client.post(f"{BASE}/plans/{pid}/sign", json={"row_version": plan["row_version"]},
                          headers=TECH).json()
-    shown = client.get(f"{BASE}/plans/{pid}", headers=FARMER).json()
-    item = client.get(f"{BASE}/plans?campaign=2027", headers=FARMER).json()[0]
+    shown = client.get(f"{BASE}/plans/{pid}", headers=HOLDER).json()
+    item = client.get(f"{BASE}/plans?campaign=2027", headers=HOLDER).json()[0]
     assert item["signed_at"] == signed["signed_at"] is not None
     assert item["sheets_count"] == 1
     assert item["findings"] == {sev: sum(1 for f in shown["findings"] if f["severity"] == sev)
                                 for sev in ("block", "warn", "info")}
+
+
+DUAL = {"X-Tenant-ID": "tenant-a", "X-User-ID": "u-dual",
+        "X-User-Roles": "TenantAdmin,TechnicalConsultant"}
+FIELD = {"X-Tenant-ID": "tenant-a", "X-User-ID": "u-field", "X-User-Roles": "Farmer"}
+
+
+def test_field_worker_cannot_close(client, pg_url):
+    pid, plan = _calculated(client, pg_url)
+    r = client.post(f"{BASE}/plans/{pid}/close", headers=FIELD,
+                    json={"row_version": plan["row_version"],
+                          "closure_basis": "titular_sin_obligacion", "signer_name": "Juan"})
+    assert r.status_code == 403
+
+
+def test_signer_cannot_close_the_revision_but_the_holder_can(client, pg_url):
+    pid, plan = _calculated(client, pg_url)
+    plan = client.post(f"{BASE}/plans/{pid}/submit", json={"row_version": plan["row_version"]},
+                       headers=DUAL).json()
+    client.put(f"{BASE}/advisors/me", json={"name": "Ana", "registration_number": "NA-1"},
+               headers=DUAL)
+    signed = client.post(f"{BASE}/plans/{pid}/sign", json={"row_version": plan["row_version"]},
+                         headers=DUAL).json()
+    new = client.post(f"{BASE}/plans/{pid}/revise", json={"row_version": signed["row_version"]},
+                      headers=DUAL).json()
+    store_rain(pg_url, new["id"])
+    new = client.get(f"{BASE}/plans/{new['id']}", headers=DUAL).json()
+    new = client.post(f"{BASE}/plans/{new['id']}/calculate",
+                      json={"row_version": new["row_version"]}, headers=DUAL).json()
+    body = {"row_version": new["row_version"], "closure_basis": "titular_sin_obligacion",
+            "signer_name": "Juan"}
+    r = client.post(f"{BASE}/plans/{new['id']}/close", headers=DUAL, json=body)
+    assert r.status_code == 403 and r.json()["error"] == "forbidden", r.text
+    assert "signed" in r.json()["detail"]
+    assert client.post(f"{BASE}/plans/{new['id']}/close", headers=HOLDER,
+                       json=body).status_code == 200

@@ -10,10 +10,11 @@ vi.mock('../hooks/useLoad', () => ({ useLoad: () => ({ data: 'Trigo blando', err
 
 import type { PlanSheet } from '../api/types';
 import { clone, COMPLETE, INCOMPLETE, makePlan, makeSheet, PARCELS, URN } from '../test/builders';
+import { rolesFrom } from '../model/roles';
 import { DataTab } from './DataTab';
 
-const FARMER = { canWrite: true, technician: false };
-const TECH = { canWrite: true, technician: true };
+const FARMER = rolesFrom((r) => r === 'TenantAdmin');      // the holder: non-technician editor
+const TECH = rolesFrom((r) => r === 'TechnicalConsultant');
 const noop = () => undefined;
 
 const render = (sheet: PlanSheet, editable = true, roles = FARMER) =>

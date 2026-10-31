@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, Path, Query, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, model_validator
 
-from app.api import PLAN_ROLES, SheetIn, _urn, get_sources_factory
+from app.api import EDITOR_ROLES, PLAN_ROLES, SheetIn, _urn, get_sources_factory
 from app.db.pool import get_db
 from app.inputs.organic import OrganicApplication
 from app.inputs.parcel import is_parcel_identifier
@@ -25,7 +25,7 @@ from app.report import render
 
 router = APIRouter(prefix="/plans", tags=["FaST plans"])
 
-WRITE_ROLES = ["Farmer", "TechnicalConsultant"]
+WRITE_ROLES = EDITOR_ROLES
 SIGN_ROLES = ["TechnicalConsultant"]
 FARM_PATTERN = r"^(tenant|urn:ngsi-ld:AgriFarm:[A-Za-z0-9._:-]+)$"
 KEY_PATTERN = r"^[a-z0-9-]{1,40}$"
@@ -319,7 +319,7 @@ class HolderQualificationPut(BaseModel):
 
 
 @holder_router.get("")
-async def get_holder_qualification(auth: AuthContext = require_auth(WRITE_ROLES),
+async def get_holder_qualification(auth: AuthContext = require_auth(PLAN_ROLES),
                                    pool=Depends(get_db)) -> dict:
     found = await signing.get_holder_qualification(pool, _actor(auth))
     if found is None:

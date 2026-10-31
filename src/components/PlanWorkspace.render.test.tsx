@@ -38,7 +38,7 @@ const countOf = (html: string, text: string) => html.split(`>${text}<`).length -
 
 describe('PlanWorkspace (es)', () => {
   it('a stale draft says so and offers one primary button', () => {
-    roles = ['Farmer'];
+    roles = ['TenantAdmin'];
     const html = render(makePlan({ calc_fresh: false }));
     expect(html).toContain('Datos cambiados: recalcula');
     expect(countOf(html, 'Recalcular')).toBe(1);
@@ -46,29 +46,38 @@ describe('PlanWorkspace (es)', () => {
   });
 
   it('a draft that was never calculated offers Calcular', () => {
-    roles = ['Farmer'];
+    roles = ['TenantAdmin'];
     const html = render(makePlan({ sheets: [makeSheet({ result: null })] }));
     expect(countOf(html, 'Calcular')).toBe(1);
   });
 
   it('a fresh calculated plan has no calculate button', () => {
-    roles = ['Farmer'];
+    roles = ['TenantAdmin'];
     const html = render(makePlan({ state: 'calculated' }));
     expect(html).not.toContain('>Calcular<');
     expect(html).not.toContain('>Recalcular<');
   });
 
-  it('in review the farmer reads only; the technician can still calculate', () => {
-    roles = ['Farmer'];
-    const farmer = render(makePlan({ state: 'in_review', calc_fresh: false }));
-    expect(farmer).toContain('En revisión por el técnico');
-    expect(farmer).not.toContain('>Recalcular<');
+  it('in review the holder reads only; the technician can still calculate', () => {
+    roles = ['TenantAdmin'];
+    const holder = render(makePlan({ state: 'in_review', calc_fresh: false }));
+    expect(holder).toContain('En revisión por el técnico');
+    expect(holder).not.toContain('>Recalcular<');
     roles = ['TechnicalConsultant'];
     expect(render(makePlan({ state: 'in_review', calc_fresh: false }))).toContain('>Recalcular<');
   });
 
-  it('a signed plan shows who signed, when, and 12 characters of the fingerprint', () => {
+  it('a field worker reads: no calculate or add-sheet buttons even on a stale draft', () => {
     roles = ['Farmer'];
+    const html = render(makePlan({ calc_fresh: false }));
+    expect(html).not.toContain('>Recalcular<');
+    expect(html).not.toContain('>Calcular<');
+    expect(html).not.toContain('+ hoja');
+    expect(html).toContain('Datos cambiados: recalcula');
+  });
+
+  it('a signed plan shows who signed, when, and 12 characters of the fingerprint', () => {
+    roles = ['TenantAdmin'];
     const html = render(makePlan({
       state: 'signed', signed_at: '2026-10-14T09:00:00+00:00', snapshot_sha256: 'abcdef0123456789abcdef',
       signature: { kind: 'advisor', name: 'Ana Pérez', registration_number: '1234', signed_at: '2026-10-14T09:00:00+00:00' },
@@ -79,7 +88,7 @@ describe('PlanWorkspace (es)', () => {
   });
 
   it('has the Data and Needs tabs only', () => {
-    roles = ['Farmer'];
+    roles = ['TenantAdmin'];
     const html = render(makePlan());
     expect(html).toContain('>Datos<');
     expect(html).toContain('>Necesidades<');
@@ -94,7 +103,7 @@ describe('PlanWorkspace (es)', () => {
   });
 
   it('a failed calculation names the source, says the plan stays, and keeps the numbers', () => {
-    roles = ['Farmer'];
+    roles = ['TenantAdmin'];
     const err = new FastApiError(503, { error: 'source_unavailable', source: 'bioorch', detail: 'x' });
     const html = render(makePlan({ calc_fresh: false }), { initial: { calcError: err } });
     expect(html).toContain('No se pudo calcular: no responde BioOrch (coeficientes de cultivo)');
@@ -103,7 +112,7 @@ describe('PlanWorkspace (es)', () => {
   });
 
   it('counts the findings of the plan', () => {
-    roles = ['Farmer'];
+    roles = ['TenantAdmin'];
     const f = (severity: 'block' | 'warn') => ({ rule_id: 'r', severity, params: {} });
     const html = render(makePlan({ findings: [f('block'), f('block'), f('warn')] }));
     expect(html).toContain('2 bloquean');

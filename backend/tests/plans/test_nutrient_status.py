@@ -6,7 +6,7 @@ import asyncpg
 
 from tests.fakes import URN
 from tests.plans import test_api_signing as signing
-from tests.plans.test_api_signing import BASE, FARMER, SECRET, SHEET, _calculated
+from tests.plans.test_api_signing import BASE, HOLDER, SECRET, SHEET, _calculated
 
 client = signing.client  # the Postgres-backed app fixture, shared
 
@@ -35,7 +35,7 @@ def _stored_results(pg_url, plan_id) -> list[dict]:
 
 
 def _close(client, plan):
-    r = client.post(f"{BASE}/plans/{plan['id']}/close", headers=FARMER,
+    r = client.post(f"{BASE}/plans/{plan['id']}/close", headers=HOLDER,
                     json={"row_version": plan["row_version"],
                           "closure_basis": "titular_sin_obligacion", "signer_name": "Juan"})
     assert r.status_code == 200, r.text
@@ -108,8 +108,8 @@ def test_stale_calculation_returns_result_null(client, pg_url):
 
 
 def test_draft_returns_result_null(client):
-    plan = client.post(f"{BASE}/plans", json={"campaign": 2027}, headers=FARMER).json()
-    client.put(f"{BASE}/plans/{plan['id']}/sheets", headers=FARMER,
+    plan = client.post(f"{BASE}/plans", json={"campaign": 2027}, headers=HOLDER).json()
+    client.put(f"{BASE}/plans/{plan['id']}/sheets", headers=HOLDER,
                json={"row_version": plan["row_version"], "sheets": [SHEET]})
     body = _get(client).json()
     assert body["plan"]["state"] == "draft"

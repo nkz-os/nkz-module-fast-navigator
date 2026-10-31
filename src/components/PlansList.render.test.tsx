@@ -43,16 +43,24 @@ describe('PlansList (es)', () => {
     expect(html).toContain('>PDF<');
   });
 
-  it('offers to create the plan to a farmer and not to a read-only role', () => {
+  it('offers to create the plan to the holder and the technician', () => {
+    loaded = { data: [], error: null, loading: false };
+    for (const role of ['TenantAdmin', 'TechnicalConsultant']) {
+      roles = [role];
+      const html = render();
+      expect(html).toContain('No hay plan para 2027');
+      expect(html).toContain('Crear plan 2027');
+      expect(html).not.toContain('Solo el administrador de la explotación o un técnico pueden crear planes');
+    }
+  });
+
+  it('tells a field worker why there is no create button', () => {
     loaded = { data: [], error: null, loading: false };
     roles = ['Farmer'];
-    const farmer = render();
-    expect(farmer).toContain('No hay plan para 2027');
-    expect(farmer).toContain('Crear plan 2027');
-    roles = ['TenantAdmin'];
-    const admin = render();
-    expect(admin).toContain('No hay plan para 2027');
-    expect(admin).not.toContain('Crear plan');
+    const html = render();
+    expect(html).toContain('No hay plan para 2027');
+    expect(html).not.toContain('Crear plan');
+    expect(html).toContain('Solo el administrador de la explotación o un técnico pueden crear planes');
   });
 
   it('shows the campaign of the URL in the selector', () => {

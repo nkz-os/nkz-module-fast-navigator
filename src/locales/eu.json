@@ -149,6 +149,7 @@
     "campaign": "Kanpaina",
     "empty": "{{campaign}} kanpainarako planik ez dago",
     "create": "Sortu {{campaign}} plana",
+    "createRestricted": "Ustiategiko administratzaileak edo teknikari batek bakarrik sor ditzake planak",
     "version": "{{campaign}} · v{{version}}",
     "block_one": "{{count}} blokeatzen du",
     "block_other": "{{count}} blokeatzen dute",

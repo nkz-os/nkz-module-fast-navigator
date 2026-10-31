@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import time
 from contextlib import asynccontextmanager
 from typing import Annotated
 from datetime import UTC, date, datetime
@@ -16,7 +17,7 @@ from pydantic import BaseModel, Field, field_validator
 from app.calc.assemble import ParcelNotFound, SheetRequest, Sources, assemble
 from app.calc.sheet import calculate
 from app.config import Settings, get_settings
-from app.inputs.crops import crops_for_campaign
+from app.inputs.crops import campaign_main_cycles, crops_for_campaign, cycle_view
 from app.inputs.organic import OrganicApplication
 from app.inputs.overrides import check_override, farmer_may_override
 from app.inputs.parcel import parcel_info
@@ -145,6 +146,33 @@ async def calc_preview(body: SheetIn, auth: AuthContext = require_auth(PLAN_ROLE
     return result.to_dict()
 
 
+CAMPAIGN_PARCELS_CONCURRENCY = 8
+
+
+async def _parcel_summary(sources, entity: dict, campaign: int, today: date,
+                          urn: str | None = None) -> dict:
+    urn = urn or entity["id"]
+    timeline, analyses = await asyncio.gather(sources.timeline(urn, today),
+                                              sources.lab_analyses(urn))
+    info = parcel_info(entity)
+    cycles = list((timeline or {}).get("cycles") or [])
+    choice = crops_for_campaign(cycles, campaign)
+    main = campaign_main_cycles(cycles, campaign)
+    return {
+        "parcel": {"id": urn, "name": info.name, "area_ha": info.area_ha.to_dict(),
+                   "identifier": info.identifier.to_dict(), "farm": info.farm,
+                   "irrigation_regime": info.irrigation_regime},
+        "crop": choice.crop.to_dict(), "previous_crop": choice.previous.to_dict(),
+        "previous_campaign": choice.previous_campaign,
+        "cycle": cycle_view(main[0] if main else None),
+        "notices": [n.to_dict() for n in (*info.notices, *choice.notices)],
+        "analyses": [{"id": a.get("id"), "samplingDate": a.get("samplingDate"),
+                      "laboratoryReference": a.get("laboratoryReference"),
+                      "fields": sorted({k for h in a.get("horizons") or [] for k in h})}
+                     for a in analyses],
+    }
+
+
 @router.get("/sources/parcels/{parcel_id}")
 async def parcel_sources(parcel_id: Annotated[str, Path(pattern=PARCEL_ID_PATTERN, max_length=200)],
                          campaign: int = Query(ge=2000, le=2100),
@@ -155,19 +183,33 @@ async def parcel_sources(parcel_id: Annotated[str, Path(pattern=PARCEL_ID_PATTER
         entity = await sources.parcel(urn)
         if entity is None:
             raise HTTPException(404, f"parcel not found: {urn}")
-        timeline, analyses = await asyncio.gather(sources.timeline(urn, date.today()),
-                                                  sources.lab_analyses(urn))
-    info = parcel_info(entity)
-    choice = crops_for_campaign(list((timeline or {}).get("cycles") or []), campaign)
-    return {
-        "parcel": {"id": urn, "name": info.name, "area_ha": info.area_ha.to_dict(),
-                   "identifier": info.identifier.to_dict(), "farm": info.farm,
-                   "irrigation_regime": info.irrigation_regime},
-        "crop": choice.crop.to_dict(), "previous_crop": choice.previous.to_dict(),
-        "previous_campaign": choice.previous_campaign,
-        "notices": [n.to_dict() for n in (*info.notices, *choice.notices)],
-        "analyses": [{"id": a.get("id"), "samplingDate": a.get("samplingDate"),
-                      "laboratoryReference": a.get("laboratoryReference"),
-                      "fields": sorted({k for h in a.get("horizons") or [] for k in h})}
-                     for a in analyses],
-    }
+        return await _parcel_summary(sources, entity, campaign, date.today(), urn)
+
+
+@router.get("/sources/campaigns/{campaign}/parcels")
+async def campaign_parcels(campaign: Annotated[int, Path(ge=2000, le=2100)],
+                           auth: AuthContext = require_auth(PLAN_ROLES),
+                           sources_factory=Depends(get_sources_factory)) -> dict:
+    started = time.monotonic()
+    today = date.today()
+    gate = asyncio.Semaphore(CAMPAIGN_PARCELS_CONCURRENCY)
+
+    async def one(sources, entity: dict) -> dict:
+        async with gate:
+            body = await _parcel_summary(sources, entity, campaign, today)
+        return {**body["parcel"], **{k: v for k, v in body.items() if k != "parcel"}}
+
+    async with sources_factory(auth.tenant_id) as sources:
+        entities = [e for e in await sources.parcels() if e.get("id")]
+        # TaskGroup cancels the other parcels on the first failure, before the sources client
+        # closes; the failure itself (e.g. a 503 naming its source) is re-raised unwrapped.
+        try:
+            async with asyncio.TaskGroup() as tg:
+                tasks = [tg.create_task(one(sources, e)) for e in entities]
+        except ExceptionGroup as group:
+            raise group.exceptions[0] from None
+        parcels = [t.result() for t in tasks]
+    parcels = sorted(parcels, key=lambda p: (p["name"] is None, p["name"] or "", p["id"]))
+    logger.info("campaign parcels tenant=%s campaign=%s count=%d ms=%d", auth.tenant_id,
+                campaign, len(parcels), int((time.monotonic() - started) * 1000))
+    return {"campaign": campaign, "parcels": parcels}

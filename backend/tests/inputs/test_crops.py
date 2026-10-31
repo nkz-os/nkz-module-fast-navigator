@@ -172,3 +172,24 @@ def test_the_plan_campaigns_own_pending_cycles_are_still_the_plan_crops():
     c = crops_for_campaign([first, second], 2027, cycle_index=1)
     assert c.crop.value == "HORVX" and c.previous.value == "TRZAX"
     assert not c.missing and not any(n.code == "previous_cycle_pending" for n in c.notices)
+
+
+def test_cycle_view_of_a_planned_cycle():
+    from datetime import date
+
+    from nkz_platform_sdk.crop_cycles import resolve_crop_cycles
+
+    from app.inputs.crops import campaign_main_cycles, cycle_view
+    parcel = "urn:ngsi-ld:AgriParcel:p1"
+    crops = [{"id": "urn:ngsi-ld:AgriCrop:x", "hasAgriParcel": parcel, "species": "TRZAX",
+              "status": "planned", "plantingDate": "2026-10-25"}]
+    cycles = resolve_crop_cycles(parcel, crops, [], date(2026, 10, 1)).to_dict()["cycles"]
+    assert cycle_view(campaign_main_cycles(cycles, 2027)[0]) == {
+        "crop_id": "urn:ngsi-ld:AgriCrop:x",
+        "start": {"date": "2026-10-25", "provenance": "planned"},
+        "pending": False, "status": "planned"}
+
+
+def test_cycle_view_of_none_is_none():
+    from app.inputs.crops import cycle_view
+    assert cycle_view(None) is None

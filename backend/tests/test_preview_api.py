@@ -165,3 +165,11 @@ def test_non_canonical_organic_override_names_are_rejected(client, param):
 def test_nuts_is_exactly_level_2(client, nuts, status):
     assert client.post("/api/fast/calc/preview", json=dict(BODY, nuts=nuts),
                        headers=FARMER).status_code == status
+
+
+def test_parcel_sources_returns_the_cycle(client, data):
+    r = client.get("/api/fast/sources/parcels/p1?campaign=2027", headers=FARMER)
+    assert r.status_code == 200, r.text
+    assert r.json()["cycle"]["crop_id"] == "c2"
+    r = client.get("/api/fast/sources/parcels/p1?campaign=2030", headers=FARMER)
+    assert r.json()["cycle"] is None

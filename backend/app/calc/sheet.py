@@ -19,7 +19,7 @@ from app.inputs.provenance import DECLARED, MissingInput, Notice, Sourced
 from app.inputs.soil import SoilInputs
 from app.inputs.yield_target import YieldTarget
 
-CALC_VERSION = "1.0.0"
+CALC_VERSION = "1.1.0"
 COMPLETE, INCOMPLETE = "complete", "incomplete"
 _N_MIN_NOTICE = "n_min_fallback_typical"
 
@@ -161,7 +161,11 @@ def _oxide(rate, organic_kg_ha: float, factor: float, strategy: int) -> dict:
             "exported_kg_ha": rate.exported * factor,
             "buildup_per_year_kg_ha": rate.buildup_per_year * factor,
             "organic_credit_kg_ha": organic_kg_ha * factor,
-            "threshold_mg_kg": None if strategy == 4 else rate.threshold_mg_kg}
+            "threshold_mg_kg": None if strategy == 4 else rate.threshold_mg_kg,
+            "soil_class": None if strategy == 4 else rate.soil_class,
+            "high_from_mg_kg": None if strategy == 4 else rate.high_from_mg_kg,
+            "basis": rate.basis,
+            "strategy": strategy}
 
 
 def _inputs(a: AssembledInputs) -> dict[str, dict]:

@@ -33,7 +33,7 @@ async def _get(orion, entity_id: str) -> dict | None:
         raise _failure(exc) from exc
 
 
-async def _query_all(orion, entity_type: str, q: str) -> list[dict]:
+async def _query_all(orion, entity_type: str, q: str | None) -> list[dict]:
     out: list[dict] = []
     offset = 0
     try:
@@ -50,6 +50,11 @@ async def _query_all(orion, entity_type: str, q: str) -> list[dict]:
 
 async def fetch_parcel(orion, urn: str) -> dict | None:
     return await _get(orion, urn)
+
+
+async def fetch_parcels(orion) -> list[dict]:
+    """Every AgriParcel of the tenant (the SDK client sends the platform @context)."""
+    return await _query_all(orion, "AgriParcel", None)
 
 
 async def fetch_harvests(orion, parcel_urn: str) -> list[dict]:

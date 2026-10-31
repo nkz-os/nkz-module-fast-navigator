@@ -23,6 +23,10 @@ class FakeSources:
         self._hit("parcel", urn)
         return self.data.get("parcels", {}).get(urn)
 
+    async def parcels(self):
+        self._hit("parcels")
+        return list(self.data.get("parcels", {}).values())
+
     async def harvests(self, urn):
         self._hit("harvests", urn)
         return self.data.get("harvests", {}).get(urn, [])

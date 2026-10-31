@@ -98,6 +98,19 @@ def test_pdf_route(client_with_ops, pg_url):
                                headers=FARMER).status_code == 422
 
 
+def test_pdf_route_json_envelope(client_with_ops, pg_url):
+    import base64
+    pid, _ = _calculated(client_with_ops, pg_url)
+    r = client_with_ops.get(f"{BASE}/plans/{pid}/pdf", params={"envelope": "json"},
+                            headers=FARMER)
+    assert r.status_code == 200 and r.headers["content-type"] == "application/json"
+    body = r.json()
+    assert body["filename"] == "fast-plan-2027-v1.pdf" and body["media_type"] == "application/pdf"
+    assert base64.b64decode(body["content_base64"]).startswith(b"%PDF")
+    assert client_with_ops.get(f"{BASE}/plans/{pid}/pdf", params={"envelope": "xml"},
+                               headers=FARMER).status_code == 422
+
+
 def test_pdf_route_concurrent_requests(client_with_ops, pg_url):
     from concurrent.futures import ThreadPoolExecutor
     pid, _ = _calculated(client_with_ops, pg_url)

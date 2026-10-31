@@ -352,6 +352,12 @@ async def put_advisor(conn: asyncpg.Connection, tenant_id: str, user_id: str, na
     return dict(row)
 
 
+async def sheet_counts(conn: asyncpg.Connection, plan_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
+    rows = await conn.fetch("SELECT plan_id, count(*) AS n FROM crop_sheets "
+                            "WHERE plan_id = ANY($1::uuid[]) GROUP BY plan_id", plan_ids)
+    return {r["plan_id"]: r["n"] for r in rows}
+
+
 async def get_findings(conn: asyncpg.Connection, plan_id: uuid.UUID) -> list[dict]:
     rows = await conn.fetch(
         "SELECT f.rule_id, f.severity, f.params, s.key AS sheet_key FROM findings f "

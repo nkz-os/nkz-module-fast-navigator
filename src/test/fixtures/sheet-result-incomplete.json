@@ -1,0 +1,421 @@
+{
+  "inputs": {
+    "crop.crop_type": {
+      "note": null,
+      "provenance": "table:bioorch",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": "cereal"
+    },
+    "crop.dm_product_pct": {
+      "note": "Suppl. Table S1 (not viewed; value read from Dryad Combined_crop_data.csv, rows citing Panagos 2022, variable DM_pc, original_crop \"Soft wheat\")",
+      "provenance": "table:panagos_2022",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 86.0
+    },
+    "crop.eppo": {
+      "note": null,
+      "provenance": "measured",
+      "source": "broker:crop-cycles:c2",
+      "value": "TRZAX"
+    },
+    "crop.harvest_index_pct": {
+      "note": "Table 2, p. 11 (row \"Soft wheat\", Rres) + eq. (6), p. 10",
+      "provenance": "table:panagos_2022",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 51.02
+    },
+    "crop.k_product_pct": {
+      "note": "Table S3, p. 11 (PDF) (row \"Wheat\")",
+      "provenance": "table:essd_2024_s3",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 0.6047
+    },
+    "crop.k_residue_pct": {
+      "note": "Tabla 16.2, p. 125 (Parte II PDF p. 5), row Trigo",
+      "provenance": "table:mapa_guia_2010",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 2.134
+    },
+    "crop.n_fixing": {
+      "note": null,
+      "provenance": "table:bioorch",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": false
+    },
+    "crop.n_min_product_pct": {
+      "note": "n_min_fallback_typical",
+      "provenance": "table:essd_2024_s3",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 2.442
+    },
+    "crop.n_product_pct": {
+      "note": "Table S3, p. 11 (PDF) (row \"Wheat\")",
+      "provenance": "table:essd_2024_s3",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 2.442
+    },
+    "crop.n_residue_pct": {
+      "note": "Tabla 16.2, p. 125 (Parte II PDF p. 5), row Trigo",
+      "provenance": "table:mapa_guia_2010",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 1.574
+    },
+    "crop.p_product_pct": {
+      "note": "Table 1, p. 9 (row \"Soft wheat\")",
+      "provenance": "table:panagos_2022",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 0.3559
+    },
+    "crop.p_residue_pct": {
+      "note": "Tabla 16.2, p. 125 (Parte II PDF p. 5), row Trigo",
+      "provenance": "table:mapa_guia_2010",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 0.2637
+    },
+    "crop.residue_left_pct": {
+      "note": "Table 2, p. 11 (row \"Soft wheat\", Rrem) and text p. 11",
+      "provenance": "table:panagos_2022",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 50.0
+    },
+    "irrigation.n_kg_ha": {
+      "note": "rainfed",
+      "provenance": "declared",
+      "source": "plan",
+      "value": 0.0
+    },
+    "irrigation.no3_mg_l": {
+      "note": null,
+      "provenance": "missing",
+      "source": "plan",
+      "value": null
+    },
+    "irrigation.uptake": {
+      "note": "irrigation_uptake_fertilicalc",
+      "provenance": "table:villalobos_2020",
+      "source": "engine:IRRIGATION_N_UPTAKE",
+      "value": 0.7
+    },
+    "irrigation.water_m3_ha": {
+      "note": "rainfed",
+      "provenance": "declared",
+      "source": "plan",
+      "value": 0.0
+    },
+    "management.irrigated": {
+      "note": null,
+      "provenance": "declared",
+      "source": "plan",
+      "value": false
+    },
+    "management.previous_residues_burned": {
+      "note": null,
+      "provenance": "declared",
+      "source": "plan",
+      "value": false
+    },
+    "management.rotation_years": {
+      "note": null,
+      "provenance": "declared",
+      "source": "plan",
+      "value": 4
+    },
+    "management.strategy": {
+      "note": null,
+      "provenance": "declared",
+      "source": "plan",
+      "value": 2
+    },
+    "management.tillage": {
+      "note": null,
+      "provenance": "declared",
+      "source": "plan",
+      "value": true
+    },
+    "parcel.urn:ngsi-ld:AgriParcel:p1.area_ha": {
+      "note": null,
+      "provenance": "measured",
+      "source": "broker:urn:ngsi-ld:AgriParcel:p1",
+      "value": 10.0
+    },
+    "parcel.urn:ngsi-ld:AgriParcel:p1.identifier": {
+      "note": null,
+      "provenance": "missing",
+      "source": "broker:urn:ngsi-ld:AgriParcel:p1",
+      "value": null
+    },
+    "previous_crop.crop_type": {
+      "note": null,
+      "provenance": "table:bioorch",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": "cereal"
+    },
+    "previous_crop.dm_product_pct": {
+      "note": "Suppl. Table S1 (not viewed; value read from Dryad Combined_crop_data.csv, rows citing Panagos 2022, variable DM_pc, original_crop \"Soft wheat\")",
+      "provenance": "table:panagos_2022",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 86.0
+    },
+    "previous_crop.eppo": {
+      "note": null,
+      "provenance": "measured",
+      "source": "broker:crop-cycles:c1",
+      "value": "TRZAX"
+    },
+    "previous_crop.harvest_index_pct": {
+      "note": "Table 2, p. 11 (row \"Soft wheat\", Rres) + eq. (6), p. 10",
+      "provenance": "table:panagos_2022",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 51.02
+    },
+    "previous_crop.k_product_pct": {
+      "note": "Table S3, p. 11 (PDF) (row \"Wheat\")",
+      "provenance": "table:essd_2024_s3",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 0.6047
+    },
+    "previous_crop.k_residue_pct": {
+      "note": "Tabla 16.2, p. 125 (Parte II PDF p. 5), row Trigo",
+      "provenance": "table:mapa_guia_2010",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 2.134
+    },
+    "previous_crop.n_fixing": {
+      "note": null,
+      "provenance": "table:bioorch",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": false
+    },
+    "previous_crop.n_min_product_pct": {
+      "note": "n_min_fallback_typical",
+      "provenance": "table:essd_2024_s3",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 2.442
+    },
+    "previous_crop.n_product_pct": {
+      "note": "Table S3, p. 11 (PDF) (row \"Wheat\")",
+      "provenance": "table:essd_2024_s3",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 2.442
+    },
+    "previous_crop.n_residue_pct": {
+      "note": "Tabla 16.2, p. 125 (Parte II PDF p. 5), row Trigo",
+      "provenance": "table:mapa_guia_2010",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 1.574
+    },
+    "previous_crop.p_product_pct": {
+      "note": "Table 1, p. 9 (row \"Soft wheat\")",
+      "provenance": "table:panagos_2022",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 0.3559
+    },
+    "previous_crop.p_residue_pct": {
+      "note": "Tabla 16.2, p. 125 (Parte II PDF p. 5), row Trigo",
+      "provenance": "table:mapa_guia_2010",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 0.2637
+    },
+    "previous_crop.residue_left_pct": {
+      "note": "Table 2, p. 11 (row \"Soft wheat\", Rrem) and text p. 11",
+      "provenance": "table:panagos_2022",
+      "source": "bioorch:crop-balance-coefficients@2026-10-11.1",
+      "value": 50.0
+    },
+    "previous_yield.basis": {
+      "value": "zone",
+      "years": [
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ]
+    },
+    "previous_yield.cv_pct": {
+      "note": null,
+      "provenance": "table:eurostat_apro_cpshr",
+      "source": "bioorch:regional-yields",
+      "value": 14.92362471427913
+    },
+    "previous_yield.kg_ha": {
+      "note": "ES22 eu_standard",
+      "provenance": "table:eurostat_apro_cpshr",
+      "source": "bioorch:regional-yields",
+      "value": 4962.7165309166
+    },
+    "region.nuts": {
+      "note": "Comunidad Foral de Navarra",
+      "provenance": "table:natural_earth_province",
+      "source": "bioorch:nuts-region",
+      "value": "ES22"
+    },
+    "soil.analysis_id": {
+      "sampling_date": null,
+      "value": null
+    },
+    "soil.bulk_density_g_cm3": {
+      "note": null,
+      "provenance": "missing",
+      "source": null,
+      "value": null
+    },
+    "soil.clay_pct": {
+      "note": null,
+      "provenance": "missing",
+      "source": null,
+      "value": null
+    },
+    "soil.k_mg_kg": {
+      "note": null,
+      "provenance": "missing",
+      "source": null,
+      "value": null
+    },
+    "soil.mineral_n_kg_ha": {
+      "note": "no_nmin_analysis",
+      "provenance": "missing",
+      "source": null,
+      "value": 0.0
+    },
+    "soil.organic_matter_pct": {
+      "note": null,
+      "provenance": "missing",
+      "source": null,
+      "value": null
+    },
+    "soil.p_olsen_mg_kg": {
+      "note": null,
+      "provenance": "missing",
+      "source": null,
+      "value": null
+    },
+    "soil.ph": {
+      "note": null,
+      "provenance": "missing",
+      "source": null,
+      "value": null
+    },
+    "soil.sand_pct": {
+      "note": null,
+      "provenance": "missing",
+      "source": null,
+      "value": null
+    },
+    "soil.texture_class": {
+      "note": null,
+      "provenance": "missing",
+      "source": null,
+      "value": null
+    },
+    "yield.basis": {
+      "value": "zone",
+      "years": [
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ]
+    },
+    "yield.cv_pct": {
+      "note": null,
+      "provenance": "table:eurostat_apro_cpshr",
+      "source": "bioorch:regional-yields",
+      "value": 14.92362471427913
+    },
+    "yield.kg_ha": {
+      "note": "ES22 eu_standard",
+      "provenance": "table:eurostat_apro_cpshr",
+      "source": "bioorch:regional-yields",
+      "value": 4962.7165309166
+    }
+  },
+  "k2o": null,
+  "missing": [
+    {
+      "field": "soil.texture_class",
+      "owner": "soil",
+      "params": {}
+    },
+    {
+      "field": "soil.clay_pct",
+      "owner": "soil",
+      "params": {}
+    },
+    {
+      "field": "soil.ph",
+      "owner": "soil",
+      "params": {}
+    },
+    {
+      "field": "soil.p_olsen_mg_kg",
+      "owner": "soil",
+      "params": {}
+    },
+    {
+      "field": "soil.k_mg_kg",
+      "owner": "soil",
+      "params": {}
+    }
+  ],
+  "n": {
+    "avg_kg_ha": 146.14233230040637,
+    "before_credits": {
+      "avg_kg_ha": 146.14233230040637,
+      "max_kg_ha": 171.5220444492826,
+      "min_kg_ha": 120.76262015153011
+    },
+    "credits_kg_ha": {
+      "irrigation_n": 0.0,
+      "organic_available_n": 0.0,
+      "soil_mineral_n": 0.0
+    },
+    "levels_kg_ha": [
+      107.16634578606067,
+      120.76262015153011,
+      130.28001220735874,
+      138.58884654181222,
+      146.14233230040637,
+      153.6958180590005,
+      162.00465239345394,
+      171.5220444492826,
+      185.118318814752
+    ],
+    "max_kg_ha": 171.5220444492826,
+    "min_kg_ha": 120.76262015153011,
+    "terms_kg_ha": {
+      "crop_uptake": 202.4571349979564,
+      "fixation": -0.0,
+      "loss_divisor": 1.0,
+      "n_end": 10.0,
+      "n_other": -10.0,
+      "previous_residues": -22.57194686455728,
+      "previous_roots": -33.74285583299274
+    }
+  },
+  "notices": [
+    {
+      "code": "n_min_fallback_typical",
+      "params": {
+        "eppo": "TRZAX"
+      }
+    },
+    {
+      "code": "n_min_fallback_typical",
+      "params": {
+        "eppo": "TRZAX"
+      }
+    }
+  ],
+  "p2o5": null,
+  "provisional": false,
+  "status": "incomplete",
+  "versions": {
+    "calc": "1.1.0",
+    "coefficients": "2026-10-11.1",
+    "engine": "1.1.0",
+    "organic_table": "mapa-2010-ch6-p47",
+    "previous_coefficients": "2026-10-11.1"
+  }
+}

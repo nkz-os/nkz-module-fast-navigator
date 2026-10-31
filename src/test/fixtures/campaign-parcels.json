@@ -1,0 +1,99 @@
+{
+  "campaign": 2027,
+  "parcels": [
+    {
+      "analyses": [],
+      "area_ha": {
+        "note": null,
+        "provenance": "measured",
+        "source": "broker:urn:ngsi-ld:AgriParcel:p0",
+        "value": 3.0
+      },
+      "crop": {
+        "note": null,
+        "provenance": "missing",
+        "source": "broker:crop-cycles",
+        "value": null
+      },
+      "cycle": null,
+      "farm": null,
+      "id": "urn:ngsi-ld:AgriParcel:p0",
+      "identifier": {
+        "note": null,
+        "provenance": "missing",
+        "source": "broker:urn:ngsi-ld:AgriParcel:p0",
+        "value": null
+      },
+      "irrigation_regime": null,
+      "name": "Alpha",
+      "notices": [],
+      "previous_campaign": null,
+      "previous_crop": {
+        "note": null,
+        "provenance": "missing",
+        "source": "broker:crop-cycles",
+        "value": null
+      }
+    },
+    {
+      "analyses": [
+        {
+          "fields": [
+            "clay",
+            "depthFrom",
+            "depthTo",
+            "organicMatter",
+            "ph",
+            "phosphorusAvailable",
+            "phosphorusMethod",
+            "potassiumExchangeable",
+            "potassiumMethod",
+            "sand"
+          ],
+          "id": "a1",
+          "laboratoryReference": null,
+          "samplingDate": "2026-09-01"
+        }
+      ],
+      "area_ha": {
+        "note": null,
+        "provenance": "measured",
+        "source": "broker:urn:ngsi-ld:AgriParcel:p1",
+        "value": 10.0
+      },
+      "crop": {
+        "note": null,
+        "provenance": "measured",
+        "source": "broker:crop-cycles:c2",
+        "value": "TRZAX"
+      },
+      "cycle": {
+        "crop_id": "c2",
+        "pending": false,
+        "start": {
+          "date": "2026-10-25",
+          "provenance": null
+        },
+        "status": null
+      },
+      "farm": null,
+      "id": "urn:ngsi-ld:AgriParcel:p1",
+      "identifier": {
+        "note": null,
+        "provenance": "missing",
+        "source": "broker:urn:ngsi-ld:AgriParcel:p1",
+        "value": null
+      },
+      "irrigation_regime": null,
+      "name": "North",
+      "notices": [],
+      "previous_campaign": 2026,
+      "previous_crop": {
+        "note": null,
+        "provenance": "measured",
+        "source": "broker:crop-cycles:c1",
+        "value": "TRZAX"
+      }
+    }
+  ]
+}

@@ -1,11 +1,384 @@
 {
-  "example": {
-    "title": "FaST Navigator",
+  "app": {
+    "title": "FaST · Nutrient plan"
+  },
+  "common": {
+    "retry": "Retry",
     "loading": "Loading…",
-    "authRequired": "Authentication required.",
-    "entity": "Entity",
-    "user": "User",
-    "refresh": "Refresh",
-    "replaceHint": "Replace this component with your module's functionality."
+    "yes": "Yes",
+    "no": "No",
+    "close": "Close",
+    "unit": {
+      "kgHa": "kg/ha",
+      "ha": "ha",
+      "mgKg": "mg/kg"
+    }
+  },
+  "provenance": {
+    "measured": "measured",
+    "table": "table",
+    "declared": "declared",
+    "entered": "adjusted",
+    "estimated": "estimated",
+    "missing": "missing",
+    "plannedBioorch": "planned in BioOrch",
+    "sown": "sown",
+    "unknown": "unclassified",
+    "tip": {
+      "measured": "Measured value ({{source}})",
+      "table": "Value from a cited table ({{id}})",
+      "declared": "Value declared in the plan",
+      "entered": "Adjustment with a reason: {{note}} ({{source}})",
+      "estimated": "Estimate: the plan stays provisional",
+      "missing": "Missing. Provided by: {{owner}}",
+      "planned": "Cycle planned in BioOrch, not sown yet"
+    }
+  },
+  "state": {
+    "draft": "Draft",
+    "calculated": "Calculated",
+    "in_review": "In review",
+    "signed": "Signed",
+    "superseded": "Superseded"
+  },
+  "error": {
+    "session": "Session expired: reload the page.",
+    "forbidden": "Your role cannot do this.",
+    "planNotFound": "The plan does not exist.",
+    "parcelNotFound": "Parcel {{urn}} no longer exists.",
+    "conflict": "Someone else changed it; review and repeat.",
+    "gatewayTimeout": "It took too long; try again.",
+    "sourceUnavailable": "Could not calculate: {{source}} is not answering.",
+    "planStays": "The plan stays «{{state}}».",
+    "invalid": "Some data is not valid: check the marked fields.",
+    "generic": "The operation could not be completed. Try again.",
+    "rules": "Rules: {{rules}}",
+    "transition": {
+      "stale_calculation": "The data changed: recalculate first.",
+      "blocking_findings": "There are blocking findings.",
+      "advice_required": "Technical advice is required.",
+      "not_allowed": "Action not allowed in this state."
+    }
+  },
+  "source": {
+    "bioorch": "BioOrch (crop coefficients)",
+    "soil": "Soil (analyses)",
+    "weather_api": "the weather service",
+    "broker": "the platform (parcels)",
+    "broker_crop_cycles": "the platform (crop cycles)"
+  },
+  "owner": {
+    "plan": "the plan (right here)",
+    "soil": "Soil",
+    "bioorch": "BioOrch",
+    "broker": "the parcel in the platform"
+  },
+  "missing": {
+    "crop": "Crop of the campaign",
+    "previous_crop": "Previous crop",
+    "yield": "Expected yield",
+    "previous_yield": "Yield of the previous crop",
+    "soil": "Soil analysis (texture, pH, P, K)",
+    "irrigation": "Irrigation water data",
+    "parcel": "Parcel data",
+    "organic": "Organic input data",
+    "region": "Region (NUTS)"
+  },
+  "soilClass": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High"
+  },
+  "basis": {
+    "buildup": "build-up",
+    "buildup_and_export": "build-up + export",
+    "export": "export",
+    "half_export": "half of the export",
+    "none": "no input"
+  },
+  "pdf": {
+    "button": "PDF",
+    "busy": "Generating…"
+  },
+  "footer": {
+    "attribution": "Nekazari platform · FIWARE · AGPL-3.0",
+    "source": "Source code",
+    "credit": "Calculation based on FertiliCalc (F. J. Villalobos, University of Córdoba, GPL-3.0).",
+    "sourcesOpen": "Data sources",
+    "sourcesClose": "Hide sources",
+    "sourcesNote": "The figures shown are Nekazari calculations, not data published by the sources.",
+    "licence": "Licence",
+    "link": "Source"
+  },
+  "notice": {
+    "parcel_identifier_unrecognized": "The parcel identifier ({{value}}) is neither a SIGPAC enclosure nor a cadastral reference.",
+    "irrigation_no3_unknown": "The nitrate of the irrigation water is unknown: its N is not credited.",
+    "soil_p_methods_mixed": "The analysis mixes phosphorus methods: P is not used.",
+    "soil_p_method_unknown": "The analysis does not state the phosphorus method: P is not used.",
+    "soil_p_method_unsupported": "Unsupported phosphorus method ({{method}}): P is not used.",
+    "soil_k_methods_mixed": "The analysis mixes potassium methods: K is not used.",
+    "soil_k_method_unknown": "The analysis does not state the potassium method: K is not used.",
+    "soil_k_method_unsupported": "Unsupported potassium method ({{method}}): K is not used.",
+    "nmin_form_not_measured": "The mineral N analysis lacks one form ({{missing}}): mineral N is incomplete.",
+    "soil_analysis_not_found": "The chosen soil analysis ({{analysis}}) was not found.",
+    "soil_estimate_out_of_range": "The estimate of {{field}} ({{value}}) is out of range and is discarded.",
+    "soil_texture_invalid": "Sand and clay do not give a valid texture: discarded.",
+    "nmin_analysis_not_found": "The chosen mineral N analysis ({{analysis}}) was not found.",
+    "nmin_no_values": "The mineral N analysis has no usable values ({{analysis}}).",
+    "nmin_bulk_density_unknown": "Without bulk density the mineral N cannot be converted to kg/ha ({{analysis}}).",
+    "rain_years_incomplete": "Incomplete rainfall years discarded: {{years}}.",
+    "rain_normal_short_series": "The normal rainfall uses only {{years}} complete years.",
+    "parcels_in_several_regions": "The parcels are in several regions ({{regions}}): set the region.",
+    "region_not_found": "The parcels' region was not found: set the region (NUTS).",
+    "water_quality_not_found": "The chosen water quality ({{id}}) was not found.",
+    "parcels_crops_differ": "The sheet's parcels do not have the same crop: the first one's is used.",
+    "harvest_zero_ignored": "A harvest recorded with weight 0 is ignored.",
+    "zone_yield_stale": "The zone yield is old (latest year {{latest_year}}).",
+    "yield_cv_out_of_range": "The yield variability ({{cv_pct}} %) is too high and is discarded.",
+    "declared_years_ignored": "Declared years outside the window, ignored: {{years}}.",
+    "history_too_short": "Short history ({{years}}): the variability is not reliable.",
+    "n_min_fallback_typical": "No minimum product N for {{eppo}}: the typical N is used.",
+    "cycle_species_not_eppo": "Cycle {{crop_id}} does not use an EPPO code ({{species}}): it is not taken as the crop.",
+    "previous_cycle_pending": "The previous cycle ({{crop_id}}) was never confirmed: it is not taken as the previous crop.",
+    "double_crop_campaign": "Campaign {{campaign}} has {{count}} cycles: this sheet uses one.",
+    "crop_differs_from_cycle": "The declared crop ({{declared}}) differs from the cycle ({{cycle}}); the declared one prevails.",
+    "double_crop_first_cycle_unknown": "The first cycle of campaign {{campaign}} is unknown."
+  },
+  "list": {
+    "title": "Fertilisation plans",
+    "campaign": "Campaign",
+    "empty": "There is no plan for {{campaign}}",
+    "create": "Create plan {{campaign}}",
+    "version": "{{campaign}} · v{{version}}",
+    "block_one": "{{count}} blocks",
+    "block_other": "{{count}} block",
+    "warn_one": "{{count}} warning",
+    "warn_other": "{{count}} warnings",
+    "stale": "not recalculated",
+    "sheets_one": "{{count}} sheet",
+    "sheets_other": "{{count}} sheets",
+    "open": "Open"
+  },
+  "wizard": {
+    "step1": "Step 1 · Parcels of campaign {{campaign}}",
+    "step2": "Step 2 · Management of each sheet",
+    "step3": "Step 3 · Normal rainfall",
+    "next": "Next",
+    "back": "Back",
+    "saveCalc": "Save and calculate",
+    "include": "Include",
+    "parcels_one": "{{count}} parcel",
+    "parcels_other": "{{count}} parcels",
+    "previous": "previous:",
+    "noParcels": "There are no parcels left to add in this campaign.",
+    "regime": {
+      "rainfed": "rainfed",
+      "irrigated": "irrigated",
+      "unknown": "regime not set"
+    },
+    "noCrop": {
+      "title": "No crop for {{campaign}} ({{count}})",
+      "hint": "Declare the crop (EPPO code) or leave these parcels out of the plan."
+    },
+    "declare": {
+      "label": "Declared crop (EPPO code)",
+      "hint": "Five or six letters or digits.",
+      "placeholder": "e.g. TRZAX",
+      "invalid": "Not a valid EPPO code"
+    },
+    "existing": {
+      "title": "Sheets the plan already has",
+      "remove": "Remove",
+      "keep": "Keep",
+      "confirm": "The technician's adjustments of this sheet are lost. Remove it?",
+      "yes": "Yes, remove",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "regime": "Irrigation regime",
+      "choose": "Choose…",
+      "tillage": "Tillage",
+      "tillageYes": "With tillage",
+      "tillageNo": "No tillage (direct sowing)",
+      "rotation": "Rotation years",
+      "strategy": "P and K strategy",
+      "residues": "The previous crop residues are burned"
+    },
+    "strategy": {
+      "1": "1 · Only correct the soil deficit",
+      "2": "2 · Correct and replace what is exported (usual)",
+      "3": "3 · Slightly higher phosphorus threshold",
+      "4": "4 · Ignoring the soil (legal warning)"
+    },
+    "blocker": {
+      "regime": "Choose rainfed or irrigated in every included group.",
+      "tillage": "Say whether there is tillage in every included group.",
+      "rotation": "Give the rotation years (1 to 20).",
+      "crop": "Declare a valid crop or leave the group out.",
+      "tooManySheets": "A plan accepts 20 sheets at most.",
+      "tooManyParcels": "A sheet accepts 200 parcels at most.",
+      "nothing": "There is nothing to save: include at least one group."
+    },
+    "rain": {
+      "hint": "It comes from the first parcel's weather record and can take a while. It is not needed to calculate.",
+      "get": "Get normal rainfall",
+      "getting": "Getting…",
+      "years_one": "{{count}} complete year",
+      "years_other": "{{count}} complete years",
+      "annual": "Annual total: {{mm}} mm",
+      "month": "{{month}}: {{mm}} mm"
+    }
+  },
+  "param": {
+    "soil_sand_pct": "Sand",
+    "soil_clay_pct": "Clay",
+    "soil_ph": "pH",
+    "soil_organic_matter_pct": "Organic matter",
+    "soil_p_olsen_mg_kg": "Phosphorus (Olsen)",
+    "soil_k_mg_kg": "Potassium",
+    "soil_bulk_density_g_cm3": "Bulk density",
+    "soil_mineral_n_kg_ha": "Soil mineral N",
+    "soil_texture_class": "Texture class",
+    "yield_kg_ha": "Expected yield",
+    "yield_cv_pct": "Yield variability (CV)",
+    "irrigation_water_m3_ha": "Irrigation water",
+    "irrigation_no3_mg_l": "Water nitrate",
+    "irrigation_uptake": "Share of water N taken up",
+    "irrigation_n_kg_ha": "N supplied by the water",
+    "crop_dm_product_pct": "Product dry matter",
+    "crop_harvest_index_pct": "Harvest index",
+    "crop_residue_left_pct": "Residue left in the field",
+    "crop_n_product_pct": "Product N",
+    "crop_n_min_product_pct": "Minimum product N",
+    "crop_p_product_pct": "Product P",
+    "crop_k_product_pct": "Product K",
+    "crop_n_residue_pct": "Residue N",
+    "crop_p_residue_pct": "Residue P",
+    "crop_k_residue_pct": "Residue K"
+  },
+  "ownerLink": {
+    "soil": "Add an analysis in Soil",
+    "bioorch": "No coefficients: the technician can enter them with a reason.",
+    "plan": "Fill it in on this screen.",
+    "broker": "Provided by the parcel in the platform.",
+    "unknown": "Check the source of the value."
+  },
+  "data": {
+    "adjust": "Adjust",
+    "unadjust": "Remove adjustment",
+    "range": "Allowed range: {{min}} to {{max}}",
+    "reason": "Reason (required)",
+    "apply": "Apply adjustment",
+    "auto": "Automatic (the latest)",
+    "missing": {
+      "title_one": "{{count}} value is missing to complete the calculation",
+      "title_other": "{{count}} values are missing to complete the calculation",
+      "owner": "Provided by: {{owner}}"
+    },
+    "notCalculated": "There is no calculation yet: press \"Calculate\" to see the data with its sources.",
+    "section": {
+      "crop": "Crop",
+      "yield": "Yield",
+      "soil": "Soil",
+      "water": "Irrigation water",
+      "organic": "Organic inputs",
+      "parcels": "Enclosures and region"
+    },
+    "crop": "Crop",
+    "previousCrop": "Previous crop",
+    "coefficients": "Crop coefficients",
+    "coefficientsAll": "See and adjust all coefficients",
+    "declaredCrop": "Declared crop (EPPO code)",
+    "declaredPrevious": "Declared previous crop",
+    "declaredPreviousHint": "EPPO code, or \"fallow\" if it lay fallow.",
+    "basis": {
+      "zone": "Basis: zone yield, years",
+      "declared": "Basis: declared yields, years",
+      "entered": "Basis: value adjusted by the technician",
+      "history": "Basis: harvest history, years",
+      "missing": "No yield basis"
+    },
+    "declaredYield": "Declared yield {{year}}",
+    "addYear": "+ Declare a year",
+    "analysis": "Analysis {{id}} · {{date}}",
+    "soilAnalysis": "Soil analysis",
+    "nminAnalysis": "Mineral N analysis",
+    "rainfed": "Rainfed: there is no irrigation water to count.",
+    "noOrganic": "No organic inputs.",
+    "organic": {
+      "material": "Material",
+      "rate": "Rate (t/ha)",
+      "n": "N (%)",
+      "p2o5": "P₂O₅ (%)",
+      "k2o": "K₂O (%)",
+      "remove": "Remove",
+      "add": "+ Add an organic input",
+      "availability": "Available N (share)"
+    },
+    "sigpacLabel": "SIGPAC",
+    "sigpacWrite": "Enter SIGPAC",
+    "nuts": "Region (NUTS)",
+    "save": "Save changes",
+    "discard": "Discard"
+  },
+  "workspace": {
+    "back": "Plans",
+    "title": "Plan {{campaign}} · v{{version}}",
+    "signedByAdvisor": "Signed by {{name}} ({{number}}) on {{date}} · fingerprint {{hash}}",
+    "signedByHolder": "Closed by {{name}} on {{date}} · fingerprint {{hash}}",
+    "inReview": "Under review by the technician: read only.",
+    "stale": "Data changed: recalculate.",
+    "calculate": "Calculate",
+    "recalculate": "Recalculate",
+    "addSheet": "sheet",
+    "noSheets": "This plan has no sheets yet.",
+    "noSheetsReadOnly": "Only someone who can edit the plan creates its sheets.",
+    "tabs": {
+      "data": "Data",
+      "needs": "Needs"
+    }
+  },
+  "sheet": {
+    "nBand": "N from {{min}} to {{max}} kg/ha, mean {{avg}}",
+    "nMissing": "N not calculated",
+    "provisional": "provisional"
+  },
+  "needs": {
+    "nTitle": "N (kg N/ha)",
+    "min": "min",
+    "avg": "mean",
+    "max": "max",
+    "bandLabel": "N band: minimum {{min}}, mean {{avg}}, maximum {{max}} kg/ha",
+    "beforeCredits": "before credits",
+    "level": "Yield level {{i}}: {{v}} kg/ha",
+    "breakdown": "Breakdown",
+    "term": {
+      "crop_uptake": "Crop uptake",
+      "n_end": "Final N (Nend)",
+      "previous_residues": "Residues of the previous crop",
+      "previous_roots": "Roots of the previous crop",
+      "n_other": "Other inputs (includes irrigation water N)",
+      "fixation": "Symbiotic fixation",
+      "loss_divisor": "Losses",
+      "soil_mineral_n": "Soil mineral N",
+      "organic_available_n": "N available from organics"
+    },
+    "nMissing": "N not calculated: missing",
+    "oxideMissing": "{{oxide}} not calculated: missing",
+    "p2o5": "P₂O₅",
+    "k2o": "K₂O",
+    "soilClass": "Soil: {{class}}",
+    "soilBar": "Soil {{value}} mg/kg; threshold {{threshold}}; high from {{high}}",
+    "soilNow": "In the soil: {{value}} mg/kg",
+    "thresholds": "threshold {{low}} mg/kg · high from {{high}} mg/kg",
+    "strategy4": "Strategy 4: the soil is not taken into account",
+    "doseIs": "Dose =",
+    "component": {
+      "export": "export",
+      "buildup": "build-up per year"
+    },
+    "organicCredit": "organic credit",
+    "versions": "Versions: engine {{engine}} · calculation {{calc}}",
+    "coefficientsVersion": "coefficients {{v}}"
   }
 }

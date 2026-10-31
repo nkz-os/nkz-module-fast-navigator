@@ -1,1 +1,384 @@
-{}
+{
+  "app": {
+    "title": "FaST · Ongarritze-plana"
+  },
+  "common": {
+    "retry": "Saiatu berriro",
+    "loading": "Kargatzen…",
+    "yes": "Bai",
+    "no": "Ez",
+    "close": "Itxi",
+    "unit": {
+      "kgHa": "kg/ha",
+      "ha": "ha",
+      "mgKg": "mg/kg"
+    }
+  },
+  "provenance": {
+    "measured": "neurtua",
+    "table": "taula",
+    "declared": "adierazia",
+    "entered": "doitua",
+    "estimated": "estimatua",
+    "missing": "falta da",
+    "plannedBioorch": "BioOrch-en planifikatua",
+    "sown": "ereina",
+    "unknown": "sailkatu gabe",
+    "tip": {
+      "measured": "Neurritutako datua ({{source}})",
+      "table": "Aipatutako taula bateko balioa ({{id}})",
+      "declared": "Planean adierazitako datua",
+      "entered": "Zioarekin egindako doikuntza: {{note}} ({{source}})",
+      "estimated": "Estimazioa: plana behin-behinekoa da",
+      "missing": "Falta da. Hauek jartzen dute: {{owner}}",
+      "planned": "BioOrch-en planifikatutako zikloa, oraindik ereinik gabe"
+    }
+  },
+  "state": {
+    "draft": "Zirriborroa",
+    "calculated": "Kalkulatua",
+    "in_review": "Berrikusten",
+    "signed": "Sinatua",
+    "superseded": "Ordeztua"
+  },
+  "error": {
+    "session": "Saioa iraungi da: kargatu orria berriro.",
+    "forbidden": "Zure rolak ezin du hau egin.",
+    "planNotFound": "Plana ez dago.",
+    "parcelNotFound": "{{urn}} lursaila ez da jada existitzen.",
+    "conflict": "Beste norbaitek aldatu du; berrikusi eta errepikatu.",
+    "gatewayTimeout": "Gehiegi luzatu da; saiatu berriro.",
+    "sourceUnavailable": "Ezin izan da kalkulatu: {{source}} ez da erantzuten.",
+    "planStays": "Planak «{{state}}» izaten jarraitzen du.",
+    "invalid": "Datu batzuk ez dira baliozkoak: egiaztatu markatutako eremuak.",
+    "generic": "Ezin izan da eragiketa osatu. Saiatu berriro.",
+    "rules": "Arauak: {{rules}}",
+    "transition": {
+      "stale_calculation": "Datuak aldatu dira: kalkulatu berriro lehenago.",
+      "blocking_findings": "Blokeatzen duten aurkikuntzak daude.",
+      "advice_required": "Aholkularitza teknikoa behar da.",
+      "not_allowed": "Ekintza ez da onartzen egoera honetan."
+    }
+  },
+  "source": {
+    "bioorch": "BioOrch (laboreen koefizienteak)",
+    "soil": "Lurzorua (analisiak)",
+    "weather_api": "eguraldi zerbitzua",
+    "broker": "plataforma (lursailak)",
+    "broker_crop_cycles": "plataforma (laboreen zikloak)"
+  },
+  "owner": {
+    "plan": "plana (hemen bertan)",
+    "soil": "Lurzorua",
+    "bioorch": "BioOrch",
+    "broker": "plataformako lursaila"
+  },
+  "missing": {
+    "crop": "Kanpainako laboreak",
+    "previous_crop": "Aurreko laboreak",
+    "yield": "Espero den errendimendua",
+    "previous_yield": "Aurreko laboreen errendimendua",
+    "soil": "Lurzoru analisia (ehundura, pH, P, K)",
+    "irrigation": "Ureztatze uraren datuak",
+    "parcel": "Lursailaren datuak",
+    "organic": "Ekarpen organikoaren datuak",
+    "region": "Eskualdea (NUTS)"
+  },
+  "soilClass": {
+    "low": "Baxua",
+    "medium": "Ertaina",
+    "high": "Altua"
+  },
+  "basis": {
+    "buildup": "igoera",
+    "buildup_and_export": "igoera + esportazioa",
+    "export": "esportazioa",
+    "half_export": "esportazioaren erdia",
+    "none": "ekarpenik gabe"
+  },
+  "pdf": {
+    "button": "PDF",
+    "busy": "Sortzen…"
+  },
+  "footer": {
+    "attribution": "Nekazari plataforma · FIWARE · AGPL-3.0",
+    "source": "Iturburu kodea",
+    "credit": "Kalkulua FertiliCalc-en oinarrituta (F. J. Villalobos, Kordobako Unibertsitatea, GPL-3.0).",
+    "sourcesOpen": "Datu iturriak",
+    "sourcesClose": "Ezkutatu iturriak",
+    "sourcesNote": "Erakutsitako zifrak Nekazariren kalkuluak dira, ez iturriek argitaratutako datuak.",
+    "licence": "Lizentzia",
+    "link": "Iturria"
+  },
+  "notice": {
+    "parcel_identifier_unrecognized": "Lursailaren identifikatzailea ({{value}}) ez da SIGPAC errekintorik ez erreferentzia katastralik.",
+    "irrigation_no3_unknown": "Ureztatze uraren nitratoa ezezaguna da: bere N ez da kentzen.",
+    "soil_p_methods_mixed": "Analisiak fosforo metodoak nahasten ditu: P ez da erabiltzen.",
+    "soil_p_method_unknown": "Analisiak ez du fosforoaren metodoa adierazten: P ez da erabiltzen.",
+    "soil_p_method_unsupported": "Fosforo metodo onartezina ({{method}}): P ez da erabiltzen.",
+    "soil_k_methods_mixed": "Analisiak potasio metodoak nahasten ditu: K ez da erabiltzen.",
+    "soil_k_method_unknown": "Analisiak ez du potasioaren metodoa adierazten: K ez da erabiltzen.",
+    "soil_k_method_unsupported": "Potasio metodo onartezina ({{method}}): K ez da erabiltzen.",
+    "nmin_form_not_measured": "N mineral analisian forma bat falta da ({{missing}}): N minerala osatu gabe dago.",
+    "soil_analysis_not_found": "Aukeratutako lurzoru analisia ez da aurkitu ({{analysis}}).",
+    "soil_estimate_out_of_range": "{{field}}-ren estimazioa ({{value}}) tartetik kanpo dago eta baztertu da.",
+    "soil_texture_invalid": "Harea eta buztinak ez dute ehundura baliozkorik ematen: baztertu da.",
+    "nmin_analysis_not_found": "Aukeratutako N mineral analisia ez da aurkitu ({{analysis}}).",
+    "nmin_no_values": "N mineral analisiak ez du balio erabilgarririk ({{analysis}}).",
+    "nmin_bulk_density_unknown": "Dentsitate aparenterik gabe ezin da N minerala kg/ha-ra bihurtu ({{analysis}}).",
+    "rain_years_incomplete": "Euri urte osatugabeak baztertu dira: {{years}}.",
+    "rain_normal_short_series": "Euri normalak {{years}} urte osoak soilik erabiltzen ditu.",
+    "parcels_in_several_regions": "Lursailak eskualde batzuetan daude ({{regions}}): adierazi eskualdea.",
+    "region_not_found": "Lursailen eskualdea ez da aurkitu: adierazi eskualdea (NUTS).",
+    "water_quality_not_found": "Aukeratutako uraren kalitatea ez da aurkitu ({{id}}).",
+    "parcels_crops_differ": "Orriko lursailek ez dute laborantza bera: lehenengoarena erabiltzen da.",
+    "harvest_zero_ignored": "0 pisuarekin erregistratutako uzta bat ez da kontuan hartzen.",
+    "zone_yield_stale": "Eremuaren errendimendua zaharra da (azken urtea {{latest_year}}).",
+    "yield_cv_out_of_range": "Errendimenduaren aldakortasuna ({{cv_pct}} %) altuegia da eta baztertu da.",
+    "declared_years_ignored": "Leihotik kanpoko urte adieraziak, baztertuak: {{years}}.",
+    "history_too_short": "Historia laburra ({{years}}): aldakortasuna ez da fidagarria.",
+    "n_min_fallback_typical": "{{eppo}}-rentzat ez dago produktuaren N minimorik: N tipikoa erabiltzen da.",
+    "cycle_species_not_eppo": "{{crop_id}} zikloak ez du EPPO koderik erabiltzen ({{species}}): ez da laborantza gisa hartzen.",
+    "previous_cycle_pending": "Aurreko zikloa ({{crop_id}}) ez da inoiz baieztatu: ez da aurreko laborantza gisa hartzen.",
+    "double_crop_campaign": "{{campaign}} kanpainak {{count}} ziklo ditu: orri honek bat erabiltzen du.",
+    "crop_differs_from_cycle": "Adierazitako laborantza ({{declared}}) zikloarena ({{cycle}}) ez bezalakoa da; adierazitakoak nagusitzen da.",
+    "double_crop_first_cycle_unknown": "{{campaign}} kanpainako lehen zikloa ezezaguna da."
+  },
+  "list": {
+    "title": "Ongarritze-planak",
+    "campaign": "Kanpaina",
+    "empty": "{{campaign}} kanpainarako planik ez dago",
+    "create": "Sortu {{campaign}} plana",
+    "version": "{{campaign}} · v{{version}}",
+    "block_one": "{{count}} blokeatzen du",
+    "block_other": "{{count}} blokeatzen dute",
+    "warn_one": "ohar {{count}}",
+    "warn_other": "{{count}} ohar",
+    "stale": "birkalkulatu gabe",
+    "sheets_one": "orri {{count}}",
+    "sheets_other": "{{count}} orri",
+    "open": "Ireki"
+  },
+  "wizard": {
+    "step1": "1. urratsa · {{campaign}} kanpainako lursailak",
+    "step2": "2. urratsa · Orri bakoitzaren kudeaketa",
+    "step3": "3. urratsa · Euri normala",
+    "next": "Hurrengoa",
+    "back": "Atzera",
+    "saveCalc": "Gorde eta kalkulatu",
+    "include": "Sartu",
+    "parcels_one": "lursail {{count}}",
+    "parcels_other": "{{count}} lursail",
+    "previous": "aurrekoa:",
+    "noParcels": "Kanpaina honetan ez dago gehitzeko lursailik.",
+    "regime": {
+      "rainfed": "ureztatu gabea",
+      "irrigated": "ureztatua",
+      "unknown": "araubidea zehaztu gabe"
+    },
+    "noCrop": {
+      "title": "{{campaign}}rako laborantzarik gabe ({{count}})",
+      "hint": "Adierazi laborantza (EPPO kodea) edo utzi lursail hauek planetik kanpo."
+    },
+    "declare": {
+      "label": "Adierazitako laborantza (EPPO kodea)",
+      "hint": "Bost edo sei letra edo zifra.",
+      "placeholder": "adib. TRZAX",
+      "invalid": "EPPO kode baliogabea"
+    },
+    "existing": {
+      "title": "Planak dituen orriak",
+      "remove": "Kendu",
+      "keep": "Mantendu",
+      "confirm": "Orri honen teknikariaren doikuntzak galduko dira. Kendu?",
+      "yes": "Bai, kendu",
+      "cancel": "Utzi"
+    },
+    "form": {
+      "regime": "Ureztatze araubidea",
+      "choose": "Aukeratu…",
+      "tillage": "Lur-lanketa",
+      "tillageYes": "Lur-lanketarekin",
+      "tillageNo": "Lur-lanketarik gabe (zuzeneko hazkuntza)",
+      "rotation": "Txandakatze urteak",
+      "strategy": "P eta K estrategia",
+      "residues": "Aurreko laboreen hondarrak erretzen dira"
+    },
+    "strategy": {
+      "1": "1 · Lurzoruaren gabezia zuzendu soilik",
+      "2": "2 · Zuzendu eta esportatutakoa ordezkatu (ohikoa)",
+      "3": "3 · Fosforo-atalase apur bat altuagoa",
+      "4": "4 · Lurzorua kontuan hartu gabe (ohar legala)"
+    },
+    "blocker": {
+      "regime": "Aukeratu ureztatu gabea edo ureztatua sartutako talde guztietan.",
+      "tillage": "Adierazi lur-lanketa dagoen sartutako talde guztietan.",
+      "rotation": "Adierazi txandakatze urteak (1etik 20ra).",
+      "crop": "Adierazi baliozko laborantza bat edo utzi taldea kanpoan.",
+      "tooManySheets": "Plan batek gehienez 20 orri onartzen ditu.",
+      "tooManyParcels": "Orri batek gehienez 200 lursail onartzen ditu.",
+      "nothing": "Ez dago gordetzeko ezer: sartu gutxienez talde bat."
+    },
+    "rain": {
+      "hint": "Lehen lursailaren eguraldi datuetatik dator eta denbora har dezake. Ez da beharrezkoa kalkulatzeko.",
+      "get": "Lortu euri normala",
+      "getting": "Lortzen…",
+      "years_one": "urte oso {{count}}",
+      "years_other": "{{count}} urte oso",
+      "annual": "Urteko guztira: {{mm}} mm",
+      "month": "{{month}}: {{mm}} mm"
+    }
+  },
+  "param": {
+    "soil_sand_pct": "Harea",
+    "soil_clay_pct": "Buztina",
+    "soil_ph": "pH",
+    "soil_organic_matter_pct": "Materia organikoa",
+    "soil_p_olsen_mg_kg": "Fosforoa (Olsen)",
+    "soil_k_mg_kg": "Potasioa",
+    "soil_bulk_density_g_cm3": "Dentsitate aparentea",
+    "soil_mineral_n_kg_ha": "Lurzoruaren N minerala",
+    "soil_texture_class": "Ehundura klasea",
+    "yield_kg_ha": "Espero den errendimendua",
+    "yield_cv_pct": "Errendimenduaren aldakortasuna (CV)",
+    "irrigation_water_m3_ha": "Ureztatze ura",
+    "irrigation_no3_mg_l": "Uraren nitratoa",
+    "irrigation_uptake": "Aprobetxatutako uraren N zatia",
+    "irrigation_n_kg_ha": "Uraren ekarritako N",
+    "crop_dm_product_pct": "Produktuaren materia lehorra",
+    "crop_harvest_index_pct": "Uzta indizea",
+    "crop_residue_left_pct": "Soroan geratzen den hondarra",
+    "crop_n_product_pct": "Produktuaren N",
+    "crop_n_min_product_pct": "Produktuaren gutxieneko N",
+    "crop_p_product_pct": "Produktuaren P",
+    "crop_k_product_pct": "Produktuaren K",
+    "crop_n_residue_pct": "Hondarraren N",
+    "crop_p_residue_pct": "Hondarraren P",
+    "crop_k_residue_pct": "Hondarraren K"
+  },
+  "ownerLink": {
+    "soil": "Igo analisia Lurzoruan",
+    "bioorch": "Koefizienterik ez: teknikariak zioarekin sar ditzake.",
+    "plan": "Bete ezazu pantaila honetan.",
+    "broker": "Plataformako lursailak jartzen du.",
+    "unknown": "Egiaztatu datuaren iturria."
+  },
+  "data": {
+    "adjust": "Doitu",
+    "unadjust": "Kendu doikuntza",
+    "range": "Onartutako tartea: {{min}} - {{max}}",
+    "reason": "Zioa (derrigorrezkoa)",
+    "apply": "Aplikatu doikuntza",
+    "auto": "Automatikoa (berriena)",
+    "missing": {
+      "title_one": "Datu {{count}} falta da kalkulua osatzeko",
+      "title_other": "{{count}} datu falta dira kalkulua osatzeko",
+      "owner": "Jartzen du: {{owner}}"
+    },
+    "notCalculated": "Oraindik ez dago kalkulurik: sakatu «Kalkulatu» datuak iturriekin ikusteko.",
+    "section": {
+      "crop": "Laborantza",
+      "yield": "Errendimendua",
+      "soil": "Lurzorua",
+      "water": "Ureztatze ura",
+      "organic": "Ekarpen organikoak",
+      "parcels": "Errekintoak eta eskualdea"
+    },
+    "crop": "Laborantza",
+    "previousCrop": "Aurreko laborantza",
+    "coefficients": "Laborantzaren koefizienteak",
+    "coefficientsAll": "Ikusi eta doitu koefiziente guztiak",
+    "declaredCrop": "Adierazitako laborantza (EPPO kodea)",
+    "declaredPrevious": "Adierazitako aurreko laborantza",
+    "declaredPreviousHint": "EPPO kodea edo «fallow» baratzean egon bada.",
+    "basis": {
+      "zone": "Oinarria: eremuaren errendimendua, urteak",
+      "declared": "Oinarria: adierazitako errendimenduak, urteak",
+      "entered": "Oinarria: teknikariak doitutako balioa",
+      "history": "Oinarria: uzten historia, urteak",
+      "missing": "Errendimendu oinarririk gabe"
+    },
+    "declaredYield": "{{year}}ko errendimendu adierazia",
+    "addYear": "+ Adierazi urte bat",
+    "analysis": "{{id}} analisia · {{date}}",
+    "soilAnalysis": "Lurzoru analisia",
+    "nminAnalysis": "N mineral analisia",
+    "rainfed": "Ureztatu gabea: ez dago kontatzeko ureztatze urik.",
+    "noOrganic": "Ekarpen organikorik gabe.",
+    "organic": {
+      "material": "Materiala",
+      "rate": "Dosia (t/ha)",
+      "n": "N (%)",
+      "p2o5": "P₂O₅ (%)",
+      "k2o": "K₂O (%)",
+      "remove": "Kendu",
+      "add": "+ Gehitu ekarpen organikoa",
+      "availability": "N eskuragarria (zatia)"
+    },
+    "sigpacLabel": "SIGPAC",
+    "sigpacWrite": "Idatzi SIGPAC",
+    "nuts": "Eskualdea (NUTS)",
+    "save": "Gorde aldaketak",
+    "discard": "Baztertu"
+  },
+  "workspace": {
+    "back": "Planak",
+    "title": "{{campaign}} plana · v{{version}}",
+    "signedByAdvisor": "{{name}} ({{number}}) sinatu zuen {{date}}(a)n · aztarna {{hash}}",
+    "signedByHolder": "{{name}}(e)k itxi zuen {{date}}(a)n · aztarna {{hash}}",
+    "inReview": "Teknikariak berrikusten ari da: irakurtzeko soilik.",
+    "stale": "Datuak aldatu dira: birkalkulatu.",
+    "calculate": "Kalkulatu",
+    "recalculate": "Birkalkulatu",
+    "addSheet": "orria",
+    "noSheets": "Plan honek ez du orririk oraindik.",
+    "noSheetsReadOnly": "Plana editatu dezakeenak soilik sortzen ditu orriak.",
+    "tabs": {
+      "data": "Datuak",
+      "needs": "Beharrak"
+    }
+  },
+  "sheet": {
+    "nBand": "N {{min}}-{{max}} kg/ha, batez bestekoa {{avg}}",
+    "nMissing": "N kalkulatu gabe",
+    "provisional": "behin-behinekoa"
+  },
+  "needs": {
+    "nTitle": "N (kg N/ha)",
+    "min": "gutx.",
+    "avg": "batez b.",
+    "max": "gehien.",
+    "bandLabel": "N banda: gutxienekoa {{min}}, batez bestekoa {{avg}}, gehienekoa {{max}} kg/ha",
+    "beforeCredits": "kredituen aurretik",
+    "level": "{{i}}. errendimendu maila: {{v}} kg/ha",
+    "breakdown": "Banaketa",
+    "term": {
+      "crop_uptake": "Laborantzaren xurgapena",
+      "n_end": "Azken N (Nend)",
+      "previous_residues": "Aurreko laborantzaren hondarrak",
+      "previous_roots": "Aurreko laborantzaren sustraiak",
+      "n_other": "Beste ekarpenak (ureztatze uraren N barne)",
+      "fixation": "Finkapen sinbiotikoa",
+      "loss_divisor": "Galerak",
+      "soil_mineral_n": "Lurzoruaren N minerala",
+      "organic_available_n": "Organikoen N eskuragarria"
+    },
+    "nMissing": "N kalkulatu gabe: falta dira",
+    "oxideMissing": "{{oxide}} kalkulatu gabe: falta dira",
+    "p2o5": "P₂O₅",
+    "k2o": "K₂O",
+    "soilClass": "Lurzorua: {{class}}",
+    "soilBar": "Lurzorua {{value}} mg/kg; atalasea {{threshold}}; altua hemendik: {{high}}",
+    "soilNow": "Lurzoruan: {{value}} mg/kg",
+    "thresholds": "atalasea {{low}} mg/kg · altua hemendik: {{high}} mg/kg",
+    "strategy4": "4. estrategia: lurzorua ez da kontuan hartzen",
+    "doseIs": "Dosia =",
+    "component": {
+      "export": "esportazioa",
+      "buildup": "urteko igoera"
+    },
+    "organicCredit": "ekarpen organikoa",
+    "versions": "Bertsioak: motorra {{engine}} · kalkulua {{calc}}",
+    "coefficientsVersion": "koefizienteak {{v}}"
+  }
+}

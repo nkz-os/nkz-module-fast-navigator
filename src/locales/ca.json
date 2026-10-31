@@ -1,1 +1,384 @@
-{}
+{
+  "app": {
+    "title": "FaST · Pla d'adobat"
+  },
+  "common": {
+    "retry": "Reintenta",
+    "loading": "Carregant…",
+    "yes": "Sí",
+    "no": "No",
+    "close": "Tanca",
+    "unit": {
+      "kgHa": "kg/ha",
+      "ha": "ha",
+      "mgKg": "mg/kg"
+    }
+  },
+  "provenance": {
+    "measured": "mesurat",
+    "table": "taula",
+    "declared": "declarat",
+    "entered": "ajustat",
+    "estimated": "estimat",
+    "missing": "falta",
+    "plannedBioorch": "planificat a BioOrch",
+    "sown": "sembrat",
+    "unknown": "sense classificar",
+    "tip": {
+      "measured": "Dada mesurada ({{source}})",
+      "table": "Valor d'una taula citada ({{id}})",
+      "declared": "Dada declarada al pla",
+      "entered": "Ajust amb motiu: {{note}} ({{source}})",
+      "estimated": "Estimació: el pla queda provisional",
+      "missing": "Falta. Ho posa: {{owner}}",
+      "planned": "Cicle planificat a BioOrch, encara sense sembra"
+    }
+  },
+  "state": {
+    "draft": "Esborrany",
+    "calculated": "Calculat",
+    "in_review": "En revisió",
+    "signed": "Signat",
+    "superseded": "Substituït"
+  },
+  "error": {
+    "session": "Sessió caducada: recarrega la pàgina.",
+    "forbidden": "El teu rol no pot fer això.",
+    "planNotFound": "El pla no existeix.",
+    "parcelNotFound": "La parcel·la {{urn}} ja no existeix.",
+    "conflict": "Una altra persona ho ha canviat; revisa i repeteix.",
+    "gatewayTimeout": "Ha trigat massa; reintenta.",
+    "sourceUnavailable": "No s'ha pogut calcular: {{source}} no respon.",
+    "planStays": "El pla continua «{{state}}».",
+    "invalid": "Hi ha dades no vàlides: revisa els camps marcats.",
+    "generic": "No s'ha pogut completar l'operació. Reintenta.",
+    "rules": "Regles: {{rules}}",
+    "transition": {
+      "stale_calculation": "Les dades han canviat: recalcula abans.",
+      "blocking_findings": "Hi ha troballes que bloquegen.",
+      "advice_required": "Cal assessorament tècnic.",
+      "not_allowed": "Acció no permesa en aquest estat."
+    }
+  },
+  "source": {
+    "bioorch": "BioOrch (coeficients de cultiu)",
+    "soil": "Sòl (anàlisis)",
+    "weather_api": "el servei meteorològic",
+    "broker": "la plataforma (parcel·les)",
+    "broker_crop_cycles": "la plataforma (cicles de cultiu)"
+  },
+  "owner": {
+    "plan": "el pla (aquí mateix)",
+    "soil": "Sòl",
+    "bioorch": "BioOrch",
+    "broker": "la parcel·la a la plataforma"
+  },
+  "missing": {
+    "crop": "Cultiu de la campanya",
+    "previous_crop": "Cultiu anterior",
+    "yield": "Rendiment esperat",
+    "previous_yield": "Rendiment del cultiu anterior",
+    "soil": "Anàlisi de sòl (textura, pH, P, K)",
+    "irrigation": "Dades de l'aigua de reg",
+    "parcel": "Dades de la parcel·la",
+    "organic": "Dades de l'aportació orgànica",
+    "region": "Regió (NUTS)"
+  },
+  "soilClass": {
+    "low": "Baix",
+    "medium": "Mitjà",
+    "high": "Alt"
+  },
+  "basis": {
+    "buildup": "pujada",
+    "buildup_and_export": "pujada + exportació",
+    "export": "exportació",
+    "half_export": "meitat de l'exportació",
+    "none": "sense aportació"
+  },
+  "pdf": {
+    "button": "PDF",
+    "busy": "Generant…"
+  },
+  "footer": {
+    "attribution": "Plataforma Nekazari · FIWARE · AGPL-3.0",
+    "source": "Codi font",
+    "credit": "Càlcul basat en FertiliCalc (F. J. Villalobos, Universitat de Còrdova, GPL-3.0).",
+    "sourcesOpen": "Fonts de dades",
+    "sourcesClose": "Amaga les fonts",
+    "sourcesNote": "Les xifres mostrades són càlculs de Nekazari, no dades publicades per les fonts.",
+    "licence": "Llicència",
+    "link": "Font"
+  },
+  "notice": {
+    "parcel_identifier_unrecognized": "L'identificador de la parcel·la ({{value}}) no és un recinte SIGPAC ni una referència cadastral.",
+    "irrigation_no3_unknown": "Es desconeix el nitrat de l'aigua de reg: no es descompta el seu N.",
+    "soil_p_methods_mixed": "L'anàlisi barreja mètodes de fòsfor: no s'usa el P.",
+    "soil_p_method_unknown": "L'anàlisi no indica el mètode del fòsfor: no s'usa el P.",
+    "soil_p_method_unsupported": "Mètode de fòsfor no admès ({{method}}): no s'usa el P.",
+    "soil_k_methods_mixed": "L'anàlisi barreja mètodes de potassi: no s'usa el K.",
+    "soil_k_method_unknown": "L'anàlisi no indica el mètode del potassi: no s'usa el K.",
+    "soil_k_method_unsupported": "Mètode de potassi no admès ({{method}}): no s'usa el K.",
+    "nmin_form_not_measured": "A l'anàlisi de N mineral li falta una forma ({{missing}}): el N mineral queda incomplet.",
+    "soil_analysis_not_found": "No es troba l'anàlisi de sòl triada ({{analysis}}).",
+    "soil_estimate_out_of_range": "L'estimació de {{field}} ({{value}}) és fora de rang i es descarta.",
+    "soil_texture_invalid": "Sorra i argila no donen una textura vàlida: es descarta.",
+    "nmin_analysis_not_found": "No es troba l'anàlisi de N mineral triada ({{analysis}}).",
+    "nmin_no_values": "L'anàlisi de N mineral no porta valors utilitzables ({{analysis}}).",
+    "nmin_bulk_density_unknown": "Sense densitat aparent no es pot passar el N mineral a kg/ha ({{analysis}}).",
+    "rain_years_incomplete": "Anys de pluja incomplets descartats: {{years}}.",
+    "rain_normal_short_series": "La pluja normal només usa {{years}} anys complets.",
+    "parcels_in_several_regions": "Les parcel·les són a diverses regions ({{regions}}): indica la regió.",
+    "region_not_found": "No s'ha trobat la regió de les parcel·les: indica la regió (NUTS).",
+    "water_quality_not_found": "No es troba la qualitat d'aigua triada ({{id}}).",
+    "parcels_crops_differ": "Les parcel·les de la fitxa no tenen el mateix cultiu: s'usa el de la primera.",
+    "harvest_zero_ignored": "S'ignora una collita registrada amb pes 0.",
+    "zone_yield_stale": "El rendiment de la zona és antic (últim any {{latest_year}}).",
+    "yield_cv_out_of_range": "La variabilitat del rendiment ({{cv_pct}} %) és massa alta i es descarta.",
+    "declared_years_ignored": "Anys declarats fora de la finestra, ignorats: {{years}}.",
+    "history_too_short": "Historial curt ({{years}}): la variabilitat no és fiable.",
+    "n_min_fallback_typical": "Sense N mínim del producte per a {{eppo}}: s'usa el N típic.",
+    "cycle_species_not_eppo": "El cicle {{crop_id}} no usa un codi EPPO ({{species}}): no es pren com a cultiu.",
+    "previous_cycle_pending": "El cicle anterior ({{crop_id}}) no s'ha confirmat mai: no es pren com a cultiu anterior.",
+    "double_crop_campaign": "La campanya {{campaign}} té {{count}} cicles: aquesta fitxa en fa servir un.",
+    "crop_differs_from_cycle": "El cultiu declarat ({{declared}}) difereix del cicle ({{cycle}}); mana el declarat.",
+    "double_crop_first_cycle_unknown": "No es coneix el primer cicle de la campanya {{campaign}}."
+  },
+  "list": {
+    "title": "Plans d'adobat",
+    "campaign": "Campanya",
+    "empty": "No hi ha pla per a {{campaign}}",
+    "create": "Crea el pla {{campaign}}",
+    "version": "{{campaign}} · v{{version}}",
+    "block_one": "{{count}} bloqueja",
+    "block_other": "{{count}} bloquegen",
+    "warn_one": "{{count}} avís",
+    "warn_other": "{{count}} avisos",
+    "stale": "sense recalcular",
+    "sheets_one": "{{count}} fitxa",
+    "sheets_other": "{{count}} fitxes",
+    "open": "Obre"
+  },
+  "wizard": {
+    "step1": "Pas 1 · Parcel·les de la campanya {{campaign}}",
+    "step2": "Pas 2 · Maneig de cada fitxa",
+    "step3": "Pas 3 · Pluja normal",
+    "next": "Següent",
+    "back": "Enrere",
+    "saveCalc": "Desa i calcula",
+    "include": "Inclou",
+    "parcels_one": "{{count}} parcel·la",
+    "parcels_other": "{{count}} parcel·les",
+    "previous": "anterior:",
+    "noParcels": "No hi ha parcel·les per afegir en aquesta campanya.",
+    "regime": {
+      "rainfed": "secà",
+      "irrigated": "regadiu",
+      "unknown": "règim sense definir"
+    },
+    "noCrop": {
+      "title": "Sense cultiu per a {{campaign}} ({{count}})",
+      "hint": "Declara el cultiu (codi EPPO) o deixa aquestes parcel·les fora del pla."
+    },
+    "declare": {
+      "label": "Cultiu declarat (codi EPPO)",
+      "hint": "Cinc o sis lletres o xifres.",
+      "placeholder": "p. ex. TRZAX",
+      "invalid": "Codi EPPO no vàlid"
+    },
+    "existing": {
+      "title": "Fitxes que ja té el pla",
+      "remove": "Treu",
+      "keep": "Conserva",
+      "confirm": "Es perden els ajustos del tècnic d'aquesta fitxa. La treus?",
+      "yes": "Sí, treu",
+      "cancel": "Cancel·la"
+    },
+    "form": {
+      "regime": "Règim de reg",
+      "choose": "Tria…",
+      "tillage": "Laboreig",
+      "tillageYes": "Amb laboreig",
+      "tillageNo": "Sense laboreig (sembra directa)",
+      "rotation": "Anys de rotació",
+      "strategy": "Estratègia de P i K",
+      "residues": "Es cremen les restes del cultiu anterior"
+    },
+    "strategy": {
+      "1": "1 · Només corregir la carència del sòl",
+      "2": "2 · Corregir i reposar el que s'ha extret (habitual)",
+      "3": "3 · Llindar de fòsfor una mica més alt",
+      "4": "4 · Sense tenir en compte el sòl (avís legal)"
+    },
+    "blocker": {
+      "regime": "Tria secà o regadiu a tots els grups inclosos.",
+      "tillage": "Indica si hi ha laboreig a tots els grups inclosos.",
+      "rotation": "Indica els anys de rotació (d'1 a 20).",
+      "crop": "Declara un cultiu vàlid o deixa el grup fora.",
+      "tooManySheets": "Un pla admet 20 fitxes com a màxim.",
+      "tooManyParcels": "Una fitxa admet 200 parcel·les com a màxim.",
+      "nothing": "No hi ha res per desar: inclou almenys un grup."
+    },
+    "rain": {
+      "hint": "S'obté de la meteorologia de la primera parcel·la i pot trigar. No cal per calcular.",
+      "get": "Obtén la pluja normal",
+      "getting": "Obtenint…",
+      "years_one": "{{count}} any complet",
+      "years_other": "{{count}} anys complets",
+      "annual": "Total anual: {{mm}} mm",
+      "month": "{{month}}: {{mm}} mm"
+    }
+  },
+  "param": {
+    "soil_sand_pct": "Sorra",
+    "soil_clay_pct": "Argila",
+    "soil_ph": "pH",
+    "soil_organic_matter_pct": "Matèria orgànica",
+    "soil_p_olsen_mg_kg": "Fòsfor (Olsen)",
+    "soil_k_mg_kg": "Potassi",
+    "soil_bulk_density_g_cm3": "Densitat aparent",
+    "soil_mineral_n_kg_ha": "N mineral del sòl",
+    "soil_texture_class": "Classe de textura",
+    "yield_kg_ha": "Rendiment esperat",
+    "yield_cv_pct": "Variabilitat del rendiment (CV)",
+    "irrigation_water_m3_ha": "Aigua de reg",
+    "irrigation_no3_mg_l": "Nitrat de l'aigua",
+    "irrigation_uptake": "Fracció de N de l'aigua aprofitada",
+    "irrigation_n_kg_ha": "N aportat per l'aigua",
+    "crop_dm_product_pct": "Matèria seca del producte",
+    "crop_harvest_index_pct": "Índex de collita",
+    "crop_residue_left_pct": "Residu que queda al camp",
+    "crop_n_product_pct": "N del producte",
+    "crop_n_min_product_pct": "N mínim del producte",
+    "crop_p_product_pct": "P del producte",
+    "crop_k_product_pct": "K del producte",
+    "crop_n_residue_pct": "N del residu",
+    "crop_p_residue_pct": "P del residu",
+    "crop_k_residue_pct": "K del residu"
+  },
+  "ownerLink": {
+    "soil": "Puja l'anàlisi a Sòl",
+    "bioorch": "Sense coeficients: el tècnic pot introduir-los amb motiu.",
+    "plan": "Omple-ho en aquesta pantalla.",
+    "broker": "Ho posa: la parcel·la a la plataforma.",
+    "unknown": "Revisa la font de la dada."
+  },
+  "data": {
+    "adjust": "Ajusta",
+    "unadjust": "Treu l'ajust",
+    "range": "Rang permès: {{min}} a {{max}}",
+    "reason": "Motiu (obligatori)",
+    "apply": "Aplica l'ajust",
+    "auto": "Automàtic (el més recent)",
+    "missing": {
+      "title_one": "Falta {{count}} dada per completar el càlcul",
+      "title_other": "Falten {{count}} dades per completar el càlcul",
+      "owner": "Ho posa: {{owner}}"
+    },
+    "notCalculated": "Encara no hi ha càlcul: prem «Calcula» per veure les dades amb la seva procedència.",
+    "section": {
+      "crop": "Cultiu",
+      "yield": "Rendiment",
+      "soil": "Sòl",
+      "water": "Aigua de reg",
+      "organic": "Aportacions orgàniques",
+      "parcels": "Recintes i regió"
+    },
+    "crop": "Cultiu",
+    "previousCrop": "Cultiu anterior",
+    "coefficients": "Coeficients del cultiu",
+    "coefficientsAll": "Veure i ajustar tots els coeficients",
+    "declaredCrop": "Cultiu declarat (codi EPPO)",
+    "declaredPrevious": "Cultiu anterior declarat",
+    "declaredPreviousHint": "Codi EPPO o «fallow» si va estar en guaret.",
+    "basis": {
+      "zone": "Base: rendiment de la zona, anys",
+      "declared": "Base: rendiments declarats, anys",
+      "entered": "Base: valor ajustat pel tècnic",
+      "history": "Base: historial de collites, anys",
+      "missing": "Sense base de rendiment"
+    },
+    "declaredYield": "Rendiment declarat {{year}}",
+    "addYear": "+ Declara un any",
+    "analysis": "Anàlisi {{id}} · {{date}}",
+    "soilAnalysis": "Anàlisi de sòl",
+    "nminAnalysis": "Anàlisi de N mineral",
+    "rainfed": "Secà: no hi ha aigua de reg per comptar.",
+    "noOrganic": "Sense aportacions orgàniques.",
+    "organic": {
+      "material": "Material",
+      "rate": "Dosi (t/ha)",
+      "n": "N (%)",
+      "p2o5": "P₂O₅ (%)",
+      "k2o": "K₂O (%)",
+      "remove": "Treu",
+      "add": "+ Afegeix una aportació orgànica",
+      "availability": "N disponible (fracció)"
+    },
+    "sigpacLabel": "SIGPAC",
+    "sigpacWrite": "Escriu SIGPAC",
+    "nuts": "Regió (NUTS)",
+    "save": "Desa els canvis",
+    "discard": "Descarta"
+  },
+  "workspace": {
+    "back": "Plans",
+    "title": "Pla {{campaign}} · v{{version}}",
+    "signedByAdvisor": "Signat per {{name}} ({{number}}) el {{date}} · empremta {{hash}}",
+    "signedByHolder": "Tancat per {{name}} el {{date}} · empremta {{hash}}",
+    "inReview": "En revisió pel tècnic: només lectura.",
+    "stale": "Dades canviades: recalcula.",
+    "calculate": "Calcula",
+    "recalculate": "Recalcula",
+    "addSheet": "fitxa",
+    "noSheets": "Aquest pla encara no té fitxes.",
+    "noSheetsReadOnly": "Només qui pot editar el pla en crea les fitxes.",
+    "tabs": {
+      "data": "Dades",
+      "needs": "Necessitats"
+    }
+  },
+  "sheet": {
+    "nBand": "N de {{min}} a {{max}} kg/ha, mitjà {{avg}}",
+    "nMissing": "N sense calcular",
+    "provisional": "provisional"
+  },
+  "needs": {
+    "nTitle": "N (kg N/ha)",
+    "min": "mín",
+    "avg": "mitjà",
+    "max": "màx",
+    "bandLabel": "Banda de N: mínim {{min}}, mitjà {{avg}}, màxim {{max}} kg/ha",
+    "beforeCredits": "abans de crèdits",
+    "level": "Nivell de rendiment {{i}}: {{v}} kg/ha",
+    "breakdown": "Desglossament",
+    "term": {
+      "crop_uptake": "Extracció del cultiu",
+      "n_end": "N final (Nend)",
+      "previous_residues": "Restes del cultiu anterior",
+      "previous_roots": "Arrels del cultiu anterior",
+      "n_other": "Altres aportacions (inclou el N de l'aigua de reg)",
+      "fixation": "Fixació simbiòtica",
+      "loss_divisor": "Pèrdues",
+      "soil_mineral_n": "N mineral del sòl",
+      "organic_available_n": "N disponible dels orgànics"
+    },
+    "nMissing": "N sense calcular: falten",
+    "oxideMissing": "{{oxide}} sense calcular: falten",
+    "p2o5": "P₂O₅",
+    "k2o": "K₂O",
+    "soilClass": "Sòl: {{class}}",
+    "soilBar": "Sòl {{value}} mg/kg; llindar {{threshold}}; alt des de {{high}}",
+    "soilNow": "Al sòl: {{value}} mg/kg",
+    "thresholds": "llindar {{low}} mg/kg · alt des de {{high}} mg/kg",
+    "strategy4": "Estratègia 4: no es té en compte el sòl",
+    "doseIs": "Dosi =",
+    "component": {
+      "export": "exportació",
+      "buildup": "pujada per any"
+    },
+    "organicCredit": "aportació orgànica",
+    "versions": "Versions: motor {{engine}} · càlcul {{calc}}",
+    "coefficientsVersion": "coeficients {{v}}"
+  }
+}

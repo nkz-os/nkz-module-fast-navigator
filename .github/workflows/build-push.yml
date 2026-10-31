@@ -88,6 +88,15 @@ jobs:
             - name: Type check
               run: pnpm run typecheck
 
+            - name: Unit tests (frontend)
+              run: pnpm test
+
+            - name: Check host utility classes
+              if: ${{ vars.NKZ_HOST_CSS_URL != '' }}
+              env:
+                  HOST_CSS_URL: ${{ vars.NKZ_HOST_CSS_URL }}
+              run: pnpm run check:host-classes
+
             - name: Set up Python
               uses: actions/setup-python@v5
               with:
@@ -193,12 +202,11 @@ jobs:
     # ==========================================================================
     # Publish MF2 remote (main only) via canonical OIDC workflow
     # ==========================================================================
-    # Disabled until the module is registered in the platform (06b). Publishing
-    # an unregistered module id is rejected, so this stays off until then.
+    # Publishes on every push to main; the module must be registered first.
     publish-module:
         name: Publish Module
         needs: [test, guard]
-        if: false
+        if: ${{ needs.guard.outputs.initialised == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         permissions:
             id-token: write
             contents: read

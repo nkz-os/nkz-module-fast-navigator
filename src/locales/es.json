@@ -1,11 +1,384 @@
 {
-  "example": {
-    "title": "FaST Navigator",
+  "app": {
+    "title": "FaST · Plan de abonado"
+  },
+  "common": {
+    "retry": "Reintentar",
     "loading": "Cargando…",
-    "authRequired": "Se requiere autenticación.",
-    "entity": "Entidad",
-    "user": "Usuario",
-    "refresh": "Actualizar",
-    "replaceHint": "Sustituye este componente por la funcionalidad de tu módulo."
+    "yes": "Sí",
+    "no": "No",
+    "close": "Cerrar",
+    "unit": {
+      "kgHa": "kg/ha",
+      "ha": "ha",
+      "mgKg": "mg/kg"
+    }
+  },
+  "provenance": {
+    "measured": "medido",
+    "table": "tabla",
+    "declared": "declarado",
+    "entered": "ajustado",
+    "estimated": "estimado",
+    "missing": "falta",
+    "plannedBioorch": "planificado en BioOrch",
+    "sown": "sembrado",
+    "unknown": "sin clasificar",
+    "tip": {
+      "measured": "Dato medido ({{source}})",
+      "table": "Valor de una tabla citada ({{id}})",
+      "declared": "Dato declarado en el plan",
+      "entered": "Ajuste con motivo: {{note}} ({{source}})",
+      "estimated": "Estimación: el plan queda provisional",
+      "missing": "Falta. Lo pone: {{owner}}",
+      "planned": "Ciclo planificado en BioOrch, aún sin siembra"
+    }
+  },
+  "state": {
+    "draft": "Borrador",
+    "calculated": "Calculado",
+    "in_review": "En revisión",
+    "signed": "Firmado",
+    "superseded": "Sustituido"
+  },
+  "error": {
+    "session": "Sesión caducada: recarga la página.",
+    "forbidden": "Tu rol no puede hacer esto.",
+    "planNotFound": "El plan no existe.",
+    "parcelNotFound": "La parcela {{urn}} ya no existe.",
+    "conflict": "Otra persona lo cambió; revisa y repite.",
+    "gatewayTimeout": "Tardó demasiado; reintenta.",
+    "sourceUnavailable": "No se pudo calcular: no responde {{source}}.",
+    "planStays": "El plan sigue «{{state}}».",
+    "invalid": "Hay datos no válidos: revisa los campos marcados.",
+    "generic": "No se pudo completar la operación. Reintenta.",
+    "rules": "Reglas: {{rules}}",
+    "transition": {
+      "stale_calculation": "Los datos cambiaron: recalcula antes.",
+      "blocking_findings": "Hay hallazgos que bloquean.",
+      "advice_required": "Hace falta asesoramiento técnico.",
+      "not_allowed": "Acción no permitida en este estado."
+    }
+  },
+  "source": {
+    "bioorch": "BioOrch (coeficientes de cultivo)",
+    "soil": "Suelo (análisis)",
+    "weather_api": "el servicio meteorológico",
+    "broker": "la plataforma (parcelas)",
+    "broker_crop_cycles": "la plataforma (ciclos de cultivo)"
+  },
+  "owner": {
+    "plan": "el plan (aquí mismo)",
+    "soil": "Suelo",
+    "bioorch": "BioOrch",
+    "broker": "la parcela en la plataforma"
+  },
+  "missing": {
+    "crop": "Cultivo de la campaña",
+    "previous_crop": "Cultivo anterior",
+    "yield": "Rendimiento esperado",
+    "previous_yield": "Rendimiento del cultivo anterior",
+    "soil": "Análisis de suelo (textura, pH, P, K)",
+    "irrigation": "Datos del agua de riego",
+    "parcel": "Datos de la parcela",
+    "organic": "Datos del aporte orgánico",
+    "region": "Región (NUTS)"
+  },
+  "soilClass": {
+    "low": "Bajo",
+    "medium": "Medio",
+    "high": "Alto"
+  },
+  "basis": {
+    "buildup": "subida",
+    "buildup_and_export": "subida + exportación",
+    "export": "exportación",
+    "half_export": "media exportación",
+    "none": "sin aporte"
+  },
+  "pdf": {
+    "button": "PDF",
+    "busy": "Generando…"
+  },
+  "footer": {
+    "attribution": "Plataforma Nekazari · FIWARE · AGPL-3.0",
+    "source": "Código fuente",
+    "credit": "Cálculo basado en FertiliCalc (F. J. Villalobos, Universidad de Córdoba, GPL-3.0).",
+    "sourcesOpen": "Fuentes de datos",
+    "sourcesClose": "Ocultar fuentes",
+    "sourcesNote": "Las cifras mostradas son cálculos de Nekazari, no datos publicados por las fuentes.",
+    "licence": "Licencia",
+    "link": "Fuente"
+  },
+  "notice": {
+    "parcel_identifier_unrecognized": "El identificador de la parcela ({{value}}) no es un recinto SIGPAC ni una referencia catastral.",
+    "irrigation_no3_unknown": "Se desconoce el nitrato del agua de riego: no se descuenta su N.",
+    "soil_p_methods_mixed": "El análisis mezcla métodos de fósforo: no se usa el P.",
+    "soil_p_method_unknown": "El análisis no indica el método del fósforo: no se usa el P.",
+    "soil_p_method_unsupported": "Método de fósforo no admitido ({{method}}): no se usa el P.",
+    "soil_k_methods_mixed": "El análisis mezcla métodos de potasio: no se usa el K.",
+    "soil_k_method_unknown": "El análisis no indica el método del potasio: no se usa el K.",
+    "soil_k_method_unsupported": "Método de potasio no admitido ({{method}}): no se usa el K.",
+    "nmin_form_not_measured": "Al análisis de N mineral le falta una forma ({{missing}}): el N mineral queda incompleto.",
+    "soil_analysis_not_found": "No se encuentra el análisis de suelo elegido ({{analysis}}).",
+    "soil_estimate_out_of_range": "La estimación de {{field}} ({{value}}) queda fuera de rango y se descarta.",
+    "soil_texture_invalid": "Arena y arcilla no dan una textura válida: se descarta.",
+    "nmin_analysis_not_found": "No se encuentra el análisis de N mineral elegido ({{analysis}}).",
+    "nmin_no_values": "El análisis de N mineral no trae valores utilizables ({{analysis}}).",
+    "nmin_bulk_density_unknown": "Sin densidad aparente no se puede pasar el N mineral a kg/ha ({{analysis}}).",
+    "rain_years_incomplete": "Años de lluvia incompletos descartados: {{years}}.",
+    "rain_normal_short_series": "La lluvia normal usa solo {{years}} años completos.",
+    "parcels_in_several_regions": "Las parcelas están en varias regiones ({{regions}}): indica la región.",
+    "region_not_found": "No se encontró la región de las parcelas: indica la región (NUTS).",
+    "water_quality_not_found": "No se encuentra la calidad de agua elegida ({{id}}).",
+    "parcels_crops_differ": "Las parcelas de la hoja no tienen el mismo cultivo: se usa el de la primera.",
+    "harvest_zero_ignored": "Se ignora una cosecha registrada con peso 0.",
+    "zone_yield_stale": "El rendimiento de la zona es antiguo (último año {{latest_year}}).",
+    "yield_cv_out_of_range": "La variabilidad del rendimiento ({{cv_pct}} %) es demasiado alta y se descarta.",
+    "declared_years_ignored": "Años declarados fuera de la ventana, ignorados: {{years}}.",
+    "history_too_short": "Historial corto ({{years}}): la variabilidad no es fiable.",
+    "n_min_fallback_typical": "Sin N mínimo del producto para {{eppo}}: se usa el N típico.",
+    "cycle_species_not_eppo": "El ciclo {{crop_id}} no usa un código EPPO ({{species}}): no se toma como cultivo.",
+    "previous_cycle_pending": "El ciclo anterior ({{crop_id}}) sigue sin confirmar: no se toma como cultivo anterior.",
+    "double_crop_campaign": "La campaña {{campaign}} tiene {{count}} ciclos: esta hoja usa uno.",
+    "crop_differs_from_cycle": "El cultivo declarado ({{declared}}) difiere del ciclo ({{cycle}}); manda lo declarado.",
+    "double_crop_first_cycle_unknown": "No se conoce el primer ciclo de la campaña {{campaign}}."
+  },
+  "list": {
+    "title": "Planes de abonado",
+    "campaign": "Campaña",
+    "empty": "No hay plan para {{campaign}}",
+    "create": "Crear plan {{campaign}}",
+    "version": "{{campaign}} · v{{version}}",
+    "block_one": "{{count}} bloquea",
+    "block_other": "{{count}} bloquean",
+    "warn_one": "{{count}} aviso",
+    "warn_other": "{{count}} avisos",
+    "stale": "sin recalcular",
+    "sheets_one": "{{count}} hoja",
+    "sheets_other": "{{count}} hojas",
+    "open": "Abrir"
+  },
+  "wizard": {
+    "step1": "Paso 1 · Parcelas de la campaña {{campaign}}",
+    "step2": "Paso 2 · Manejo de cada hoja",
+    "step3": "Paso 3 · Lluvia normal",
+    "next": "Siguiente",
+    "back": "Atrás",
+    "saveCalc": "Guardar y calcular",
+    "include": "Incluir",
+    "parcels_one": "{{count}} parcela",
+    "parcels_other": "{{count}} parcelas",
+    "previous": "anterior:",
+    "noParcels": "No hay parcelas por añadir en esta campaña.",
+    "regime": {
+      "rainfed": "secano",
+      "irrigated": "regadío",
+      "unknown": "régimen sin definir"
+    },
+    "noCrop": {
+      "title": "Sin cultivo para {{campaign}} ({{count}})",
+      "hint": "Declara el cultivo (código EPPO) o deja estas parcelas fuera del plan."
+    },
+    "declare": {
+      "label": "Cultivo declarado (código EPPO)",
+      "hint": "Cinco o seis letras o cifras.",
+      "placeholder": "p. ej. TRZAX",
+      "invalid": "Código EPPO no válido"
+    },
+    "existing": {
+      "title": "Hojas que ya tiene el plan",
+      "remove": "Quitar",
+      "keep": "Conservar",
+      "confirm": "Se pierden los ajustes del técnico de esta hoja. ¿Quitarla?",
+      "yes": "Sí, quitar",
+      "cancel": "Cancelar"
+    },
+    "form": {
+      "regime": "Régimen de riego",
+      "choose": "Elige…",
+      "tillage": "Laboreo",
+      "tillageYes": "Con laboreo",
+      "tillageNo": "Sin laboreo (siembra directa)",
+      "rotation": "Años de rotación",
+      "strategy": "Estrategia de P y K",
+      "residues": "Se queman los restos del cultivo anterior"
+    },
+    "strategy": {
+      "1": "1 · Solo corregir la carencia del suelo",
+      "2": "2 · Corregir y reponer lo extraído (habitual)",
+      "3": "3 · Umbral de fósforo algo más alto",
+      "4": "4 · Sin tener en cuenta el suelo (aviso legal)"
+    },
+    "blocker": {
+      "regime": "Elige secano o regadío en todos los grupos incluidos.",
+      "tillage": "Indica si hay laboreo en todos los grupos incluidos.",
+      "rotation": "Indica los años de rotación (de 1 a 20).",
+      "crop": "Declara un cultivo válido o deja el grupo fuera.",
+      "tooManySheets": "Un plan admite 20 hojas como máximo.",
+      "tooManyParcels": "Una hoja admite 200 parcelas como máximo.",
+      "nothing": "No hay nada que guardar: incluye al menos un grupo."
+    },
+    "rain": {
+      "hint": "Se obtiene de la meteorología de la primera parcela y puede tardar. No hace falta para calcular.",
+      "get": "Obtener lluvia normal",
+      "getting": "Obteniendo…",
+      "years_one": "{{count}} año completo",
+      "years_other": "{{count}} años completos",
+      "annual": "Total anual: {{mm}} mm",
+      "month": "{{month}}: {{mm}} mm"
+    }
+  },
+  "param": {
+    "soil_sand_pct": "Arena",
+    "soil_clay_pct": "Arcilla",
+    "soil_ph": "pH",
+    "soil_organic_matter_pct": "Materia orgánica",
+    "soil_p_olsen_mg_kg": "Fósforo (Olsen)",
+    "soil_k_mg_kg": "Potasio",
+    "soil_bulk_density_g_cm3": "Densidad aparente",
+    "soil_mineral_n_kg_ha": "N mineral del suelo",
+    "soil_texture_class": "Clase de textura",
+    "yield_kg_ha": "Rendimiento esperado",
+    "yield_cv_pct": "Variabilidad del rendimiento (CV)",
+    "irrigation_water_m3_ha": "Agua de riego",
+    "irrigation_no3_mg_l": "Nitrato del agua",
+    "irrigation_uptake": "Fracción de N del agua aprovechada",
+    "irrigation_n_kg_ha": "N aportado por el agua",
+    "crop_dm_product_pct": "Materia seca del producto",
+    "crop_harvest_index_pct": "Índice de cosecha",
+    "crop_residue_left_pct": "Residuo que queda en el campo",
+    "crop_n_product_pct": "N del producto",
+    "crop_n_min_product_pct": "N mínimo del producto",
+    "crop_p_product_pct": "P del producto",
+    "crop_k_product_pct": "K del producto",
+    "crop_n_residue_pct": "N del residuo",
+    "crop_p_residue_pct": "P del residuo",
+    "crop_k_residue_pct": "K del residuo"
+  },
+  "ownerLink": {
+    "soil": "Subir análisis en Suelo",
+    "bioorch": "Sin coeficientes: el técnico puede introducirlos con motivo.",
+    "plan": "Rellénalo en esta pantalla.",
+    "broker": "Lo pone: la parcela en la plataforma.",
+    "unknown": "Revisa la fuente del dato."
+  },
+  "data": {
+    "adjust": "Ajustar",
+    "unadjust": "Quitar ajuste",
+    "range": "Rango permitido: {{min}} a {{max}}",
+    "reason": "Motivo (obligatorio)",
+    "apply": "Aplicar ajuste",
+    "auto": "Automático (el más reciente)",
+    "missing": {
+      "title_one": "Falta {{count}} dato para completar el cálculo",
+      "title_other": "Faltan {{count}} datos para completar el cálculo",
+      "owner": "Lo pone: {{owner}}"
+    },
+    "notCalculated": "Todavía no hay cálculo: pulsa «Calcular» para ver los datos con su procedencia.",
+    "section": {
+      "crop": "Cultivo",
+      "yield": "Rendimiento",
+      "soil": "Suelo",
+      "water": "Agua de riego",
+      "organic": "Aportes orgánicos",
+      "parcels": "Recintos y región"
+    },
+    "crop": "Cultivo",
+    "previousCrop": "Cultivo anterior",
+    "coefficients": "Coeficientes del cultivo",
+    "coefficientsAll": "Ver y ajustar todos los coeficientes",
+    "declaredCrop": "Cultivo declarado (código EPPO)",
+    "declaredPrevious": "Cultivo anterior declarado",
+    "declaredPreviousHint": "Código EPPO o «fallow» si estuvo en barbecho.",
+    "basis": {
+      "zone": "Base: rendimiento de la zona, años",
+      "declared": "Base: rendimientos declarados, años",
+      "entered": "Base: valor ajustado por el técnico",
+      "history": "Base: historial de cosechas, años",
+      "missing": "Sin base de rendimiento"
+    },
+    "declaredYield": "Rendimiento declarado {{year}}",
+    "addYear": "+ Declarar un año",
+    "analysis": "Análisis {{id}} · {{date}}",
+    "soilAnalysis": "Análisis de suelo",
+    "nminAnalysis": "Análisis de N mineral",
+    "rainfed": "Secano: no hay agua de riego que contar.",
+    "noOrganic": "Sin aportes orgánicos.",
+    "organic": {
+      "material": "Material",
+      "rate": "Dosis (t/ha)",
+      "n": "N (%)",
+      "p2o5": "P₂O₅ (%)",
+      "k2o": "K₂O (%)",
+      "remove": "Quitar",
+      "add": "+ Añadir aporte orgánico",
+      "availability": "N disponible (fracción)"
+    },
+    "sigpacLabel": "SIGPAC",
+    "sigpacWrite": "Escribir SIGPAC",
+    "nuts": "Región (NUTS)",
+    "save": "Guardar cambios",
+    "discard": "Descartar"
+  },
+  "workspace": {
+    "back": "Planes",
+    "title": "Plan {{campaign}} · v{{version}}",
+    "signedByAdvisor": "Firmado por {{name}} ({{number}}) el {{date}} · huella {{hash}}",
+    "signedByHolder": "Cerrado por {{name}} el {{date}} · huella {{hash}}",
+    "inReview": "En revisión por el técnico: solo lectura.",
+    "stale": "Datos cambiados: recalcula.",
+    "calculate": "Calcular",
+    "recalculate": "Recalcular",
+    "addSheet": "hoja",
+    "noSheets": "Este plan aún no tiene hojas.",
+    "noSheetsReadOnly": "Solo quien puede editar el plan crea sus hojas.",
+    "tabs": {
+      "data": "Datos",
+      "needs": "Necesidades"
+    }
+  },
+  "sheet": {
+    "nBand": "N de {{min}} a {{max}} kg/ha, medio {{avg}}",
+    "nMissing": "N sin calcular",
+    "provisional": "provisional"
+  },
+  "needs": {
+    "nTitle": "N (kg N/ha)",
+    "min": "mín",
+    "avg": "medio",
+    "max": "máx",
+    "bandLabel": "Banda de N: mínimo {{min}}, medio {{avg}}, máximo {{max}} kg/ha",
+    "beforeCredits": "antes de créditos",
+    "level": "Nivel de rendimiento {{i}}: {{v}} kg/ha",
+    "breakdown": "Desglose",
+    "term": {
+      "crop_uptake": "Extracción del cultivo",
+      "n_end": "N final (Nend)",
+      "previous_residues": "Restos del cultivo anterior",
+      "previous_roots": "Raíces del cultivo anterior",
+      "n_other": "Otros aportes (incluye el N del agua de riego)",
+      "fixation": "Fijación simbiótica",
+      "loss_divisor": "Pérdidas",
+      "soil_mineral_n": "N mineral del suelo",
+      "organic_available_n": "N disponible de orgánicos"
+    },
+    "nMissing": "N sin calcular: faltan",
+    "oxideMissing": "{{oxide}} sin calcular: faltan",
+    "p2o5": "P₂O₅",
+    "k2o": "K₂O",
+    "soilClass": "Suelo: {{class}}",
+    "soilBar": "Suelo {{value}} mg/kg; umbral {{threshold}}; alto desde {{high}}",
+    "soilNow": "En el suelo: {{value}} mg/kg",
+    "thresholds": "umbral {{low}} mg/kg · alto desde {{high}} mg/kg",
+    "strategy4": "Estrategia 4: no se tiene en cuenta el suelo",
+    "doseIs": "Dosis =",
+    "component": {
+      "export": "exportación",
+      "buildup": "subida por año"
+    },
+    "organicCredit": "aporte orgánico",
+    "versions": "Versiones: motor {{engine}} · cálculo {{calc}}",
+    "coefficientsVersion": "coeficientes {{v}}"
   }
 }

@@ -16,7 +16,7 @@ import pt from './locales/pt.json';
 
 // Namespace must match the module id (fast-navigator) so t('key', { ns: 'fast-navigator' })
 // and useTranslation('fast-navigator') resolve these bundles.
-const NAMESPACE = 'fast-navigator';
+export const NAMESPACE = 'fast-navigator';
 
 export function registerModuleTranslations(): void {
   if (!i18n || typeof (i18n as any).addResourceBundle !== 'function') return;

@@ -174,3 +174,43 @@ def test_a_credited_nmin_analysis_blocks_nothing():
     n1 = analysis("n1", [{"depthFrom": 0, "depthTo": 30, "nitrateN": 8.0, "ammoniumN": 2.0,
                           "bulkDensity": 1.4}])
     assert build_soil([analysis("a1", [H]), n1], [], None, "n1", {}).nmin_missing == ()
+
+
+OC = [{"depthFrom": 0, "depthTo": 5, "organicCarbon": 4.0},
+      {"depthFrom": 5, "depthTo": 30, "organicCarbon": 1.6}]
+
+
+def test_organic_matter_is_estimated_from_the_organic_carbon_of_the_soil_module():
+    s = build_soil([], OC, None, None, {})
+    om = s.values["organic_matter_pct"]
+    oc_mean = (4.0 * 5 + 1.6 * 25) / 30
+    assert om.value == pytest.approx(oc_mean * 1.724)      # van Bemmelen factor
+    assert om.provenance == ESTIMATED and om.source == "soil:estimated"
+    assert s.provisional
+    assert [n.code for n in s.notices] == ["soil_om_estimated"]
+    assert Notice("soil_om_estimated", {"oc_pct": round(oc_mean, 2), "om_pct": round(om.value, 2)}) in s.notices
+    assert MissingInput("soil.organic_matter_pct", "soil", {}) not in s.missing
+
+
+def test_a_laboratory_organic_matter_beats_the_estimate():
+    s = build_soil([analysis("a1", [H])], OC, None, None, {})
+    assert s.values["organic_matter_pct"].value == 1.9
+    assert s.values["organic_matter_pct"].provenance == MEASURED
+    assert not any(n.code == "soil_om_estimated" for n in s.notices)
+
+
+def test_an_override_beats_the_estimate():
+    s = build_soil([], OC, None, None, _o("soil.organic_matter_pct", 2.5))
+    assert s.values["organic_matter_pct"].value == 2.5
+    assert not any(n.code == "soil_om_estimated" for n in s.notices)
+
+
+def test_no_organic_matter_without_organic_carbon_in_every_horizon():
+    s = build_soil([], [OC[0], {"depthFrom": 5, "depthTo": 30}], None, None, {})
+    assert not s.values["organic_matter_pct"].known
+
+
+def test_an_organic_carbon_out_of_range_is_dropped():
+    s = build_soil([], [{"depthFrom": 0, "depthTo": 30, "organicCarbon": 400.0}], None, None, {})
+    assert not s.values["organic_matter_pct"].known
+    assert any(n.code == "soil_estimate_out_of_range" for n in s.notices)

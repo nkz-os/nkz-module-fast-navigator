@@ -142,7 +142,8 @@
     "previous_cycle_pending": "The previous cycle ({{crop_id}}) was never confirmed: it is not taken as the previous crop.",
     "double_crop_campaign": "Campaign {{campaign}} has {{count}} cycles: this sheet uses one.",
     "crop_differs_from_cycle": "The declared crop ({{declared}}) differs from the cycle ({{cycle}}); the declared one prevails.",
-    "double_crop_first_cycle_unknown": "The first cycle of campaign {{campaign}} is unknown."
+    "double_crop_first_cycle_unknown": "The first cycle of campaign {{campaign}} is unknown.",
+    "soil_om_estimated": "Organic matter estimated ({{om_pct}} %) from the organic carbon of the Soil module ({{oc_pct}} % × 1.724). It is not a lab analysis: upload one to replace it."
   },
   "list": {
     "title": "Fertilisation plans",
@@ -179,11 +180,11 @@
     },
     "noCrop": {
       "title": "No crop for {{campaign}} ({{count}})",
-      "hint": "Declare the crop (EPPO code) or leave these parcels out of the plan."
+      "hint": "Choose the crop by name or leave these parcels out of the plan."
     },
     "declare": {
-      "label": "Declared crop (EPPO code)",
-      "hint": "Five or six letters or digits.",
+      "label": "Declared crop",
+      "hint": "Search the crop by name.",
       "placeholder": "e.g. TRZAX",
       "invalid": "Not a valid EPPO code"
     },
@@ -289,9 +290,9 @@
     "previousCrop": "Previous crop",
     "coefficients": "Crop coefficients",
     "coefficientsAll": "See and adjust all coefficients",
-    "declaredCrop": "Declared crop (EPPO code)",
+    "declaredCrop": "Declared crop",
     "declaredPrevious": "Declared previous crop",
-    "declaredPreviousHint": "EPPO code, or \"fallow\" if it lay fallow.",
+    "declaredPreviousHint": "Main crop of the previous campaign, or fallow.",
     "basis": {
       "zone": "Basis: zone yield, years",
       "declared": "Basis: declared yields, years",
@@ -314,13 +315,28 @@
       "k2o": "K₂O (%)",
       "remove": "Remove",
       "add": "+ Add an organic input",
-      "availability": "Available N (share)"
+      "availability": "Available N (share)",
+      "chooseMaterial": "Choose the material type of every input to save.",
+      "materials": {
+        "cattle_manure": "Cattle manure",
+        "other_manure": "Other manure",
+        "slurry": "Slurry",
+        "compost": "Compost",
+        "other": "Other material"
+      }
     },
     "sigpacLabel": "SIGPAC",
     "sigpacWrite": "Enter SIGPAC",
     "nuts": "Region (NUTS)",
     "save": "Save changes",
-    "discard": "Discard"
+    "discard": "Discard",
+    "declaredCropHint": "Search the crop by name.",
+    "yieldUnit": "kg/ha (fresh grain)",
+    "yieldHelp": "Expected yield: kg per hectare of fresh product, as sold. It comes from the average of previous campaigns: declare what you harvested each year. With 3 years, the variability (CV) is calculated automatically.",
+    "cvHelp": "The CV measures how much the harvest varies from year to year and gives the nitrogen band. With 3 declared years it is calculated automatically.",
+    "coverBefore": "Before: cover crop of",
+    "applyPreviousToAll_one": "Apply to the other sheet without a previous crop",
+    "applyPreviousToAll_other": "Apply to the other {{count}} sheets without a previous crop"
   },
   "workspace": {
     "back": "Plans",
@@ -381,5 +397,17 @@
     "organicCredit": "organic credit",
     "versions": "Versions: engine {{engine}} · calculation {{calc}}",
     "coefficientsVersion": "coefficients {{v}}"
+  },
+  "cropPicker": {
+    "search": "Type the crop name…",
+    "fallow": "Fallow",
+    "noCoefficients": "no coefficients",
+    "noCoefficientsHint": "FaST does not have coefficients for this crop yet: the calculation will stay incomplete.",
+    "change": "Change",
+    "clear": "Remove",
+    "noMatch": "No crop matches.",
+    "useCode": "Use code {{code}}",
+    "typeToSearch": "Type to search among {{count}} crops.",
+    "listFailed": "The crop list could not be loaded: type the EPPO code."
   }
 }

@@ -41,6 +41,8 @@ export interface CampaignParcel {
   previous_crop: Sourced<string>;
   previous_campaign: number | null;
   cycle: CycleView | null;
+  /** EPPO of a cover crop grown right before the main crop: a hint, never a previous crop. */
+  cover_before: string | null;
   analyses: SoilAnalysisRef[];
   notices: Notice[];
 }

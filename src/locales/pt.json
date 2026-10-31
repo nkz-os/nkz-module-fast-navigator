@@ -142,7 +142,8 @@
     "previous_cycle_pending": "O ciclo anterior ({{crop_id}}) nunca foi confirmado: não é tomado como cultura anterior.",
     "double_crop_campaign": "A campanha {{campaign}} tem {{count}} ciclos: esta ficha usa um.",
     "crop_differs_from_cycle": "A cultura declarada ({{declared}}) difere do ciclo ({{cycle}}); prevalece a declarada.",
-    "double_crop_first_cycle_unknown": "O primeiro ciclo da campanha {{campaign}} é desconhecido."
+    "double_crop_first_cycle_unknown": "O primeiro ciclo da campanha {{campaign}} é desconhecido.",
+    "soil_om_estimated": "Matéria orgânica estimada ({{om_pct}} %) a partir do carbono orgânico do módulo Solo ({{oc_pct}} % × 1,724). Não é uma análise: carregue uma para a substituir."
   },
   "list": {
     "title": "Planos de fertilização",
@@ -179,11 +180,11 @@
     },
     "noCrop": {
       "title": "Sem cultura para {{campaign}} ({{count}})",
-      "hint": "Declare a cultura (código EPPO) ou deixe estas parcelas fora do plano."
+      "hint": "Escolha a cultura pelo nome ou deixe estas parcelas fora do plano."
     },
     "declare": {
-      "label": "Cultura declarada (código EPPO)",
-      "hint": "Cinco ou seis letras ou algarismos.",
+      "label": "Cultura declarada",
+      "hint": "Procure a cultura pelo nome.",
       "placeholder": "p. ex. TRZAX",
       "invalid": "Código EPPO inválido"
     },
@@ -289,9 +290,9 @@
     "previousCrop": "Cultura anterior",
     "coefficients": "Coeficientes da cultura",
     "coefficientsAll": "Ver e ajustar todos os coeficientes",
-    "declaredCrop": "Cultura declarada (código EPPO)",
+    "declaredCrop": "Cultura declarada",
     "declaredPrevious": "Cultura anterior declarada",
-    "declaredPreviousHint": "Código EPPO ou «fallow» se esteve em pousio.",
+    "declaredPreviousHint": "Cultura principal da campanha anterior, ou pousio.",
     "basis": {
       "zone": "Base: produtividade da zona, anos",
       "declared": "Base: produtividades declaradas, anos",
@@ -314,13 +315,28 @@
       "k2o": "K₂O (%)",
       "remove": "Remover",
       "add": "+ Adicionar aporte orgânico",
-      "availability": "N disponível (fração)"
+      "availability": "N disponível (fração)",
+      "chooseMaterial": "Escolha o tipo de material de cada aporte para guardar.",
+      "materials": {
+        "cattle_manure": "Estrume de bovino",
+        "other_manure": "Outros estrumes",
+        "slurry": "Chorume",
+        "compost": "Composto",
+        "other": "Outro material"
+      }
     },
     "sigpacLabel": "SIGPAC",
     "sigpacWrite": "Escrever SIGPAC",
     "nuts": "Região (NUTS)",
     "save": "Guardar alterações",
-    "discard": "Descartar"
+    "discard": "Descartar",
+    "declaredCropHint": "Procure a cultura pelo nome.",
+    "yieldUnit": "kg/ha (grão fresco)",
+    "yieldHelp": "Produtividade esperada: kg por hectare de produto fresco, tal como vendido. Vem da média das campanhas anteriores: declare o que colheu em cada ano. Com 3 anos, a variabilidade (CV) calcula-se sozinha.",
+    "cvHelp": "O CV mede quanto a colheita varia de um ano para o outro e dá a banda do azoto. Com 3 anos declarados calcula-se sozinho.",
+    "coverBefore": "Antes: cobertura de",
+    "applyPreviousToAll_one": "Aplicar à outra folha sem cultura anterior",
+    "applyPreviousToAll_other": "Aplicar às outras {{count}} folhas sem cultura anterior"
   },
   "workspace": {
     "back": "Planos",
@@ -381,5 +397,17 @@
     "organicCredit": "crédito orgânico",
     "versions": "Versões: motor {{engine}} · cálculo {{calc}}",
     "coefficientsVersion": "coeficientes {{v}}"
+  },
+  "cropPicker": {
+    "search": "Escreva o nome da cultura…",
+    "fallow": "Pousio",
+    "noCoefficients": "sem coeficientes",
+    "noCoefficientsHint": "O FaST ainda não tem coeficientes desta cultura: o cálculo ficará incompleto.",
+    "change": "Mudar",
+    "clear": "Remover",
+    "noMatch": "Nenhuma cultura corresponde.",
+    "useCode": "Usar o código {{code}}",
+    "typeToSearch": "Escreva para procurar entre {{count}} culturas.",
+    "listFailed": "Não foi possível carregar a lista de culturas: escreva o código EPPO."
   }
 }

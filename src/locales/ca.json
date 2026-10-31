@@ -142,7 +142,8 @@
     "previous_cycle_pending": "El cicle anterior ({{crop_id}}) no s'ha confirmat mai: no es pren com a cultiu anterior.",
     "double_crop_campaign": "La campanya {{campaign}} té {{count}} cicles: aquesta fitxa en fa servir un.",
     "crop_differs_from_cycle": "El cultiu declarat ({{declared}}) difereix del cicle ({{cycle}}); mana el declarat.",
-    "double_crop_first_cycle_unknown": "No es coneix el primer cicle de la campanya {{campaign}}."
+    "double_crop_first_cycle_unknown": "No es coneix el primer cicle de la campanya {{campaign}}.",
+    "soil_om_estimated": "Matèria orgànica estimada ({{om_pct}} %) a partir del carboni orgànic del mòdul Sòl ({{oc_pct}} % × 1,724). No és una anàlisi: puja’n una per substituir-la."
   },
   "list": {
     "title": "Plans d'adobat",
@@ -179,11 +180,11 @@
     },
     "noCrop": {
       "title": "Sense cultiu per a {{campaign}} ({{count}})",
-      "hint": "Declara el cultiu (codi EPPO) o deixa aquestes parcel·les fora del pla."
+      "hint": "Tria el cultiu pel seu nom o deixa aquestes parcel·les fora del pla."
     },
     "declare": {
-      "label": "Cultiu declarat (codi EPPO)",
-      "hint": "Cinc o sis lletres o xifres.",
+      "label": "Cultiu declarat",
+      "hint": "Cerca el cultiu pel seu nom.",
       "placeholder": "p. ex. TRZAX",
       "invalid": "Codi EPPO no vàlid"
     },
@@ -289,9 +290,9 @@
     "previousCrop": "Cultiu anterior",
     "coefficients": "Coeficients del cultiu",
     "coefficientsAll": "Veure i ajustar tots els coeficients",
-    "declaredCrop": "Cultiu declarat (codi EPPO)",
+    "declaredCrop": "Cultiu declarat",
     "declaredPrevious": "Cultiu anterior declarat",
-    "declaredPreviousHint": "Codi EPPO o «fallow» si va estar en guaret.",
+    "declaredPreviousHint": "Cultiu principal de la campanya anterior, o guaret.",
     "basis": {
       "zone": "Base: rendiment de la zona, anys",
       "declared": "Base: rendiments declarats, anys",
@@ -314,13 +315,28 @@
       "k2o": "K₂O (%)",
       "remove": "Treu",
       "add": "+ Afegeix una aportació orgànica",
-      "availability": "N disponible (fracció)"
+      "availability": "N disponible (fracció)",
+      "chooseMaterial": "Tria el tipus de material de cada aportació per desar.",
+      "materials": {
+        "cattle_manure": "Fem de boví",
+        "other_manure": "Altres fems",
+        "slurry": "Purí",
+        "compost": "Compost",
+        "other": "Un altre material"
+      }
     },
     "sigpacLabel": "SIGPAC",
     "sigpacWrite": "Escriu SIGPAC",
     "nuts": "Regió (NUTS)",
     "save": "Desa els canvis",
-    "discard": "Descarta"
+    "discard": "Descarta",
+    "declaredCropHint": "Cerca el cultiu pel seu nom.",
+    "yieldUnit": "kg/ha (gra en fresc)",
+    "yieldHelp": "Rendiment esperat: kg per hectàrea de producte en fresc, tal com es ven. Surt de la mitjana de les campanyes anteriors: declara el que vas collir cada any. Amb 3 anys, la variabilitat (CV) es calcula sola.",
+    "cvHelp": "El CV mesura quant varia la collita d’un any a l’altre i dona la banda del nitrogen. Amb 3 anys declarats es calcula sol.",
+    "coverBefore": "Abans: cobertora de",
+    "applyPreviousToAll_one": "Aplica a l’altre full sense cultiu anterior",
+    "applyPreviousToAll_other": "Aplica als altres {{count}} fulls sense cultiu anterior"
   },
   "workspace": {
     "back": "Plans",
@@ -381,5 +397,17 @@
     "organicCredit": "aportació orgànica",
     "versions": "Versions: motor {{engine}} · càlcul {{calc}}",
     "coefficientsVersion": "coeficients {{v}}"
+  },
+  "cropPicker": {
+    "search": "Escriu el nom del cultiu…",
+    "fallow": "Guaret",
+    "noCoefficients": "sense coeficients",
+    "noCoefficientsHint": "FaST encara no té coeficients d’aquest cultiu: el càlcul quedarà incomplet.",
+    "change": "Canvia",
+    "clear": "Treu",
+    "noMatch": "Cap cultiu coincideix.",
+    "useCode": "Usa el codi {{code}}",
+    "typeToSearch": "Escriu per cercar entre {{count}} cultius.",
+    "listFailed": "No s’ha pogut carregar la llista de cultius: escriu el codi EPPO."
   }
 }

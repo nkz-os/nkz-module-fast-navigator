@@ -2,14 +2,17 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from '@nekazari/sdk';
 import { Button, FormField, FormGrid, Inline, Input, Select, Stack, Surface, Textarea } from '@nekazari/ui-kit';
 import { deleteOverride, putOverride, putSheets } from '../api/fast';
+import { useCrops } from '../hooks/useCrops';
 import type { CampaignParcel, OrganicInput, Plan, PlanSheet, PlanSheetIn, SheetResult, Sourced } from '../api/types';
 import { errorView } from '../model/errors';
 import { formatDate, formatKgHa } from '../model/format';
 import { mayAdjust, overrideRange } from '../model/overrides';
 import { COEFFICIENT_PARAMS, formatParam, PARAMS, paramLabelKey, SOIL_PARAMS, WATER_PARAMS, YIELD_PARAMS } from '../model/params';
 import type { Roles } from '../model/roles';
-import { editSheet, ownerLink } from '../model/sheets';
+import { ORGANIC_MATERIALS } from '../model/organic';
+import { applyPreviousCrop, editSheet, lacksPreviousCrop, ownerLink } from '../model/sheets';
 import { CropLabel } from './CropLabel';
+import { CropPicker } from './CropPicker';
 import { ErrorBanner } from './ErrorBanner';
 import { ProvenanceChip, SourcedValue } from './ProvenanceChip';
 
@@ -83,6 +86,7 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
 
   const [patch, setPatch] = useState<Partial<PlanSheetIn>>({});
   const [sigpac, setSigpac] = useState<Record<string, string>>({});
+  const crops = useCrops(editable);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const dirty = Object.keys(patch).length > 0 || Object.keys(sigpac).length > 0;
@@ -115,6 +119,21 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
     } finally { setSaving(false); }
   };
 
+  const previousValue = val('previous_crop_eppo') as string | null;
+  const othersLackingPrevious = plan.sheets.filter((s) => s.key !== sheet.key && lacksPreviousCrop(s)).length;
+  const applyPreviousToAll = async () => {
+    if (!previousValue) return;
+    setSaving(true); setError(null);
+    try {
+      onSaved(await putSheets(plan.id, plan.row_version, applyPreviousCrop(plan, sheet.key, { ...patch }, previousValue)));
+      setPatch({});
+    } catch (e) {
+      setError(e);
+      if (errorView(e).reload) onReload();
+    } finally { setSaving(false); }
+  };
+  const coverSpecies = [...new Set(parcels.filter((p) => urns.includes(p.id)).map((p) => p.cover_before).filter((c): c is string => !!c))];
+
   const num = (v: string): number | null => (v === '' ? null : Number(v));
 
   const row = (param: string) => {
@@ -124,7 +143,7 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
     return (
       <Inline key={param} gap="inline" align="center" wrap>
         <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t(paramLabelKey(param), { defaultValue: param })}</span>
-        <SourcedValue value={s} unit={info?.unit ?? undefined} format={(v) => formatParam(param, v, lang)} />
+        <SourcedValue value={s} unit={param === 'yield.kg_ha' ? t('data.yieldUnit') : (info?.unit ?? undefined)} format={(v) => formatParam(param, v, lang)} />
         {editable && mayAdjust(param, roles) && <AdjustControl plan={plan} sheet={sheet} param={param} current={current} onSaved={onSaved} />}
       </Inline>
     );
@@ -145,6 +164,8 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
   const organic = val('organic') as OrganicInput[];
   const declared = val('declared_yields') as Record<string, number>;
   const canAddYear = editable;
+  const materialOptions = ORGANIC_MATERIALS.map((m) => ({ value: m, label: t(`data.organic.materials.${m}`) }));
+  const organicIncomplete = organic.some((o) => !(ORGANIC_MATERIALS as readonly string[]).includes(o.material));
 
   return (
     <Stack gap="stack">
@@ -203,17 +224,31 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
               <Stack gap="tight">{COEFFICIENT_PARAMS.map(row)}</Stack>
             </details>
           )}
+          {coverSpecies.map((c) => (
+            <p key={c} className="text-nkz-sm text-nkz-text-secondary">{t('data.coverBefore')} <CropLabel eppo={c} /></p>
+          ))}
           {editable && (
             <FormGrid columns={2}>
-              <FormField label={t('data.declaredCrop')} description={t('wizard.declare.hint')} error={fieldError('crop_eppo')}>
-                <Input value={(val('crop_eppo') as string | null) ?? ''} onChange={(e) => set({ crop_eppo: e.target.value.toUpperCase().trim() || null })} />
+              <FormField label={t('data.declaredCrop')} description={t('data.declaredCropHint')} error={fieldError('crop_eppo')}>
+                <CropPicker crops={crops.data} loading={crops.loading} failed={crops.error != null}
+                  value={(val('crop_eppo') as string | null) ?? null} ariaLabel={t('data.declaredCrop')}
+                  onChange={(v) => set({ crop_eppo: v })} />
               </FormField>
               <FormField label={t('data.declaredPrevious')} description={t('data.declaredPreviousHint')} error={fieldError('previous_crop_eppo')}>
-                <Input value={(val('previous_crop_eppo') as string | null) ?? ''}
-                  onChange={(e) => set({ previous_crop_eppo: e.target.value.trim() === 'fallow' ? 'fallow' : (e.target.value.toUpperCase().trim() || null) })} />
+                <Stack gap="tight">
+                  <CropPicker crops={crops.data} loading={crops.loading} failed={crops.error != null} allowFallow
+                    value={previousValue} ariaLabel={t('data.declaredPrevious')}
+                    onChange={(v) => set({ previous_crop_eppo: v })} />
+                  {previousValue && othersLackingPrevious > 0 && (
+                    <Button size="sm" variant="secondary" loading={saving} onClick={applyPreviousToAll}>
+                      {t('data.applyPreviousToAll', { count: othersLackingPrevious })}
+                    </Button>
+                  )}
+                </Stack>
               </FormField>
             </FormGrid>
           )}
+          {editable && crops.error != null && <ErrorBanner error={crops.error} onRetry={crops.retry} />}
         </Stack>
       </Surface>
 
@@ -221,6 +256,8 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
         <Stack gap="inline">
           <h3 id="field-yield" className="font-semibold text-nkz-text-primary">{t('data.section.yield')}</h3>
           {YIELD_PARAMS.map(row)}
+          <p className="text-nkz-xs text-nkz-text-muted">{t('data.yieldHelp')}</p>
+          <p className="text-nkz-xs text-nkz-text-muted">{t('data.cvHelp')}</p>
           {inputs['yield.basis'] && (
             <p className="text-nkz-xs text-nkz-text-muted">
               {t(`data.basis.${String((inputs['yield.basis'] as { value?: string }).value)}`, { defaultValue: String((inputs['yield.basis'] as { value?: string }).value) })}
@@ -231,9 +268,12 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
             <Inline key={year} gap="inline" align="center">
               <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.declaredYield', { year })}</span>
               {editable ? (
-                <Input type="number" value={kg} min={1} step="any" aria-label={t('data.declaredYield', { year })}
-                  onChange={(e) => { const n = num(e.target.value); const next = { ...declared }; if (n === null) delete next[year]; else next[year] = n; set({ declared_yields: next }); }} />
-              ) : <span>{formatKgHa(kg, lang)} {t('common.unit.kgHa')}</span>}
+                <>
+                  <Input type="number" value={kg} min={1} step="any" aria-label={t('data.declaredYield', { year })}
+                    onChange={(e) => { const n = num(e.target.value); const next = { ...declared }; if (n === null) delete next[year]; else next[year] = n; set({ declared_yields: next }); }} />
+                  <span className="text-nkz-sm text-nkz-text-secondary">{t('data.yieldUnit')}</span>
+                </>
+              ) : <span>{formatKgHa(kg, lang)} {t('data.yieldUnit')}</span>}
               <ProvenanceChip value={{ value: kg, provenance: 'declared', source: 'plan', note: null }} />
             </Inline>
           ))}
@@ -301,7 +341,9 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
               <Stack key={i} gap="tight">
                 {editable ? (
                   <FormGrid columns={3}>
-                    <FormField label={t('data.organic.material')} error={fieldError(`organic.${i}.material`)}><Input value={o.material} onChange={(e) => edit({ material: e.target.value })} /></FormField>
+                    <FormField label={t('data.organic.material')} error={fieldError(`organic.${i}.material`)}>
+                      <Select value={o.material} placeholder={t('wizard.form.choose')} options={materialOptions} onValueChange={(v) => edit({ material: v })} />
+                    </FormField>
                     <FormField label={t('data.organic.rate')}><Input type="number" min={0} step="any" value={o.rate_t_ha} onChange={(e) => edit({ rate_t_ha: Number(e.target.value) })} /></FormField>
                     <FormField label={t('data.organic.n')}><Input type="number" min={0} step="any" value={o.n_pct} onChange={(e) => edit({ n_pct: Number(e.target.value) })} /></FormField>
                     <FormField label={t('data.organic.p2o5')}><Input type="number" min={0} step="any" value={o.p2o5_pct} onChange={(e) => edit({ p2o5_pct: Number(e.target.value) })} /></FormField>
@@ -311,7 +353,7 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
                     </div>
                   </FormGrid>
                 ) : (
-                  <p className="text-nkz-sm text-nkz-text-primary">{o.material} · {o.rate_t_ha} t/ha · N {o.n_pct} % · P₂O₅ {o.p2o5_pct} % · K₂O {o.k2o_pct} %</p>
+                  <p className="text-nkz-sm text-nkz-text-primary">{t(`data.organic.materials.${o.material}`, { defaultValue: o.material })} · {o.rate_t_ha} t/ha · N {o.n_pct} % · P₂O₅ {o.p2o5_pct} % · K₂O {o.k2o_pct} %</p>
                 )}
                 <Inline gap="inline" align="center" wrap>
                   <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.organic.availability')}</span>
@@ -373,7 +415,8 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
       {error != null && <ErrorBanner error={error} />}
       {editable && (
         <Inline gap="inline" align="center">
-          <Button variant="primary" disabled={!dirty} loading={saving} onClick={save}>{t('data.save')}</Button>
+          <Button variant="primary" disabled={!dirty || organicIncomplete} loading={saving} onClick={save}>{t('data.save')}</Button>
+          {organicIncomplete && <span role="alert" className="text-nkz-sm text-nkz-warning">{t('data.organic.chooseMaterial')}</span>}
           {dirty && <Button variant="ghost" onClick={() => { setPatch({}); setSigpac({}); setError(null); }}>{t('data.discard')}</Button>}
         </Inline>
       )}

@@ -1,6 +1,7 @@
 import type {
   CampaignParcels, PdfEnvelope, Plan, PlanListItem, PlanSheetIn,
 } from './types';
+import type { SourceCrop } from '../model/crops';
 import { apiOrigin, request, requestUrl, FastApiError } from './client';
 
 export const listPlans = (campaign: number, signal?: AbortSignal) =>
@@ -34,6 +35,10 @@ export const deleteOverride = (id: string, key: string, param: string, rowVersio
 
 export const campaignParcels = (campaign: number, signal?: AbortSignal) =>
   request<CampaignParcels>('GET', `/sources/campaigns/${campaign}/parcels`, undefined, signal);
+
+/** Crops the user can pick by name (FaST reads them from BioOrch; 503 when BioOrch is down). */
+export const sourceCrops = (signal?: AbortSignal) =>
+  request<{ crops: SourceCrop[] }>('GET', '/sources/crops', undefined, signal).then((r) => r.crops);
 
 /** The PDF travels inside a JSON envelope: the gateway proxy only carries JSON. */
 export async function fetchPlanPdf(id: string, lang: 'es' | 'en'): Promise<{ filename: string; blob: Blob }> {

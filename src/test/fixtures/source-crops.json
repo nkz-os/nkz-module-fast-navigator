@@ -23,6 +23,18 @@
         "fr": "Féverole",
         "pt": "Fava"
       }
+    },
+    {
+      "eppo": "CIEAR",
+      "has_coefficients": false,
+      "names": {
+        "ca": "Cigró",
+        "en": "Chickpea",
+        "es": "Garbanzo",
+        "eu": "Txitxirioa",
+        "fr": "Pois chiche",
+        "pt": "Grão-de-bico"
+      }
     }
   ]
 }

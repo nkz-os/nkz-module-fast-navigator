@@ -142,7 +142,8 @@
     "previous_cycle_pending": "Aurreko zikloa ({{crop_id}}) ez da inoiz baieztatu: ez da aurreko laborantza gisa hartzen.",
     "double_crop_campaign": "{{campaign}} kanpainak {{count}} ziklo ditu: orri honek bat erabiltzen du.",
     "crop_differs_from_cycle": "Adierazitako laborantza ({{declared}}) zikloarena ({{cycle}}) ez bezalakoa da; adierazitakoak nagusitzen da.",
-    "double_crop_first_cycle_unknown": "{{campaign}} kanpainako lehen zikloa ezezaguna da."
+    "double_crop_first_cycle_unknown": "{{campaign}} kanpainako lehen zikloa ezezaguna da.",
+    "soil_om_estimated": "Materia organikoa estimatua ({{om_pct}} %) Lurzoru moduluko karbono organikotik ({{oc_pct}} % × 1,724). Ez da analisia: igo bat ordezkatzeko."
   },
   "list": {
     "title": "Ongarritze-planak",
@@ -179,11 +180,11 @@
     },
     "noCrop": {
       "title": "{{campaign}}rako laborantzarik gabe ({{count}})",
-      "hint": "Adierazi laborantza (EPPO kodea) edo utzi lursail hauek planetik kanpo."
+      "hint": "Aukeratu laborantza bere izenez edo utzi lursail hauek planetik kanpo."
     },
     "declare": {
-      "label": "Adierazitako laborantza (EPPO kodea)",
-      "hint": "Bost edo sei letra edo zifra.",
+      "label": "Aldarrikatutako laborantza",
+      "hint": "Bilatu laborantza bere izenez.",
       "placeholder": "adib. TRZAX",
       "invalid": "EPPO kode baliogabea"
     },
@@ -289,9 +290,9 @@
     "previousCrop": "Aurreko laborantza",
     "coefficients": "Laborantzaren koefizienteak",
     "coefficientsAll": "Ikusi eta doitu koefiziente guztiak",
-    "declaredCrop": "Adierazitako laborantza (EPPO kodea)",
+    "declaredCrop": "Aldarrikatutako laborantza",
     "declaredPrevious": "Adierazitako aurreko laborantza",
-    "declaredPreviousHint": "EPPO kodea edo «fallow» baratzean egon bada.",
+    "declaredPreviousHint": "Aurreko kanpainako laborantza nagusia, edo lur-hutsa.",
     "basis": {
       "zone": "Oinarria: eremuaren errendimendua, urteak",
       "declared": "Oinarria: adierazitako errendimenduak, urteak",
@@ -314,13 +315,28 @@
       "k2o": "K₂O (%)",
       "remove": "Kendu",
       "add": "+ Gehitu ekarpen organikoa",
-      "availability": "N eskuragarria (zatia)"
+      "availability": "N eskuragarria (zatia)",
+      "chooseMaterial": "Aukeratu ekarpen bakoitzaren material mota gordetzeko.",
+      "materials": {
+        "cattle_manure": "Behi-simaurra",
+        "other_manure": "Beste simaurrak",
+        "slurry": "Minda",
+        "compost": "Konposta",
+        "other": "Beste material bat"
+      }
     },
     "sigpacLabel": "SIGPAC",
     "sigpacWrite": "Idatzi SIGPAC",
     "nuts": "Eskualdea (NUTS)",
     "save": "Gorde aldaketak",
-    "discard": "Baztertu"
+    "discard": "Baztertu",
+    "declaredCropHint": "Bilatu laborantza bere izenez.",
+    "yieldUnit": "kg/ha (ale freskoa)",
+    "yieldHelp": "Espero den etekina: produktu freskoaren kg hektareako, saltzen den bezala. Aurreko kanpainen batez bestekotik dator: aldarrikatu urte bakoitzean bildu zenuena. 3 urterekin, aldakortasuna (CV) automatikoki kalkulatzen da.",
+    "cvHelp": "CVak uztak urtez urte zenbat aldatzen den neurtzen du eta nitrogenoaren bandak ematen ditu. 3 urte aldarrikatuta, automatikoki kalkulatzen da.",
+    "coverBefore": "Lehenago: estalki-laborantza",
+    "applyPreviousToAll_one": "Aplikatu aurreko laborantzarik gabeko beste orrian",
+    "applyPreviousToAll_other": "Aplikatu aurreko laborantzarik gabeko beste {{count}} orrietan"
   },
   "workspace": {
     "back": "Planak",
@@ -381,5 +397,17 @@
     "organicCredit": "ekarpen organikoa",
     "versions": "Bertsioak: motorra {{engine}} · kalkulua {{calc}}",
     "coefficientsVersion": "koefizienteak {{v}}"
+  },
+  "cropPicker": {
+    "search": "Idatzi laborantzaren izena…",
+    "fallow": "Lur-hutsa",
+    "noCoefficients": "koefiziente gabe",
+    "noCoefficientsHint": "FaSTek ez du oraindik laborantza honen koefizienterik: kalkulua osatu gabe geratuko da.",
+    "change": "Aldatu",
+    "clear": "Kendu",
+    "noMatch": "Ez dago bat datorren laborantzarik.",
+    "useCode": "Erabili {{code}} kodea",
+    "typeToSearch": "Idatzi {{count}} laborantzen artean bilatzeko.",
+    "listFailed": "Ezin izan da laborantzen zerrenda kargatu: idatzi EPPO kodea."
   }
 }

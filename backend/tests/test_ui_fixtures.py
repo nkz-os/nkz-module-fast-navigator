@@ -55,7 +55,10 @@ def _crops() -> dict:
         {"eppo": "TRZAX", "slug": "wheat", "names": names},
         {"eppo": "VICFX", "slug": "faba-bean", "names": {
             "es": "Haba", "en": "Faba bean", "eu": "Baba", "fr": "Féverole", "ca": "Fava",
-            "pt": "Fava"}}]}}
+            "pt": "Fava"}},
+        {"eppo": "CIEAR", "slug": "chickpea", "has_coefficients": False, "names": {
+            "es": "Garbanzo", "en": "Chickpea", "eu": "Txitxirioa", "fr": "Pois chiche",
+            "ca": "Cigró", "pt": "Grão-de-bico"}}]}}
     return _answer(data, "GET", "/api/fast/sources/crops")
 
 

@@ -142,7 +142,8 @@
     "previous_cycle_pending": "Le cycle précédent ({{crop_id}}) n'a jamais été confirmé : il n'est pas retenu.",
     "double_crop_campaign": "La campagne {{campaign}} a {{count}} cycles : cette fiche en utilise un.",
     "crop_differs_from_cycle": "La culture déclarée ({{declared}}) diffère du cycle ({{cycle}}) ; la déclarée prévaut.",
-    "double_crop_first_cycle_unknown": "Le premier cycle de la campagne {{campaign}} est inconnu."
+    "double_crop_first_cycle_unknown": "Le premier cycle de la campagne {{campaign}} est inconnu.",
+    "soil_om_estimated": "Matière organique estimée ({{om_pct}} %) à partir du carbone organique du module Sol ({{oc_pct}} % × 1,724). Ce n’est pas une analyse : téléversez-en une pour la remplacer."
   },
   "list": {
     "title": "Plans de fertilisation",
@@ -179,11 +180,11 @@
     },
     "noCrop": {
       "title": "Sans culture pour {{campaign}} ({{count}})",
-      "hint": "Déclarez la culture (code EPPO) ou laissez ces parcelles hors du plan."
+      "hint": "Choisissez la culture par son nom ou laissez ces parcelles hors du plan."
     },
     "declare": {
-      "label": "Culture déclarée (code EPPO)",
-      "hint": "Cinq ou six lettres ou chiffres.",
+      "label": "Culture déclarée",
+      "hint": "Cherchez la culture par son nom.",
       "placeholder": "p. ex. TRZAX",
       "invalid": "Code EPPO non valide"
     },
@@ -289,9 +290,9 @@
     "previousCrop": "Culture précédente",
     "coefficients": "Coefficients de la culture",
     "coefficientsAll": "Voir et ajuster tous les coefficients",
-    "declaredCrop": "Culture déclarée (code EPPO)",
+    "declaredCrop": "Culture déclarée",
     "declaredPrevious": "Culture précédente déclarée",
-    "declaredPreviousHint": "Code EPPO ou « fallow » si la parcelle était en jachère.",
+    "declaredPreviousHint": "Culture principale de la campagne précédente, ou jachère.",
     "basis": {
       "zone": "Base : rendement de la zone, années",
       "declared": "Base : rendements déclarés, années",
@@ -314,13 +315,28 @@
       "k2o": "K₂O (%)",
       "remove": "Retirer",
       "add": "+ Ajouter un apport organique",
-      "availability": "N disponible (fraction)"
+      "availability": "N disponible (fraction)",
+      "chooseMaterial": "Choisissez le type de matière de chaque apport pour enregistrer.",
+      "materials": {
+        "cattle_manure": "Fumier bovin",
+        "other_manure": "Autres fumiers",
+        "slurry": "Lisier",
+        "compost": "Compost",
+        "other": "Autre matière"
+      }
     },
     "sigpacLabel": "SIGPAC",
     "sigpacWrite": "Saisir le SIGPAC",
     "nuts": "Région (NUTS)",
     "save": "Enregistrer les modifications",
-    "discard": "Annuler"
+    "discard": "Annuler",
+    "declaredCropHint": "Cherchez la culture par son nom.",
+    "yieldUnit": "kg/ha (grain frais)",
+    "yieldHelp": "Rendement attendu : kg par hectare de produit frais, tel que vendu. Il vient de la moyenne des campagnes précédentes : déclarez ce que vous avez récolté chaque année. Avec 3 ans, la variabilité (CV) se calcule seule.",
+    "cvHelp": "Le CV mesure de combien la récolte varie d’une année à l’autre et donne la bande d’azote. Avec 3 ans déclarés, il se calcule seul.",
+    "coverBefore": "Avant : couvert de",
+    "applyPreviousToAll_one": "Appliquer à l’autre feuille sans culture précédente",
+    "applyPreviousToAll_other": "Appliquer aux {{count}} autres feuilles sans culture précédente"
   },
   "workspace": {
     "back": "Plans",
@@ -381,5 +397,17 @@
     "organicCredit": "crédit organique",
     "versions": "Versions : moteur {{engine}} · calcul {{calc}}",
     "coefficientsVersion": "coefficients {{v}}"
+  },
+  "cropPicker": {
+    "search": "Saisissez le nom de la culture…",
+    "fallow": "Jachère",
+    "noCoefficients": "sans coefficients",
+    "noCoefficientsHint": "FaST n’a pas encore de coefficients pour cette culture : le calcul restera incomplet.",
+    "change": "Changer",
+    "clear": "Retirer",
+    "noMatch": "Aucune culture ne correspond.",
+    "useCode": "Utiliser le code {{code}}",
+    "typeToSearch": "Saisissez pour chercher parmi {{count}} cultures.",
+    "listFailed": "La liste des cultures n’a pas pu être chargée : saisissez le code EPPO."
   }
 }

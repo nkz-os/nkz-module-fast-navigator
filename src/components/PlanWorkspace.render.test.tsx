@@ -19,6 +19,10 @@ import { makePlan, makeSheet, PARCELS } from '../test/builders';
 
 let planState: { data: Plan | null; error: unknown } = { data: null, error: null };
 // The plan is loaded by [planId], the parcels by [campaign number], a crop name by [code, language].
+vi.mock('../hooks/useCrops', async () => {
+  const fx = await import('../test/fixtures/source-crops.json');
+  return { useCrops: () => ({ data: fx.crops, error: null, loading: false, retry: () => undefined }) };
+});
 vi.mock('../hooks/useLoad', () => ({
   useLoad: (_load: unknown, deps: unknown[]) => {
     const retry = vi.fn();

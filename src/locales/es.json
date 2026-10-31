@@ -142,7 +142,8 @@
     "previous_cycle_pending": "El ciclo anterior ({{crop_id}}) sigue sin confirmar: no se toma como cultivo anterior.",
     "double_crop_campaign": "La campaña {{campaign}} tiene {{count}} ciclos: esta hoja usa uno.",
     "crop_differs_from_cycle": "El cultivo declarado ({{declared}}) difiere del ciclo ({{cycle}}); manda lo declarado.",
-    "double_crop_first_cycle_unknown": "No se conoce el primer ciclo de la campaña {{campaign}}."
+    "double_crop_first_cycle_unknown": "No se conoce el primer ciclo de la campaña {{campaign}}.",
+    "soil_om_estimated": "Materia orgánica estimada ({{om_pct}} %) a partir del carbono orgánico del módulo Suelo ({{oc_pct}} % × 1,724). No es un análisis: sube uno para sustituirla."
   },
   "list": {
     "title": "Planes de abonado",
@@ -179,11 +180,11 @@
     },
     "noCrop": {
       "title": "Sin cultivo para {{campaign}} ({{count}})",
-      "hint": "Declara el cultivo (código EPPO) o deja estas parcelas fuera del plan."
+      "hint": "Elige el cultivo por su nombre o deja estas parcelas fuera del plan."
     },
     "declare": {
-      "label": "Cultivo declarado (código EPPO)",
-      "hint": "Cinco o seis letras o cifras.",
+      "label": "Cultivo declarado",
+      "hint": "Busca el cultivo por su nombre.",
       "placeholder": "p. ej. TRZAX",
       "invalid": "Código EPPO no válido"
     },
@@ -289,9 +290,9 @@
     "previousCrop": "Cultivo anterior",
     "coefficients": "Coeficientes del cultivo",
     "coefficientsAll": "Ver y ajustar todos los coeficientes",
-    "declaredCrop": "Cultivo declarado (código EPPO)",
+    "declaredCrop": "Cultivo declarado",
     "declaredPrevious": "Cultivo anterior declarado",
-    "declaredPreviousHint": "Código EPPO o «fallow» si estuvo en barbecho.",
+    "declaredPreviousHint": "Cultivo principal de la campaña anterior, o barbecho.",
     "basis": {
       "zone": "Base: rendimiento de la zona, años",
       "declared": "Base: rendimientos declarados, años",
@@ -314,13 +315,28 @@
       "k2o": "K₂O (%)",
       "remove": "Quitar",
       "add": "+ Añadir aporte orgánico",
-      "availability": "N disponible (fracción)"
+      "availability": "N disponible (fracción)",
+      "chooseMaterial": "Elige el tipo de material de cada aporte para guardar.",
+      "materials": {
+        "cattle_manure": "Estiércol de vacuno",
+        "other_manure": "Otros estiércoles",
+        "slurry": "Purín",
+        "compost": "Compost",
+        "other": "Otro material"
+      }
     },
     "sigpacLabel": "SIGPAC",
     "sigpacWrite": "Escribir SIGPAC",
     "nuts": "Región (NUTS)",
     "save": "Guardar cambios",
-    "discard": "Descartar"
+    "discard": "Descartar",
+    "declaredCropHint": "Busca el cultivo por su nombre.",
+    "yieldUnit": "kg/ha (grano en fresco)",
+    "yieldHelp": "Rendimiento esperado: kg por hectárea de producto en fresco, tal como se vende. Sale de la media de las campañas anteriores: declara lo que cosechaste cada año. Con 3 años, la variabilidad (CV) se calcula sola.",
+    "cvHelp": "El CV mide cuánto varía la cosecha de un año a otro y da la banda del nitrógeno. Con 3 años declarados se calcula solo.",
+    "coverBefore": "Antes: cubierta de",
+    "applyPreviousToAll_one": "Aplicar a la otra hoja sin cultivo anterior",
+    "applyPreviousToAll_other": "Aplicar a las otras {{count}} hojas sin cultivo anterior"
   },
   "workspace": {
     "back": "Planes",
@@ -381,5 +397,17 @@
     "organicCredit": "aporte orgánico",
     "versions": "Versiones: motor {{engine}} · cálculo {{calc}}",
     "coefficientsVersion": "coeficientes {{v}}"
+  },
+  "cropPicker": {
+    "search": "Escribe el nombre del cultivo…",
+    "fallow": "Barbecho",
+    "noCoefficients": "sin coeficientes",
+    "noCoefficientsHint": "FaST aún no tiene coeficientes de este cultivo: el cálculo quedará incompleto.",
+    "change": "Cambiar",
+    "clear": "Quitar",
+    "noMatch": "Ningún cultivo coincide.",
+    "useCode": "Usar el código {{code}}",
+    "typeToSearch": "Escribe para buscar entre {{count}} cultivos.",
+    "listFailed": "No se pudo cargar la lista de cultivos: escribe el código EPPO."
   }
 }

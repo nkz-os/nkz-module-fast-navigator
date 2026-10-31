@@ -336,7 +336,17 @@
     "cvHelp": "El CV mide cuánto varía la cosecha de un año a otro y da la banda del nitrógeno. Con 3 años declarados se calcula solo.",
     "coverBefore": "Antes: cubierta de",
     "applyPreviousToAll_one": "Aplicar a la otra hoja sin cultivo anterior",
-    "applyPreviousToAll_other": "Aplicar a las otras {{count}} hojas sin cultivo anterior"
+    "applyPreviousToAll_other": "Aplicar a las otras {{count}} hojas sin cultivo anterior",
+    "declareYear": {
+      "year": "Año",
+      "yield": "Rendimiento",
+      "add": "Añadir",
+      "problem": {
+        "year": "Año no válido (2000 o posterior).",
+        "future": "Solo años anteriores a la campaña.",
+        "duplicate": "Ese año ya está declarado."
+      }
+    }
   },
   "workspace": {
     "back": "Planes",

@@ -147,4 +147,11 @@ describe('DataTab (es)', () => {
     result.notices = [{ code: 'soil_om_estimated', params: { oc_pct: 2.08, om_pct: 3.59 } }];
     expect(render(makeSheet({ result }))).toContain('Materia orgánica estimada (3.59 %)');
   });
+
+  it('adding a declared year starts as a button and puts no zero row in the sheet', () => {
+    const h = render(makeSheet());
+    expect(h).toContain('+ Declarar un año');
+    expect(h).not.toContain('Rendimiento declarado');
+    expect(h).not.toContain('value="0"');
+  });
 });

@@ -336,7 +336,17 @@
     "cvHelp": "The CV measures how much the harvest varies from year to year and gives the nitrogen band. With 3 declared years it is calculated automatically.",
     "coverBefore": "Before: cover crop of",
     "applyPreviousToAll_one": "Apply to the other sheet without a previous crop",
-    "applyPreviousToAll_other": "Apply to the other {{count}} sheets without a previous crop"
+    "applyPreviousToAll_other": "Apply to the other {{count}} sheets without a previous crop",
+    "declareYear": {
+      "year": "Year",
+      "yield": "Yield",
+      "add": "Add",
+      "problem": {
+        "year": "Invalid year (2000 or later).",
+        "future": "Only years before the campaign.",
+        "duplicate": "That year is already declared."
+      }
+    }
   },
   "workspace": {
     "back": "Plans",

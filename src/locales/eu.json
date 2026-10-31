@@ -336,7 +336,17 @@
     "cvHelp": "CVak uztak urtez urte zenbat aldatzen den neurtzen du eta nitrogenoaren bandak ematen ditu. 3 urte aldarrikatuta, automatikoki kalkulatzen da.",
     "coverBefore": "Lehenago: estalki-laborantza",
     "applyPreviousToAll_one": "Aplikatu aurreko laborantzarik gabeko beste orrian",
-    "applyPreviousToAll_other": "Aplikatu aurreko laborantzarik gabeko beste {{count}} orrietan"
+    "applyPreviousToAll_other": "Aplikatu aurreko laborantzarik gabeko beste {{count}} orrietan",
+    "declareYear": {
+      "year": "Urtea",
+      "yield": "Etekina",
+      "add": "Gehitu",
+      "problem": {
+        "year": "Urte baliogabea (2000 edo geroagokoa).",
+        "future": "Kanpainaren aurreko urteak soilik.",
+        "duplicate": "Urte hori jada aldarrikatuta dago."
+      }
+    }
   },
   "workspace": {
     "back": "Planak",

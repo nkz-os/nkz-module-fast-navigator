@@ -336,7 +336,17 @@
     "cvHelp": "Le CV mesure de combien la récolte varie d’une année à l’autre et donne la bande d’azote. Avec 3 ans déclarés, il se calcule seul.",
     "coverBefore": "Avant : couvert de",
     "applyPreviousToAll_one": "Appliquer à l’autre feuille sans culture précédente",
-    "applyPreviousToAll_other": "Appliquer aux {{count}} autres feuilles sans culture précédente"
+    "applyPreviousToAll_other": "Appliquer aux {{count}} autres feuilles sans culture précédente",
+    "declareYear": {
+      "year": "Année",
+      "yield": "Rendement",
+      "add": "Ajouter",
+      "problem": {
+        "year": "Année invalide (2000 ou après).",
+        "future": "Uniquement des années avant la campagne.",
+        "duplicate": "Cette année est déjà déclarée."
+      }
+    }
   },
   "workspace": {
     "back": "Plans",

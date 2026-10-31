@@ -13,6 +13,7 @@ import { ORGANIC_MATERIALS } from '../model/organic';
 import { applyPreviousCrop, editSheet, lacksPreviousCrop, ownerLink } from '../model/sheets';
 import { CropLabel } from './CropLabel';
 import { CropPicker } from './CropPicker';
+import { DeclareYearForm } from './DeclareYearForm';
 import { ErrorBanner } from './ErrorBanner';
 import { ProvenanceChip, SourcedValue } from './ProvenanceChip';
 
@@ -272,16 +273,15 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
                   <Input type="number" value={kg} min={1} step="any" aria-label={t('data.declaredYield', { year })}
                     onChange={(e) => { const n = num(e.target.value); const next = { ...declared }; if (n === null) delete next[year]; else next[year] = n; set({ declared_yields: next }); }} />
                   <span className="text-nkz-sm text-nkz-text-secondary">{t('data.yieldUnit')}</span>
+                  <Button size="sm" variant="ghost" onClick={() => { const next = { ...declared }; delete next[year]; set({ declared_yields: next }); }}>{t('data.organic.remove')}</Button>
                 </>
               ) : <span>{formatKgHa(kg, lang)} {t('data.yieldUnit')}</span>}
               <ProvenanceChip value={{ value: kg, provenance: 'declared', source: 'plan', note: null }} />
             </Inline>
           ))}
           {canAddYear && (
-            <Button size="sm" variant="ghost" onClick={() => {
-              const y = String(plan.campaign - 1 - Object.keys(declared).length);
-              set({ declared_yields: { ...declared, [y]: declared[y] ?? 0 } });
-            }}>{t('data.addYear')}</Button>
+            <DeclareYearForm campaign={plan.campaign} declared={declared}
+              onAdd={(y, kg) => set({ declared_yields: { ...declared, [String(y)]: kg } })} />
           )}
           {fieldError('declared_yields') && <p role="alert" className="text-nkz-sm text-nkz-danger">{fieldError('declared_yields')}</p>}
         </Stack>

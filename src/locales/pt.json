@@ -336,7 +336,17 @@
     "cvHelp": "O CV mede quanto a colheita varia de um ano para o outro e dá a banda do azoto. Com 3 anos declarados calcula-se sozinho.",
     "coverBefore": "Antes: cobertura de",
     "applyPreviousToAll_one": "Aplicar à outra folha sem cultura anterior",
-    "applyPreviousToAll_other": "Aplicar às outras {{count}} folhas sem cultura anterior"
+    "applyPreviousToAll_other": "Aplicar às outras {{count}} folhas sem cultura anterior",
+    "declareYear": {
+      "year": "Ano",
+      "yield": "Produtividade",
+      "add": "Adicionar",
+      "problem": {
+        "year": "Ano inválido (2000 ou posterior).",
+        "future": "Apenas anos anteriores à campanha.",
+        "duplicate": "Esse ano já está declarado."
+      }
+    }
   },
   "workspace": {
     "back": "Planos",

@@ -336,7 +336,17 @@
     "cvHelp": "El CV mesura quant varia la collita d’un any a l’altre i dona la banda del nitrogen. Amb 3 anys declarats es calcula sol.",
     "coverBefore": "Abans: cobertora de",
     "applyPreviousToAll_one": "Aplica a l’altre full sense cultiu anterior",
-    "applyPreviousToAll_other": "Aplica als altres {{count}} fulls sense cultiu anterior"
+    "applyPreviousToAll_other": "Aplica als altres {{count}} fulls sense cultiu anterior",
+    "declareYear": {
+      "year": "Any",
+      "yield": "Rendiment",
+      "add": "Afegeix",
+      "problem": {
+        "year": "Any no vàlid (2000 o posterior).",
+        "future": "Només anys anteriors a la campanya.",
+        "duplicate": "Aquest any ja està declarat."
+      }
+    }
   },
   "workspace": {
     "back": "Plans",

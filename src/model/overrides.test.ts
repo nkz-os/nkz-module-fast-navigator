@@ -1,14 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { mayAdjust, overrideRange } from './overrides';
 
-const farmer = { canWrite: true, technician: false };
-const tech = { canWrite: true, technician: true };
+import { rolesFrom } from './roles';
+
+const holder = rolesFrom((r) => r === 'TenantAdmin');
+const field = rolesFrom((r) => r === 'Farmer');
+const tech = rolesFrom((r) => r === 'TechnicalConsultant');
 
 describe('adjusting a value', () => {
-  it('the farmer adjusts only the availability of organic inputs', () => {
-    expect(mayAdjust('organic.0.availability', farmer)).toBe(true);
-    expect(mayAdjust('soil.ph', farmer)).toBe(false);
-    expect(mayAdjust('yield.kg_ha', farmer)).toBe(false);
+  it('the holder adjusts only the availability of organic inputs', () => {
+    expect(mayAdjust('organic.0.availability', holder)).toBe(true);
+    expect(mayAdjust('soil.ph', holder)).toBe(false);
+    expect(mayAdjust('yield.kg_ha', holder)).toBe(false);
+  });
+  it('the field worker adjusts nothing', () => {
+    expect(mayAdjust('organic.0.availability', field)).toBe(false);
+    expect(mayAdjust('soil.ph', field)).toBe(false);
   });
   it('the technician adjusts what has a range', () => {
     expect(mayAdjust('soil.ph', tech)).toBe(true);

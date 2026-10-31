@@ -149,6 +149,7 @@
     "campaign": "Campagne",
     "empty": "Il n'y a pas de plan pour {{campaign}}",
     "create": "Créer le plan {{campaign}}",
+    "createRestricted": "Seuls l'administrateur de l'exploitation ou un technicien peuvent créer des plans",
     "version": "{{campaign}} · v{{version}}",
     "block_one": "{{count}} bloque",
     "block_other": "{{count}} bloquent",

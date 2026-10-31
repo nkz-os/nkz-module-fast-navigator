@@ -149,6 +149,7 @@
     "campaign": "Campanya",
     "empty": "No hi ha pla per a {{campaign}}",
     "create": "Crea el pla {{campaign}}",
+    "createRestricted": "Només l'administrador de l'explotació o un tècnic poden crear plans",
     "version": "{{campaign}} · v{{version}}",
     "block_one": "{{count}} bloqueja",
     "block_other": "{{count}} bloquegen",

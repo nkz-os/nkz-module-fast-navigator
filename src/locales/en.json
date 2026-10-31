@@ -149,6 +149,7 @@
     "campaign": "Campaign",
     "empty": "There is no plan for {{campaign}}",
     "create": "Create plan {{campaign}}",
+    "createRestricted": "Only the farm administrator or a technician can create plans",
     "version": "{{campaign}} · v{{version}}",
     "block_one": "{{count}} blocks",
     "block_other": "{{count}} block",

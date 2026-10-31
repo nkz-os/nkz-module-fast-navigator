@@ -353,6 +353,11 @@
       "removed": "Ils sont exportés",
       "unit": "% reste au champ",
       "pending": "Enregistrez et calculez pour voir la valeur."
+    },
+    "previousResidues": {
+      "label": "Résidus de la culture précédente",
+      "left": "Ils sont restés au champ",
+      "removed": "Ils ont été exportés"
     }
   },
   "workspace": {

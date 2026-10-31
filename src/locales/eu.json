@@ -353,6 +353,11 @@
       "removed": "Kentzen dira",
       "unit": "% soroan geratzen da",
       "pending": "Gorde eta kalkulatu balioa ikusteko."
+    },
+    "previousResidues": {
+      "label": "Aurreko laborantzaren hondarrak",
+      "left": "Soroan geratu ziren",
+      "removed": "Kendu ziren"
     }
   },
   "workspace": {

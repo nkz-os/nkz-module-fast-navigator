@@ -353,6 +353,11 @@
       "removed": "Se retiran",
       "unit": "% se queda en campo",
       "pending": "Guarda y calcula para ver el valor."
+    },
+    "previousResidues": {
+      "label": "Restos del cultivo anterior",
+      "left": "Se quedaron en campo",
+      "removed": "Se retiraron"
     }
   },
   "workspace": {

@@ -353,6 +353,11 @@
       "removed": "Es retiren",
       "unit": "% es queda al camp",
       "pending": "Desa i calcula per veure el valor."
+    },
+    "previousResidues": {
+      "label": "Restes del cultiu anterior",
+      "left": "Es van quedar al camp",
+      "removed": "Es van retirar"
     }
   },
   "workspace": {

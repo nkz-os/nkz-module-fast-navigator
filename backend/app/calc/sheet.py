@@ -19,7 +19,7 @@ from app.inputs.provenance import DECLARED, MissingInput, Notice, Sourced
 from app.inputs.soil import SoilInputs
 from app.inputs.yield_target import YieldTarget
 
-CALC_VERSION = "1.3.0"
+CALC_VERSION = "1.4.0"
 COMPLETE, INCOMPLETE = "complete", "incomplete"
 _N_MIN_NOTICE = "n_min_fallback_typical"
 

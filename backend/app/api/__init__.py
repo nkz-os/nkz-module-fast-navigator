@@ -81,6 +81,7 @@ class SheetIn(BaseModel):
     crop_eppo: str | None = Field(default=None, pattern=EPPO_PATTERN)
     previous_crop_eppo: str | None = Field(default=None, pattern=r"^([A-Z0-9]{5,6}|fallow)$")
     residues: Literal["left", "removed"] | None = None
+    previous_residues: Literal["left", "removed"] | None = None
     cycle_index: int = Field(default=0, ge=0, le=3)
     soil_analysis_id: str | None = Field(default=None, max_length=200)
     nmin_analysis_id: str | None = Field(default=None, max_length=200)

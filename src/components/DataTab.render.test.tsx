@@ -181,4 +181,15 @@ describe('DataTab (es)', () => {
     const ro = render(makeSheet({ result }), false);
     expect(/<button([^>]*)>(?:<[^>]+>)*Se retiran/.exec(ro)?.[1]).toMatch(/\sdisabled/);
   });
+
+  it('previous residues: two buttons next to the previous crop, hidden for a fallow', () => {
+    const result = clone(COMPLETE);
+    result.inputs['previous_crop.residue_left_pct'] = { value: 0, provenance: 'declared', source: 'plan', note: null };
+    const prev = (eppo: string) => plain(render(makeSheet({ result, inputs: { ...makeSheet().inputs, previous_crop_eppo: eppo, previous_residues: 'removed' } })));
+    const h = prev('CIEAR');
+    expect(h).toContain('Restos del cultivo anterior');
+    expect(h).toContain('Se quedaron en campo');
+    expect(h).toMatch(/aria-pressed="true"[^>]*>(?:<[^>]+>)*Se retiraron/);
+    expect(prev('fallow')).not.toContain('Restos del cultivo anterior');
+  });
 });

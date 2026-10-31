@@ -353,6 +353,11 @@
       "removed": "They are removed",
       "unit": "% stays in the field",
       "pending": "Save and calculate to see the value."
+    },
+    "previousResidues": {
+      "label": "Previous crop residues",
+      "left": "They stayed in the field",
+      "removed": "They were removed"
     }
   },
   "workspace": {

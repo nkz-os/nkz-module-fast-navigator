@@ -158,3 +158,17 @@ async def test_the_residues_choice_reaches_the_crop():
     a = await assemble(replace(REQ, residues="left"), FakeSources(**data), TODAY)
     assert a.crop.params.residue_left_pct == 100.0
     assert calculate(a).inputs["crop.residue_left_pct"]["provenance"] == "declared"
+
+
+async def test_the_previous_crop_residues_choice_unblocks_a_legume_before_wheat():
+    data = complete_data()
+    data["coefficients"]["TRZAX"]["values"].pop("residue_left_pct")   # the previous crop is TRZAX too
+    req = replace(REQ, residues="left")
+    blocked = await assemble(req, FakeSources(**data), TODAY)
+    assert "previous_crop.residue_left_pct" in [m.field for m in calculate(blocked).missing]
+    a = await assemble(replace(req, previous_residues="removed"), FakeSources(**data), TODAY)
+    assert a.previous_crop.params.residue_left_pct == 0.0
+    assert a.crop.params.residue_left_pct == 100.0
+    r = calculate(a)
+    assert r.inputs["previous_crop.residue_left_pct"]["provenance"] == "declared"
+    assert "previous_crop.residue_left_pct" not in [m.field for m in r.missing]

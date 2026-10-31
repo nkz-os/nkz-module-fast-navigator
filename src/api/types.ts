@@ -118,6 +118,8 @@ export interface SheetInputs {
   previous_crop_eppo: string | null;
   /** What happens to the residues of the campaign crop: chosen on the plan. */
   residues?: 'left' | 'removed' | null;
+  /** Same, for the previous crop (feeds the N term of its residues). */
+  previous_residues?: 'left' | 'removed' | null;
   cycle_index: number;
   soil_analysis_id: string | null;
   nmin_analysis_id: string | null;

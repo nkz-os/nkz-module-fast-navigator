@@ -353,6 +353,11 @@
       "removed": "São retirados",
       "unit": "% fica no campo",
       "pending": "Guarde e calcule para ver o valor."
+    },
+    "previousResidues": {
+      "label": "Resíduos da cultura anterior",
+      "left": "Ficaram no campo",
+      "removed": "Foram retirados"
     }
   },
   "workspace": {

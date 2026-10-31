@@ -402,7 +402,7 @@
     "search": "Idatzi laborantzaren izena…",
     "fallow": "Lur-hutsa",
     "noCoefficients": "koefiziente gabe",
-    "noCoefficientsHint": "FaSTek ez du oraindik laborantza honen koefizienterik: kalkulua osatu gabe geratuko da.",
+    "noCoefficientsHint": "FaSTek ez du oraindik laborantza honen koefizienterik: kalkulua osatu gabe geratuko da teknikari batek sartu arte.",
     "change": "Aldatu",
     "clear": "Kendu",
     "noMatch": "Ez dago bat datorren laborantzarik.",

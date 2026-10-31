@@ -52,8 +52,8 @@ def _crops() -> dict:
     names = {"es": "Trigo blando", "en": "Common wheat", "eu": "Gari bigun",
              "fr": "Blé tendre", "ca": "Blat tou", "pt": "Trigo mole"}
     data = {"crop_list": {"crops": [
-        {"eppo": "TRZAX", "slug": "wheat", "names": names},
-        {"eppo": "VICFX", "slug": "faba-bean", "names": {
+        {"eppo": "TRZAX", "slug": "wheat", "has_coefficients": True, "names": names},
+        {"eppo": "VICFX", "slug": "faba-bean", "has_coefficients": True, "names": {
             "es": "Haba", "en": "Faba bean", "eu": "Baba", "fr": "Féverole", "ca": "Fava",
             "pt": "Fava"}},
         {"eppo": "CIEAR", "slug": "chickpea", "has_coefficients": False, "names": {

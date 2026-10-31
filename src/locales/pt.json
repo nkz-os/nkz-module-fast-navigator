@@ -402,7 +402,7 @@
     "search": "Escreva o nome da cultura…",
     "fallow": "Pousio",
     "noCoefficients": "sem coeficientes",
-    "noCoefficientsHint": "O FaST ainda não tem coeficientes desta cultura: o cálculo ficará incompleto.",
+    "noCoefficientsHint": "O FaST ainda não tem coeficientes desta cultura: o cálculo fica incompleto até um técnico os introduzir.",
     "change": "Mudar",
     "clear": "Remover",
     "noMatch": "Nenhuma cultura corresponde.",

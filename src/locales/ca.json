@@ -402,7 +402,7 @@
     "search": "Escriu el nom del cultiu…",
     "fallow": "Guaret",
     "noCoefficients": "sense coeficients",
-    "noCoefficientsHint": "FaST encara no té coeficients d’aquest cultiu: el càlcul quedarà incomplet.",
+    "noCoefficientsHint": "FaST encara no té coeficients d’aquest cultiu: el càlcul quedarà incomplet fins que un tècnic els introdueixi.",
     "change": "Canvia",
     "clear": "Treu",
     "noMatch": "Cap cultiu coincideix.",

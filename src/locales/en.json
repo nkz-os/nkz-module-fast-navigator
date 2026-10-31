@@ -402,7 +402,7 @@
     "search": "Type the crop name…",
     "fallow": "Fallow",
     "noCoefficients": "no coefficients",
-    "noCoefficientsHint": "FaST does not have coefficients for this crop yet: the calculation will stay incomplete.",
+    "noCoefficientsHint": "FaST does not have coefficients for this crop yet: the calculation stays incomplete until a technician enters them.",
     "change": "Change",
     "clear": "Remove",
     "noMatch": "No crop matches.",

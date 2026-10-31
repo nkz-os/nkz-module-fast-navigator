@@ -402,7 +402,7 @@
     "search": "Saisissez le nom de la culture…",
     "fallow": "Jachère",
     "noCoefficients": "sans coefficients",
-    "noCoefficientsHint": "FaST n’a pas encore de coefficients pour cette culture : le calcul restera incomplet.",
+    "noCoefficientsHint": "FaST n’a pas encore de coefficients pour cette culture : le calcul reste incomplet tant qu’un technicien ne les saisit pas.",
     "change": "Changer",
     "clear": "Retirer",
     "noMatch": "Aucune culture ne correspond.",

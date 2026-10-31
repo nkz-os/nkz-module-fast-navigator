@@ -11,7 +11,8 @@ export const FALLOW = 'fallow';
 
 export function cropDisplayName(crop: SourceCrop, lang: string): string {
   const base = lang.split('-')[0];
-  return crop.names[base] ?? crop.names.en ?? crop.names.es ?? crop.eppo;
+  const { names } = crop;
+  return names[base] ?? names['en'] ?? names['es'] ?? crop.eppo;
 }
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();

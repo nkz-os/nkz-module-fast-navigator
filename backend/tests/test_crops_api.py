@@ -11,7 +11,7 @@ from tests.fakes import URN, FakeSources, complete_data
 HEADERS = {"X-Tenant-ID": "tenant-a", "X-User-ID": "u1", "X-User-Roles": "Farmer"}
 URL = "/api/fast/sources/crops"
 NAMES = {"es": "Trigo blando", "en": "Common wheat", "eu": "Garagar", "fr": "Blé", "ca": "Blat", "pt": "Trigo"}
-LIST = {"crops": [{"eppo": "TRZAX", "slug": "wheat", "names": NAMES},
+LIST = {"crops": [{"eppo": "TRZAX", "slug": "wheat", "names": NAMES, "has_coefficients": True},
                   {"eppo": "VICFX", "slug": "faba", "names": {"es": "Haba", "en": "Faba bean"},
                    "has_coefficients": False}]}
 
@@ -38,6 +38,12 @@ def test_lists_crops_by_name_with_the_coefficients_flag():
     assert [c["eppo"] for c in crops] == ["TRZAX", "VICFX"]
     assert crops[0] == {"eppo": "TRZAX", "names": NAMES, "has_coefficients": True}
     assert crops[1]["has_coefficients"] is False and "slug" not in crops[1]
+
+
+def test_a_missing_flag_is_never_read_as_having_coefficients():
+    only = {"crops": [{"eppo": "TRZAX", "names": NAMES}]}
+    r = _client(crop_list=only).get(URL, headers=HEADERS)
+    assert r.json()["crops"][0]["has_coefficients"] is False
 
 
 def test_a_malformed_entry_is_dropped():

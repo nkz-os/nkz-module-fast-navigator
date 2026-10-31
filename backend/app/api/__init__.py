@@ -237,5 +237,5 @@ async def source_crops(auth: AuthContext = require_auth(PLAN_ROLES),
             logger.warning("crop list entry dropped eppo=%r", eppo)
             continue
         crops.append({"eppo": eppo, "names": names,
-                      "has_coefficients": item.get("has_coefficients", True) is not False})
+                      "has_coefficients": item.get("has_coefficients") is True})
     return {"crops": crops}

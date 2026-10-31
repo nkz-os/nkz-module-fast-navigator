@@ -402,7 +402,7 @@
     "search": "Escribe el nombre del cultivo…",
     "fallow": "Barbecho",
     "noCoefficients": "sin coeficientes",
-    "noCoefficientsHint": "FaST aún no tiene coeficientes de este cultivo: el cálculo quedará incompleto.",
+    "noCoefficientsHint": "FaST aún no tiene coeficientes de este cultivo: el cálculo quedará incompleto hasta que un técnico los introduzca.",
     "change": "Cambiar",
     "clear": "Quitar",
     "noMatch": "Ningún cultivo coincide.",

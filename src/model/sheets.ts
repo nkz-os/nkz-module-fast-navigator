@@ -150,7 +150,7 @@ export function wizardSheets(groups: ParcelGroup[], management: Record<string, G
       rotation_years: m.rotationYears as number, strategy: m.strategy,
       previous_residues_burned: m.residuesBurned,
       crop_eppo: g.noCrop ? (m.declaredCrop ?? null) : null,
-      previous_crop_eppo: null, cycle_index: 0, soil_analysis_id: null, nmin_analysis_id: null,
+      previous_crop_eppo: null, residues: null, previous_residues: null, cycle_index: 0, soil_analysis_id: null, nmin_analysis_id: null,
       declared_yields: {}, previous_declared_yields: {}, organic: [],
       water_m3_ha: null, water_quality_id: null, no3_mg_l: null, nuts: null,
       key, parcel_ids: urns, sigpac: {}, applications: [],
@@ -179,11 +179,11 @@ export function lacksPreviousCrop(sheet: PlanSheet): boolean {
  * current sheet keeps its pending edits (`patch`) and takes the value whatever it had.
  */
 export function applyPreviousCrop(plan: Plan, currentKey: string, patch: Partial<PlanSheetIn>,
-  value: string): PlanSheetIn[] {
+  value: string, previousResidues: 'left' | 'removed' | null = null): PlanSheetIn[] {
   return plan.sheets.map((s) => {
     const body = toSheetIn(s, plan.campaign);
-    if (s.key === currentKey) return { ...body, ...patch, previous_crop_eppo: value };
-    return lacksPreviousCrop(s) ? { ...body, previous_crop_eppo: value } : body;
+    if (s.key === currentKey) return { ...body, ...patch, previous_crop_eppo: value, previous_residues: previousResidues };
+    return lacksPreviousCrop(s) ? { ...body, previous_crop_eppo: value, previous_residues: previousResidues } : body;
   });
 }
 

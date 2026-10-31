@@ -121,12 +121,17 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
   };
 
   const previousValue = val('previous_crop_eppo') as string | null;
+  const prevResiduesNow = inputs['previous_crop.residue_left_pct']?.value;
+  const prevResiduesChoice = (val('previous_residues') as 'left' | 'removed' | null | undefined)
+    ?? (prevResiduesNow === 100 ? 'left' : prevResiduesNow === 0 ? 'removed' : null);
+  // Hidden for a fallow: nothing was grown, so no residues.
+  const previousIsFallow = previousValue === 'fallow' || (previousValue == null && inputs['previous_crop.eppo']?.value === 'fallow');
   const othersLackingPrevious = plan.sheets.filter((s) => s.key !== sheet.key && lacksPreviousCrop(s)).length;
   const applyPreviousToAll = async () => {
     if (!previousValue) return;
     setSaving(true); setError(null);
     try {
-      onSaved(await putSheets(plan.id, plan.row_version, applyPreviousCrop(plan, sheet.key, { ...patch }, previousValue)));
+      onSaved(await putSheets(plan.id, plan.row_version, applyPreviousCrop(plan, sheet.key, { ...patch }, previousValue, prevResiduesChoice)));
       setPatch({});
     } catch (e) {
       setError(e);
@@ -165,6 +170,10 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
   const organic = val('organic') as OrganicInput[];
   const declared = val('declared_yields') as Record<string, number>;
   const canAddYear = editable;
+  // The button that is "on": the pending choice, else the stored one, else what the value says (100 / 0).
+  const residueNow = inputs['crop.residue_left_pct']?.value;
+  const residueChoice = (val('residues') as 'left' | 'removed' | null | undefined)
+    ?? (residueNow === 100 ? 'left' : residueNow === 0 ? 'removed' : null);
   const materialOptions = ORGANIC_MATERIALS.map((m) => ({ value: m, label: t(`data.organic.materials.${m}`) }));
   const organicIncomplete = organic.some((o) => !(ORGANIC_MATERIALS as readonly string[]).includes(o.material));
 
@@ -219,6 +228,16 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
             <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.coefficients')}</span>
             <ProvenanceChip value={inputs['crop.n_product_pct']} />
           </Inline>
+          <Inline gap="inline" align="center" wrap>
+            <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.residues.label')}</span>
+            <Button size="sm" variant={residueChoice === 'left' ? 'primary' : 'secondary'} disabled={!editable}
+              aria-pressed={residueChoice === 'left'} onClick={() => set({ residues: 'left' })}>{t('data.residues.left')}</Button>
+            <Button size="sm" variant={residueChoice === 'removed' ? 'primary' : 'secondary'} disabled={!editable}
+              aria-pressed={residueChoice === 'removed'} onClick={() => set({ residues: 'removed' })}>{t('data.residues.removed')}</Button>
+            {'residues' in patch
+              ? <span className="text-nkz-sm text-nkz-text-muted">{t('data.residues.pending')}</span>
+              : <SourcedValue value={inputs['crop.residue_left_pct']} unit={t('data.residues.unit')} format={(v) => formatParam('crop.residue_left_pct', v, lang)} />}
+          </Inline>
           {roles.technician && result && (
             <details>
               <summary className="cursor-pointer text-nkz-sm text-nkz-text-secondary">{t('data.coefficientsAll')}</summary>
@@ -240,6 +259,18 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
                   <CropPicker crops={crops.data} loading={crops.loading} failed={crops.error != null} allowFallow
                     value={previousValue} ariaLabel={t('data.declaredPrevious')}
                     onChange={(v) => set({ previous_crop_eppo: v })} />
+                  {!previousIsFallow && (previousValue != null || inputs['previous_crop.eppo']?.value != null) && (
+                    <Inline gap="inline" align="center" wrap>
+                      <span className="text-nkz-sm text-nkz-text-secondary">{t('data.previousResidues.label')}</span>
+                      <Button size="sm" variant={prevResiduesChoice === 'left' ? 'primary' : 'secondary'}
+                        aria-pressed={prevResiduesChoice === 'left'} onClick={() => set({ previous_residues: 'left' })}>{t('data.previousResidues.left')}</Button>
+                      <Button size="sm" variant={prevResiduesChoice === 'removed' ? 'primary' : 'secondary'}
+                        aria-pressed={prevResiduesChoice === 'removed'} onClick={() => set({ previous_residues: 'removed' })}>{t('data.previousResidues.removed')}</Button>
+                      {'previous_residues' in patch
+                        ? <span className="text-nkz-sm text-nkz-text-muted">{t('data.residues.pending')}</span>
+                        : <SourcedValue value={inputs['previous_crop.residue_left_pct']} unit={t('data.residues.unit')} format={(v) => formatParam('crop.residue_left_pct', v, lang)} />}
+                    </Inline>
+                  )}
                   {previousValue && othersLackingPrevious > 0 && (
                     <Button size="sm" variant="secondary" loading={saving} onClick={applyPreviousToAll}>
                       {t('data.applyPreviousToAll', { count: othersLackingPrevious })}

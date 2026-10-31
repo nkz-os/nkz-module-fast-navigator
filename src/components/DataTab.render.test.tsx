@@ -154,4 +154,42 @@ describe('DataTab (es)', () => {
     expect(h).not.toContain('Rendimiento declarado');
     expect(h).not.toContain('value="0"');
   });
+
+  it('residues: the table value is shown with its chip and neither button is on', () => {
+    const result = clone(COMPLETE);
+    result.inputs['crop.residue_left_pct'] = { value: 30, provenance: 'table:panagos_2022', source: 'bioorch', note: null };
+    const html = plain(render(makeSheet({ result })));
+    expect(html).toContain('Se quedan en campo');
+    expect(html).toContain('Se retiran');
+    expect(html).toContain('▤ tabla');
+    expect(html).not.toContain('aria-pressed="true"');
+  });
+
+  it('residues: a declared choice turns its button on, the other stays off', () => {
+    const result = clone(COMPLETE);
+    result.inputs['crop.residue_left_pct'] = { value: 100, provenance: 'declared', source: 'plan', note: null };
+    const html = plain(render(makeSheet({ result, inputs: { ...makeSheet().inputs, residues: 'left' } })));
+    expect(html.match(/aria-pressed="true"/g)).toHaveLength(1);
+    expect(html).toMatch(/aria-pressed="true"[^>]*>(?:<[^>]+>)*Se quedan en campo/);
+    expect(html).toContain('◐ declarado');
+  });
+
+  it('residues: missing shows ✕ falta and read only disables the buttons', () => {
+    const result = clone(COMPLETE);
+    result.inputs['crop.residue_left_pct'] = { value: null, provenance: 'missing', source: null, note: null };
+    expect(plain(render(makeSheet({ result })))).toContain('✕ falta');
+    const ro = render(makeSheet({ result }), false);
+    expect(/<button([^>]*)>(?:<[^>]+>)*Se retiran/.exec(ro)?.[1]).toMatch(/\sdisabled/);
+  });
+
+  it('previous residues: two buttons next to the previous crop, hidden for a fallow', () => {
+    const result = clone(COMPLETE);
+    result.inputs['previous_crop.residue_left_pct'] = { value: 0, provenance: 'declared', source: 'plan', note: null };
+    const prev = (eppo: string) => plain(render(makeSheet({ result, inputs: { ...makeSheet().inputs, previous_crop_eppo: eppo, previous_residues: 'removed' } })));
+    const h = prev('CIEAR');
+    expect(h).toContain('Restos del cultivo anterior');
+    expect(h).toContain('Se quedaron en campo');
+    expect(h).toMatch(/aria-pressed="true"[^>]*>(?:<[^>]+>)*Se retiraron/);
+    expect(prev('fallow')).not.toContain('Restos del cultivo anterior');
+  });
 });

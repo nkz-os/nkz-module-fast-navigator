@@ -79,3 +79,44 @@ def test_the_prefix_scopes_overrides():
     b = build_crop("TRZAX", coeff, _o("crop.harvest_index_pct", 45.0), prefix="previous_crop")
     assert b.params is None
     assert any(m.field == "previous_crop.harvest_index_pct" for m in b.missing)
+
+
+def _without_residue_left():
+    c = copy.deepcopy(COEFF)
+    del c["values"]["residue_left_pct"]
+    return c
+
+
+def test_a_crop_without_the_residue_coefficient_is_missing_it():
+    b = build_crop("TRZAX", _without_residue_left(), {})
+    assert b.params is None
+    assert MissingInput("crop.residue_left_pct", "bioorch", {"eppo": "TRZAX"}) in b.missing
+
+
+@pytest.mark.parametrize("choice,pct", [("left", 100.0), ("removed", 0.0)])
+def test_declared_residues_complete_a_crop_without_the_coefficient(choice, pct):
+    b = build_crop("TRZAX", _without_residue_left(), {}, residues=choice)
+    assert b.params is not None and b.params.residue_left_pct == pct
+    s = b.inputs["residue_left_pct"]
+    assert s.provenance == "declared" and s.source == "plan"
+
+
+def test_declared_residues_override_the_table_value():
+    assert COEFF["values"]["residue_left_pct"]["value"] not in (0, 100)
+    b = build_crop("TRZAX", COEFF, {}, residues="removed")
+    assert b.params.residue_left_pct == 0.0 and b.inputs["residue_left_pct"].provenance == "declared"
+
+
+def test_the_table_value_stands_when_nothing_is_declared():
+    b = build_crop("TRZAX", COEFF, {})
+    assert b.inputs["residue_left_pct"].provenance == "table:panagos_2022"
+
+
+def test_a_technician_adjustment_beats_the_declaration():
+    b = build_crop("TRZAX", COEFF, _o("crop.residue_left_pct", 40.0), residues="left")
+    assert b.params.residue_left_pct == 40.0 and b.inputs["residue_left_pct"].provenance == ENTERED
+
+
+def test_the_previous_crop_never_reads_the_declaration():
+    b = build_crop("TRZAX", COEFF, {}, prefix="previous_crop")
+    assert b.inputs["residue_left_pct"].provenance == "table:panagos_2022"

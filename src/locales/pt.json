@@ -346,6 +346,18 @@
         "future": "Apenas anos anteriores à campanha.",
         "duplicate": "Esse ano já está declarado."
       }
+    },
+    "residues": {
+      "label": "Resíduos da cultura",
+      "left": "Ficam no campo",
+      "removed": "São retirados",
+      "unit": "% fica no campo",
+      "pending": "Guarde e calcule para ver o valor."
+    },
+    "previousResidues": {
+      "label": "Resíduos da cultura anterior",
+      "left": "Ficaram no campo",
+      "removed": "Foram retirados"
     }
   },
   "workspace": {

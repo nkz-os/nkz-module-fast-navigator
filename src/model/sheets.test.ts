@@ -164,5 +164,7 @@ describe('previous crop for all sheets', () => {
     expect(out.map((s) => s.previous_crop_eppo)).toEqual(['fallow', 'fallow', null, 'TRZAX', null]);
     expect(out[0].water_m3_ha).toBe(10);
     expect(out[2]).toEqual(toSheetIn(plan.sheets[2], 2027));
+    const withRes = applyPreviousCrop(plan, 'a', {}, 'HORVX', 'removed');
+    expect(withRes.map((s) => s.previous_residues)).toEqual(['removed', 'removed', undefined, undefined, undefined]);
   });
 });

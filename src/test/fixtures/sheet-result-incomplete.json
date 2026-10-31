@@ -412,7 +412,7 @@
   "provisional": false,
   "status": "incomplete",
   "versions": {
-    "calc": "1.2.0",
+    "calc": "1.4.0",
     "coefficients": "2026-10-11.1",
     "engine": "1.1.0",
     "organic_table": "mapa-2010-ch6-p47",

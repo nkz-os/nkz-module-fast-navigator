@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from app.engine.types import CROP_TYPES, CropParams
 
-from .provenance import MissingInput, Notice, Override, Sourced, missing, table
+from .provenance import DECLARED, MissingInput, Notice, Override, Sourced, missing, table
 
 # engine field -> key in the `values` object of GET /crop-balance-coefficients
 COEFFICIENT_FIELDS = {
@@ -20,6 +20,8 @@ COEFFICIENT_FIELDS = {
     "residue_left_pct": "residue_left_pct",
 }
 N_MIN_FIELD = "n_min_product_pct"
+# Residue management of the campaign crop, chosen on the plan: share of residues left (Fres, %).
+RESIDUES = {"left": 100.0, "removed": 0.0}
 
 
 @dataclass(frozen=True)
@@ -38,7 +40,7 @@ def _number(v: object) -> bool:
 
 
 def build_crop(eppo: str | None, coefficients: dict | None, overrides: dict[str, Override],
-               prefix: str = "crop") -> CropBuild:
+               prefix: str = "crop", residues: str | None = None) -> CropBuild:
     """CropParams for `eppo`, every field with its provenance.
 
     A field the source lacks and nobody entered is missing: without coefficients there is no
@@ -73,7 +75,13 @@ def build_crop(eppo: str | None, coefficients: dict | None, overrides: dict[str,
         return got
 
     for field, key in COEFFICIENT_FIELDS.items():
-        inputs[field] = pick(f"{prefix}.{field}", key)
+        name = f"{prefix}.{field}"
+        if field == "residue_left_pct" and residues in RESIDUES and name not in overrides:
+            # The holder's choice for the campaign crop replaces the table value (a person's
+            # adjustment with a reason still wins).
+            inputs[field] = Sourced(RESIDUES[residues], DECLARED, "plan")
+            continue
+        inputs[field] = pick(name, key)
 
     n_min_name = f"{prefix}.{N_MIN_FIELD}"
     listed = from_table(N_MIN_FIELD)

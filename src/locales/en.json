@@ -346,6 +346,18 @@
         "future": "Only years before the campaign.",
         "duplicate": "That year is already declared."
       }
+    },
+    "residues": {
+      "label": "Crop residues",
+      "left": "They stay in the field",
+      "removed": "They are removed",
+      "unit": "% stays in the field",
+      "pending": "Save and calculate to see the value."
+    },
+    "previousResidues": {
+      "label": "Previous crop residues",
+      "left": "They stayed in the field",
+      "removed": "They were removed"
     }
   },
   "workspace": {

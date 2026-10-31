@@ -1,4 +1,4 @@
-from app.inputs.crops import FALLOW, crops_for_campaign
+from app.inputs.crops import FALLOW, cover_before, crops_for_campaign
 from app.inputs.provenance import DECLARED, MEASURED, MissingInput, Notice
 
 
@@ -193,3 +193,21 @@ def test_cycle_view_of_a_planned_cycle():
 def test_cycle_view_of_none_is_none():
     from app.inputs.crops import cycle_view
     assert cycle_view(None) is None
+
+
+def test_a_cover_crop_ending_before_the_main_crop_is_a_hint():
+    cycles = [cycle("VICSA", 2027, "2026-10-15", "2027-04-14", role="cover_crop"),
+              cycle("CIEAR", 2027, "2027-04-14", "2027-08-20")]
+    assert cover_before(cycles, 2027) == "VICSA"
+
+
+def test_a_cover_crop_before_the_previous_main_crop_is_not_a_hint():
+    cycles = [cycle("PHSVX", 2026, "2026-06-01", "2026-08-01", role="cover_crop"),
+              cycle("HELAN", 2026, "2026-09-10", "2026-12-01"),
+              cycle("TRZAX", 2027, "2027-01-10", "2027-07-10")]
+    assert cover_before(cycles, 2027) is None
+
+
+def test_no_cover_hint_without_a_cover_crop_or_a_main_crop():
+    assert cover_before(CYCLES[:2], 2027) is None
+    assert cover_before([cycle("VICSA", 2027, "2026-10-15", "2027-04-14", role="cover_crop")], 2027) is None

@@ -54,3 +54,15 @@ async def test_nuts_region_needs_a_key():
     async with _client(lambda r: httpx.Response(200, json={})) as c:
         with pytest.raises(ValueError):
             await bioorch.fetch_nuts_region(c, "http://bio:8420")
+
+
+async def test_crop_list_is_the_coefficients_route_without_eppo():
+    seen = {}
+
+    def handler(request):
+        seen["url"] = str(request.url)
+        return httpx.Response(200, json={"crops": []})
+
+    async with _client(handler) as c:
+        assert await bioorch.fetch_crop_list(c, "http://bio:8420") == {"crops": []}
+    assert seen["url"] == "http://bio:8420/api/graph/agriculture/crop-balance-coefficients"

@@ -145,3 +145,21 @@ def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
             absent.append(MissingInput("previous_crop", "plan", {"campaign": campaign}))
             _flag_species(last, notices)
     return CropChoice(crop, previous, previous_campaign, tuple(notices), tuple(absent))
+
+
+def cover_before(cycles: list[dict], campaign: int) -> str | None:
+    """EPPO of the cover crop grown right before the campaign's main crop, as a hint only.
+
+    The cover crop must end by the main crop's start and after the previous main crop's end;
+    the engine does not model it (no N credit), so it never changes the previous crop.
+    """
+    of_campaign = campaign_main_cycles(cycles, campaign)
+    start = _date(of_campaign[0], "start") if of_campaign else None
+    if start is None:
+        return None
+    floor = max((e for c in _mains(cycles) if c is not of_campaign[0]
+                 and (e := _date(c, "end")) and e <= start), default=date.min)
+    covers = [c for c in cycles if not is_main(c) and _species(c)
+              and (end := _date(c, "end")) and floor < end <= start]
+    last = max(covers, key=lambda c: _date(c, "end"), default=None)
+    return _species(last)

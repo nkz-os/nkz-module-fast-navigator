@@ -51,6 +51,10 @@ class FakeSources:
         self._hit("coefficients", eppo)
         return self.data.get("coefficients", {}).get(eppo)
 
+    async def crop_list(self):
+        self._hit("crop_list")
+        return self.data.get("crop_list")
+
     async def regional_yields(self, eppo, nuts):
         self._hit("regional_yields", eppo, nuts)
         return self.data.get("zone", {}).get((eppo, nuts))

@@ -154,4 +154,31 @@ describe('DataTab (es)', () => {
     expect(h).not.toContain('Rendimiento declarado');
     expect(h).not.toContain('value="0"');
   });
+
+  it('residues: the table value is shown with its chip and neither button is on', () => {
+    const result = clone(COMPLETE);
+    result.inputs['crop.residue_left_pct'] = { value: 30, provenance: 'table:panagos_2022', source: 'bioorch', note: null };
+    const html = plain(render(makeSheet({ result })));
+    expect(html).toContain('Se quedan en campo');
+    expect(html).toContain('Se retiran');
+    expect(html).toContain('▤ tabla');
+    expect(html).not.toContain('aria-pressed="true"');
+  });
+
+  it('residues: a declared choice turns its button on, the other stays off', () => {
+    const result = clone(COMPLETE);
+    result.inputs['crop.residue_left_pct'] = { value: 100, provenance: 'declared', source: 'plan', note: null };
+    const html = plain(render(makeSheet({ result, inputs: { ...makeSheet().inputs, residues: 'left' } })));
+    expect(html.match(/aria-pressed="true"/g)).toHaveLength(1);
+    expect(html).toMatch(/aria-pressed="true"[^>]*>(?:<[^>]+>)*Se quedan en campo/);
+    expect(html).toContain('◐ declarado');
+  });
+
+  it('residues: missing shows ✕ falta and read only disables the buttons', () => {
+    const result = clone(COMPLETE);
+    result.inputs['crop.residue_left_pct'] = { value: null, provenance: 'missing', source: null, note: null };
+    expect(plain(render(makeSheet({ result })))).toContain('✕ falta');
+    const ro = render(makeSheet({ result }), false);
+    expect(/<button([^>]*)>(?:<[^>]+>)*Se retiran/.exec(ro)?.[1]).toMatch(/\sdisabled/);
+  });
 });

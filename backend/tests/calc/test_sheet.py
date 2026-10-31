@@ -229,4 +229,4 @@ def test_oxide_carries_the_engine_class():
     assert r.p2o5["soil_class"] in ("low", "medium", "high")
     assert r.p2o5["strategy"] == 2
     assert r.k2o["basis"] in ("buildup", "buildup_and_export", "export", "half_export", "none")
-    assert r.versions["calc"] == "1.2.0"
+    assert r.versions["calc"] == "1.3.0"

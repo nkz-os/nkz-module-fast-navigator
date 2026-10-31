@@ -165,6 +165,10 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
   const organic = val('organic') as OrganicInput[];
   const declared = val('declared_yields') as Record<string, number>;
   const canAddYear = editable;
+  // The button that is "on": the pending choice, else the stored one, else what the value says (100 / 0).
+  const residueNow = inputs['crop.residue_left_pct']?.value;
+  const residueChoice = (val('residues') as 'left' | 'removed' | null | undefined)
+    ?? (residueNow === 100 ? 'left' : residueNow === 0 ? 'removed' : null);
   const materialOptions = ORGANIC_MATERIALS.map((m) => ({ value: m, label: t(`data.organic.materials.${m}`) }));
   const organicIncomplete = organic.some((o) => !(ORGANIC_MATERIALS as readonly string[]).includes(o.material));
 
@@ -218,6 +222,16 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
           <Inline gap="inline" align="center" wrap>
             <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.coefficients')}</span>
             <ProvenanceChip value={inputs['crop.n_product_pct']} />
+          </Inline>
+          <Inline gap="inline" align="center" wrap>
+            <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.residues.label')}</span>
+            <Button size="sm" variant={residueChoice === 'left' ? 'primary' : 'secondary'} disabled={!editable}
+              aria-pressed={residueChoice === 'left'} onClick={() => set({ residues: 'left' })}>{t('data.residues.left')}</Button>
+            <Button size="sm" variant={residueChoice === 'removed' ? 'primary' : 'secondary'} disabled={!editable}
+              aria-pressed={residueChoice === 'removed'} onClick={() => set({ residues: 'removed' })}>{t('data.residues.removed')}</Button>
+            {'residues' in patch
+              ? <span className="text-nkz-sm text-nkz-text-muted">{t('data.residues.pending')}</span>
+              : <SourcedValue value={inputs['crop.residue_left_pct']} unit={t('data.residues.unit')} format={(v) => formatParam('crop.residue_left_pct', v, lang)} />}
           </Inline>
           {roles.technician && result && (
             <details>

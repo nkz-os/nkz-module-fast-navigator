@@ -71,3 +71,13 @@ class TestInternal:
             headers={"X-Internal-Service-Secret": "wrong"},
         )
         assert response.status_code == 401
+
+
+def test_residues_accepts_only_left_or_removed():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    c = TestClient(app)
+    h = {"X-Tenant-ID": "tenant-a", "X-User-ID": "u", "X-User-Roles": "TenantAdmin"}
+    body = {"campaign": 2027, "parcel_ids": ["p1"], "tillage": True, "irrigated": False,
+            "rotation_years": 4, "residues": "burnt"}
+    assert c.post("/api/fast/calc/preview", json=body, headers=h).status_code == 422

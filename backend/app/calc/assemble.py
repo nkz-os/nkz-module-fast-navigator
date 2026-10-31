@@ -59,6 +59,7 @@ class SheetRequest:
     previous_residues_burned: bool = False
     crop_eppo: str | None = None
     previous_crop_eppo: str | None = None
+    residues: str | None = None   # "left" | "removed": residues of the campaign crop
     cycle_index: int = 0
     soil_analysis_id: str | None = None
     nmin_analysis_id: str | None = None
@@ -206,7 +207,7 @@ async def assemble(req: SheetRequest, sources, today: date) -> AssembledInputs:
     coeff, prev_coeff = await asyncio.gather(
         sources.coefficients(crop_eppo) if crop_eppo else _none(),
         sources.coefficients(prev_eppo) if prev_eppo else _none())
-    crop = build_crop(crop_eppo, coeff, overrides, "crop")
+    crop = build_crop(crop_eppo, coeff, overrides, "crop", residues=req.residues)
     previous_crop = build_crop(prev_eppo, prev_coeff, overrides, "previous_crop") if prev_eppo else None
 
     region: Sourced | None = None

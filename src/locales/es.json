@@ -346,6 +346,13 @@
         "future": "Solo años anteriores a la campaña.",
         "duplicate": "Ese año ya está declarado."
       }
+    },
+    "residues": {
+      "label": "Restos del cultivo",
+      "left": "Se quedan en campo",
+      "removed": "Se retiran",
+      "unit": "% se queda en campo",
+      "pending": "Guarda y calcula para ver el valor."
     }
   },
   "workspace": {

@@ -148,3 +148,13 @@ async def test_a_water_quality_answer_that_is_not_an_entity_is_not_found():
     req = replace(REQ, irrigated=True, water_m3_ha=3000.0, water_quality_id=wq)
     a = await assemble(req, FakeSources(**data), TODAY)
     assert Notice("water_quality_not_found", {"id": wq}) in a.notices
+
+
+async def test_the_residues_choice_reaches_the_crop():
+    data = complete_data()
+    data["coefficients"]["TRZAX"]["values"].pop("residue_left_pct")
+    blocked = await assemble(REQ, FakeSources(**data), TODAY)
+    assert "crop.residue_left_pct" in [m.field for m in calculate(blocked).missing]
+    a = await assemble(replace(REQ, residues="left"), FakeSources(**data), TODAY)
+    assert a.crop.params.residue_left_pct == 100.0
+    assert calculate(a).inputs["crop.residue_left_pct"]["provenance"] == "declared"

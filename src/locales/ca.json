@@ -346,6 +346,13 @@
         "future": "Només anys anteriors a la campanya.",
         "duplicate": "Aquest any ja està declarat."
       }
+    },
+    "residues": {
+      "label": "Restes del cultiu",
+      "left": "Es queden al camp",
+      "removed": "Es retiren",
+      "unit": "% es queda al camp",
+      "pending": "Desa i calcula per veure el valor."
     }
   },
   "workspace": {

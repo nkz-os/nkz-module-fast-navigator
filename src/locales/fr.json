@@ -346,6 +346,13 @@
         "future": "Uniquement des années avant la campagne.",
         "duplicate": "Cette année est déjà déclarée."
       }
+    },
+    "residues": {
+      "label": "Résidus de la culture",
+      "left": "Ils restent au champ",
+      "removed": "Ils sont exportés",
+      "unit": "% reste au champ",
+      "pending": "Enregistrez et calculez pour voir la valeur."
     }
   },
   "workspace": {

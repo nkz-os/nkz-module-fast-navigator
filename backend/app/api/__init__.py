@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 
 PLAN_ROLES = ["Farmer", "TechnicalConsultant", "TenantAdmin"]
 TECHNICIAN = "TechnicalConsultant"
+# Non-technician editors (role matrix 2026-10-31): the holder (TenantAdmin) and the technician.
+# Farmer (field worker) only reads.
+EDITOR_ROLES = ["TenantAdmin", "TechnicalConsultant"]
 PARCEL_ID_PATTERN = r"^(urn:ngsi-ld:AgriParcel:)?[A-Za-z0-9._-]+$"
 WATER_QUALITY_PATTERN = r"^urn:ngsi-ld:WaterQualityObserved:[A-Za-z0-9._-]+$"
 EPPO_PATTERN = r"^[A-Z0-9]{5,6}$"
@@ -132,7 +135,7 @@ def _request(body: SheetIn, auth: AuthContext) -> SheetRequest:
 
 
 @router.post("/calc/preview")
-async def calc_preview(body: SheetIn, auth: AuthContext = require_auth(PLAN_ROLES),
+async def calc_preview(body: SheetIn, auth: AuthContext = require_auth(EDITOR_ROLES),
                        sources_factory=Depends(get_sources_factory)) -> dict:
     req = _request(body, auth)
     try:

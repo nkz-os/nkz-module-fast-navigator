@@ -20,7 +20,8 @@ _SOIL = {"sand_pct": (0.0, 100.0), "clay_pct": (0.0, 100.0), "ph": (0.0, 14.0),
 
 
 def farmer_may_override(param: str) -> bool:
-    """Owner 2026-10-13: the farmer sets the N availability of organic inputs; nothing else."""
+    """Owner 2026-10-13: the non-technician editor sets the N availability of organic inputs;
+    nothing else. Since 2026-10-31 that editor is the holder (TenantAdmin); Farmer only reads."""
     return bool(FARMER_PARAMS.fullmatch(param))
 
 

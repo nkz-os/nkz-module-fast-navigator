@@ -3,7 +3,7 @@ import itertools
 import pytest
 
 from app.plans.states import (
-    FARMER,
+    HOLDER,
     TECHNICIAN,
     TRANSITIONS,
     Action,
@@ -13,7 +13,8 @@ from app.plans.states import (
     next_state,
 )
 
-ALL = frozenset({FARMER, TECHNICIAN})
+FIELD_WORKER = "Farmer"      # read-only since the 2026-10-31 role matrix
+ALL = frozenset({HOLDER, TECHNICIAN})
 READY = Guard(calc_fresh=True, blocking_findings=0, close_allowed=True)
 
 ALLOWED = {
@@ -26,7 +27,7 @@ ALLOWED = {
     (State.CALCULATED, Action.SUBMIT): (State.IN_REVIEW, ALL),
     (State.IN_REVIEW, Action.RETURN): (State.DRAFT, {TECHNICIAN}),
     (State.IN_REVIEW, Action.SIGN): (State.SIGNED, {TECHNICIAN}),
-    (State.CALCULATED, Action.CLOSE): (State.SIGNED, {FARMER}),
+    (State.CALCULATED, Action.CLOSE): (State.SIGNED, {HOLDER}),
     (State.SIGNED, Action.REVISE): (State.SIGNED, ALL),
 }
 
@@ -55,16 +56,16 @@ def test_every_other_pair_is_refused(key):
 def test_the_wrong_role_is_refused(key):
     state, action = key
     _, roles = ALLOWED[key]
-    for role in ({FARMER, TECHNICIAN, "TenantAdmin"} - set(roles)):
+    for role in ({HOLDER, TECHNICIAN, FIELD_WORKER} - set(roles)):
         with pytest.raises(TransitionError) as err:
             next_state(state, action, {role}, READY)
         assert err.value.code == "forbidden"
 
 
 @pytest.mark.parametrize("state,action,role", [
-    (State.CALCULATED, Action.SUBMIT, FARMER),
+    (State.CALCULATED, Action.SUBMIT, HOLDER),
     (State.IN_REVIEW, Action.SIGN, TECHNICIAN),
-    (State.CALCULATED, Action.CLOSE, FARMER),
+    (State.CALCULATED, Action.CLOSE, HOLDER),
 ])
 def test_a_stale_calculation_blocks_submit_sign_and_close(state, action, role):
     with pytest.raises(TransitionError) as err:
@@ -74,7 +75,7 @@ def test_a_stale_calculation_blocks_submit_sign_and_close(state, action, role):
 
 @pytest.mark.parametrize("state,action,role", [
     (State.IN_REVIEW, Action.SIGN, TECHNICIAN),
-    (State.CALCULATED, Action.CLOSE, FARMER),
+    (State.CALCULATED, Action.CLOSE, HOLDER),
 ])
 def test_blocking_findings_prevent_signing_and_closing(state, action, role):
     with pytest.raises(TransitionError) as err:
@@ -85,14 +86,14 @@ def test_blocking_findings_prevent_signing_and_closing(state, action, role):
 
 def test_closing_needs_the_advice_rule_to_allow_it():
     with pytest.raises(TransitionError) as err:
-        next_state(State.CALCULATED, Action.CLOSE, {FARMER}, Guard(calc_fresh=True))
+        next_state(State.CALCULATED, Action.CLOSE, {HOLDER}, Guard(calc_fresh=True))
     assert err.value.code == "advice_required"
 
 
 def test_submit_does_not_care_about_findings():
     guard = Guard(calc_fresh=True, blocking_findings=3)
-    assert next_state(State.CALCULATED, Action.SUBMIT, {FARMER}, guard) == State.IN_REVIEW
+    assert next_state(State.CALCULATED, Action.SUBMIT, {HOLDER}, guard) == State.IN_REVIEW
 
 
 def test_strings_are_accepted():
-    assert next_state("draft", "calculate", {FARMER}, READY) == State.CALCULATED
+    assert next_state("draft", "calculate", {HOLDER}, READY) == State.CALCULATED

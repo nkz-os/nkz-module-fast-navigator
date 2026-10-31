@@ -18,7 +18,7 @@ from app.inputs.provenance import Override
 from app.plans import repo
 from app.plans.applications import ApplicationIn, split_findings, summarize
 from app.plans.clock import legal_today
-from app.plans.states import TECHNICIAN, Action, Guard, State, TransitionError, next_state
+from app.plans.states import HOLDER, TECHNICIAN, Action, Guard, State, TransitionError, next_state
 from app.rules import evaluate
 from app.rules.context import PlanContext, SheetContext
 from app.rules.es.annex3 import valid_adjustment
@@ -424,8 +424,8 @@ async def set_declarations(pool, actor, plan_id, row_version, *, vulnerable_zone
 def _may_store_rain(plan: repo.PlanRow, actor: Actor) -> None:
     if State(plan.state) not in _RAIN_STATES:
         raise TransitionError("not_allowed", f"the plan is {plan.state}")
-    if not ({"Farmer", TECHNICIAN} & actor.roles):
-        raise TransitionError("forbidden", "only the farmer or the technician may do this")
+    if not ({HOLDER, TECHNICIAN} & actor.roles):
+        raise TransitionError("forbidden", "only the holder or the technician may do this")
     if State(plan.state) == State.IN_REVIEW and TECHNICIAN not in actor.roles:
         raise TransitionError("forbidden", "in review only the technician edits")
 

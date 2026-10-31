@@ -8,7 +8,7 @@ from app.main import app
 from app.sources.errors import SourceUnavailable
 from tests.fakes import URN, FakeSources, complete_data
 
-FARMER = {"X-Tenant-ID": "tenant-a", "X-User-ID": "u-farmer", "X-User-Roles": "Farmer"}
+HOLDER = {"X-Tenant-ID": "tenant-a", "X-User-ID": "u-holder", "X-User-Roles": "TenantAdmin"}
 TECH = {"X-Tenant-ID": "tenant-a", "X-User-ID": "u-tech", "X-User-Roles": "TechnicalConsultant"}
 BODY = {"campaign": 2027, "parcel_ids": [URN], "tillage": True, "irrigated": False,
         "rotation_years": 4}
@@ -35,12 +35,19 @@ def test_preview_needs_the_gateway_identity(client):
 
 
 def test_preview_needs_a_plan_role(client):
-    viewer = dict(FARMER, **{"X-User-Roles": "Viewer"})
+    viewer = dict(HOLDER, **{"X-User-Roles": "Viewer"})
     assert client.post("/api/fast/calc/preview", json=BODY, headers=viewer).status_code == 403
 
 
+def test_preview_is_closed_to_the_field_worker_but_its_parcel_reads_are_not(client):
+    field = dict(HOLDER, **{"X-User-Roles": "Farmer"})
+    assert client.post("/api/fast/calc/preview", json=BODY, headers=field).status_code == 403
+    r = client.get("/api/fast/sources/parcels/p1", params={"campaign": 2027}, headers=field)
+    assert r.status_code == 200
+
+
 def test_preview_of_a_complete_sheet(client):
-    r = client.post("/api/fast/calc/preview", json=BODY, headers=FARMER)
+    r = client.post("/api/fast/calc/preview", json=BODY, headers=HOLDER)
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["status"] == "complete" and body["n"]["avg_kg_ha"] > 0
@@ -48,12 +55,12 @@ def test_preview_of_a_complete_sheet(client):
 
 def test_a_short_parcel_id_is_accepted(client):
     body = dict(BODY, parcel_ids=["p1"])
-    assert client.post("/api/fast/calc/preview", json=body, headers=FARMER).status_code == 200
+    assert client.post("/api/fast/calc/preview", json=body, headers=HOLDER).status_code == 200
 
 
 def test_the_farmer_cannot_override_a_technician_value(client):
     body = dict(BODY, overrides=[{"param": "irrigation.uptake", "value": 0.5, "reason": "x"}])
-    assert client.post("/api/fast/calc/preview", json=body, headers=FARMER).status_code == 403
+    assert client.post("/api/fast/calc/preview", json=body, headers=HOLDER).status_code == 403
 
 
 def test_the_technician_overrides_and_is_recorded(client):
@@ -69,7 +76,7 @@ def test_the_farmer_sets_the_organic_availability(client):
     body = dict(BODY, organic=[{"material": "slurry", "rate_t_ha": 30, "n_pct": 0.5,
                                 "p2o5_pct": 0.2, "k2o_pct": 0.6}],
                 overrides=[{"param": "organic.0.availability", "value": 0.6, "reason": "own analysis"}])
-    r = client.post("/api/fast/calc/preview", json=body, headers=FARMER)
+    r = client.post("/api/fast/calc/preview", json=body, headers=HOLDER)
     assert r.status_code == 200
     assert r.json()["inputs"]["organic.0.availability"]["provenance"] == "entered"
 
@@ -88,23 +95,23 @@ def test_bad_overrides_are_rejected(client, override):
 def test_an_invalid_organic_application_is_rejected(client):
     body = dict(BODY, organic=[{"material": "guano", "rate_t_ha": 1, "n_pct": 1,
                                 "p2o5_pct": 1, "k2o_pct": 1}])
-    assert client.post("/api/fast/calc/preview", json=body, headers=FARMER).status_code == 422
+    assert client.post("/api/fast/calc/preview", json=body, headers=HOLDER).status_code == 422
 
 
 def test_a_failing_source_is_a_503_naming_it(client, data):
     data["fail"] = {"lab_analyses": SourceUnavailable("soil", "answered 500")}
-    r = client.post("/api/fast/calc/preview", json=BODY, headers=FARMER)
+    r = client.post("/api/fast/calc/preview", json=BODY, headers=HOLDER)
     assert r.status_code == 503
     assert r.json() == {"error": "source_unavailable", "source": "soil", "detail": "answered 500"}
 
 
 def test_an_unknown_parcel_is_a_404(client):
     body = dict(BODY, parcel_ids=["urn:ngsi-ld:AgriParcel:nope"])
-    assert client.post("/api/fast/calc/preview", json=body, headers=FARMER).status_code == 404
+    assert client.post("/api/fast/calc/preview", json=body, headers=HOLDER).status_code == 404
 
 
 def test_wizard_data_of_a_parcel(client):
-    r = client.get("/api/fast/sources/parcels/p1", params={"campaign": 2027}, headers=FARMER)
+    r = client.get("/api/fast/sources/parcels/p1", params={"campaign": 2027}, headers=HOLDER)
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["parcel"]["area_ha"]["value"] == 10.0
@@ -115,14 +122,14 @@ def test_wizard_data_of_a_parcel(client):
 
 
 def test_the_template_example_routes_are_gone(client):
-    assert client.get("/api/fast/data", headers=FARMER).status_code == 404
+    assert client.get("/api/fast/data", headers=HOLDER).status_code == 404
 
 
 @pytest.mark.parametrize("bad", ['p"1', "p;1", "urn:ngsi-ld:AgriParcel:a'b"])
 def test_unsafe_parcel_ids_are_rejected(client, bad):
     body = dict(BODY, parcel_ids=[bad])
-    assert client.post("/api/fast/calc/preview", json=body, headers=FARMER).status_code == 422
-    r = client.get("/api/fast/sources/parcels/" + bad, params={"campaign": 2027}, headers=FARMER)
+    assert client.post("/api/fast/calc/preview", json=body, headers=HOLDER).status_code == 422
+    r = client.get("/api/fast/sources/parcels/" + bad, params={"campaign": 2027}, headers=HOLDER)
     assert r.status_code == 422
 
 
@@ -130,7 +137,7 @@ def test_an_override_of_a_missing_organic_application_is_rejected(client):
     body = dict(BODY, organic=[{"material": "slurry", "rate_t_ha": 30, "n_pct": 0.5,
                                 "p2o5_pct": 0.2, "k2o_pct": 0.6}],
                 overrides=[{"param": "organic.1.availability", "value": 0.6, "reason": "x"}])
-    assert client.post("/api/fast/calc/preview", json=body, headers=FARMER).status_code == 422
+    assert client.post("/api/fast/calc/preview", json=body, headers=HOLDER).status_code == 422
 
 
 @pytest.mark.parametrize("field,value", [
@@ -142,12 +149,12 @@ def test_an_override_of_a_missing_organic_application_is_rejected(client):
 ])
 def test_ids_that_reach_urls_are_validated(client, field, value):
     assert client.post("/api/fast/calc/preview", json=dict(BODY, **{field: value}),
-                       headers=FARMER).status_code == 422
+                       headers=HOLDER).status_code == 422
 
 
 def test_a_valid_water_quality_id_passes_validation(client):
     body = dict(BODY, water_quality_id="urn:ngsi-ld:WaterQualityObserved:w1")
-    assert client.post("/api/fast/calc/preview", json=body, headers=FARMER).status_code == 200
+    assert client.post("/api/fast/calc/preview", json=body, headers=HOLDER).status_code == 200
 
 
 @pytest.mark.parametrize("param", [
@@ -164,12 +171,12 @@ def test_non_canonical_organic_override_names_are_rejected(client, param):
                                          ("es22", 422)])
 def test_nuts_is_exactly_level_2(client, nuts, status):
     assert client.post("/api/fast/calc/preview", json=dict(BODY, nuts=nuts),
-                       headers=FARMER).status_code == status
+                       headers=HOLDER).status_code == status
 
 
 def test_parcel_sources_returns_the_cycle(client, data):
-    r = client.get("/api/fast/sources/parcels/p1?campaign=2027", headers=FARMER)
+    r = client.get("/api/fast/sources/parcels/p1?campaign=2027", headers=HOLDER)
     assert r.status_code == 200, r.text
     assert r.json()["cycle"]["crop_id"] == "c2"
-    r = client.get("/api/fast/sources/parcels/p1?campaign=2030", headers=FARMER)
+    r = client.get("/api/fast/sources/parcels/p1?campaign=2030", headers=HOLDER)
     assert r.json()["cycle"] is None

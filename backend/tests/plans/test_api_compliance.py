@@ -10,7 +10,7 @@ from app.main import app
 from app.sources.errors import SourceUnavailable
 from tests.conftest import _truncate
 from tests.fakes import URN, FakeSources, complete_data
-from tests.plans.test_api_signing import BASE, FARMER, SECRET, _calculated
+from tests.plans.test_api_signing import BASE, HOLDER, SECRET, _calculated
 
 OP = {"id": "urn:ngsi-ld:AgriParcelOperation:op1", "type": "AgriParcelOperation",
       "operationType": "fertilization", "status": "completed", "fertilizerType": "NAC 27",
@@ -45,7 +45,7 @@ def client_with_ops(pg_url, monkeypatch):
 
 def test_compliance_route(client_with_ops, pg_url):
     pid, _plan = _calculated(client_with_ops, pg_url)
-    r = client_with_ops.get(f"{BASE}/plans/{pid}/compliance", headers=FARMER)
+    r = client_with_ops.get(f"{BASE}/plans/{pid}/compliance", headers=HOLDER)
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["campaign"] == 2027 and body["live"] is True
@@ -55,17 +55,17 @@ def test_compliance_route(client_with_ops, pg_url):
 
 def test_compliance_is_tenant_scoped(client_with_ops, pg_url):
     pid, _ = _calculated(client_with_ops, pg_url)
-    other = {"X-Tenant-ID": "tenant-b", "X-User-ID": "u", "X-User-Roles": "Farmer"}
+    other = {"X-Tenant-ID": "tenant-b", "X-User-ID": "u", "X-User-Roles": "TenantAdmin"}
     assert client_with_ops.get(f"{BASE}/plans/{pid}/compliance", headers=other).status_code == 404
 
 
 def test_compliance_of_a_signed_plan_reads_the_frozen_copy(client_with_ops, pg_url):
     pid, plan = _calculated(client_with_ops, pg_url)
-    r = client_with_ops.post(f"{BASE}/plans/{pid}/close", headers=FARMER, json={
+    r = client_with_ops.post(f"{BASE}/plans/{pid}/close", headers=HOLDER, json={
         "row_version": plan["row_version"], "closure_basis": "titular_sin_obligacion",
         "signer_name": "Juan"})
     assert r.status_code == 200, r.text
-    body = client_with_ops.get(f"{BASE}/plans/{pid}/compliance", headers=FARMER).json()
+    body = client_with_ops.get(f"{BASE}/plans/{pid}/compliance", headers=HOLDER).json()
     assert body["live"] is False
     (s,) = body["sheets"]
     assert s["realized"]["mineral_n_kg_ha"] > 0
@@ -82,7 +82,7 @@ def test_a_down_source_is_503(pg_url, monkeypatch):
             yield down
 
         app.dependency_overrides[get_sources_factory] = lambda: factory
-        assert c.get(f"{BASE}/plans/{pid}/compliance", headers=FARMER).status_code == 503
+        assert c.get(f"{BASE}/plans/{pid}/compliance", headers=HOLDER).status_code == 503
     app.dependency_overrides.clear()
     get_settings.cache_clear()
     asyncio.run(_truncate(pg_url))
@@ -90,25 +90,25 @@ def test_a_down_source_is_503(pg_url, monkeypatch):
 
 def test_pdf_route(client_with_ops, pg_url):
     pid, _ = _calculated(client_with_ops, pg_url)
-    r = client_with_ops.get(f"{BASE}/plans/{pid}/pdf", headers=FARMER)
+    r = client_with_ops.get(f"{BASE}/plans/{pid}/pdf", headers=HOLDER)
     assert r.status_code == 200 and r.headers["content-type"] == "application/pdf"
     assert r.content.startswith(b"%PDF")
     assert "fast-plan-2027-v1.pdf" in r.headers["content-disposition"]
     assert client_with_ops.get(f"{BASE}/plans/{pid}/pdf", params={"lang": "xx"},
-                               headers=FARMER).status_code == 422
+                               headers=HOLDER).status_code == 422
 
 
 def test_pdf_route_json_envelope(client_with_ops, pg_url):
     import base64
     pid, _ = _calculated(client_with_ops, pg_url)
     r = client_with_ops.get(f"{BASE}/plans/{pid}/pdf", params={"envelope": "json"},
-                            headers=FARMER)
+                            headers=HOLDER)
     assert r.status_code == 200 and r.headers["content-type"] == "application/json"
     body = r.json()
     assert body["filename"] == "fast-plan-2027-v1.pdf" and body["media_type"] == "application/pdf"
     assert base64.b64decode(body["content_base64"]).startswith(b"%PDF")
     assert client_with_ops.get(f"{BASE}/plans/{pid}/pdf", params={"envelope": "xml"},
-                               headers=FARMER).status_code == 422
+                               headers=HOLDER).status_code == 422
 
 
 def test_pdf_route_concurrent_requests(client_with_ops, pg_url):
@@ -116,7 +116,7 @@ def test_pdf_route_concurrent_requests(client_with_ops, pg_url):
     pid, _ = _calculated(client_with_ops, pg_url)
 
     def get(_):
-        return client_with_ops.get(f"{BASE}/plans/{pid}/pdf", headers=FARMER)
+        return client_with_ops.get(f"{BASE}/plans/{pid}/pdf", headers=HOLDER)
 
     with ThreadPoolExecutor(2) as ex:
         results = list(ex.map(get, range(2)))

@@ -12,7 +12,7 @@ from app.main import app
 from tests.fakes import URN, FakeSources, complete_data
 
 FIXTURES = Path(__file__).resolve().parents[2] / "src" / "test" / "fixtures"
-FARMER = {"X-Tenant-ID": "tenant-a", "X-User-ID": "u-farmer", "X-User-Roles": "Farmer"}
+HOLDER = {"X-Tenant-ID": "tenant-a", "X-User-ID": "u-holder", "X-User-Roles": "TenantAdmin"}
 BODY = {"campaign": 2027, "parcel_ids": [URN], "tillage": True, "irrigated": False,
         "rotation_years": 4}
 OTHER = "urn:ngsi-ld:AgriParcel:p0"
@@ -25,7 +25,7 @@ def _answer(data: dict, method: str, url: str, **kwargs) -> dict:
 
     app.dependency_overrides[get_sources_factory] = lambda: factory
     try:
-        r = TestClient(app).request(method, url, headers=FARMER, **kwargs)
+        r = TestClient(app).request(method, url, headers=HOLDER, **kwargs)
     finally:
         app.dependency_overrides.clear()
     assert r.status_code == 200, r.text

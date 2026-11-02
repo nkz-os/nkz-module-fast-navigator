@@ -97,6 +97,16 @@ describe('DataTab (es)', () => {
     expect(html).not.toContain('placeholder="31:201:0:0:12:45:1"');
   });
 
+  it('broker enclosures win over an older typed SIGPAC', () => {
+    const result = clone(COMPLETE);
+    result.inputs[`parcel.${URN}.enclosures`] = {
+      value: [{ reference: '31:97:0:0:4:228:1', overlap_pct: 43.36 }], provenance: 'measured', source: 'broker', note: null,
+    };
+    const html = render(makeSheet({ result, parcels: [{ urn: URN, sigpac: '31:201:0:0:12:45:1' }] }));
+    expect(html).toContain('31:97:0:0:4:228:1 (43.36 %)');
+    expect(html).not.toContain('31:201:0:0:12:45:1');
+  });
+
   it('chooses the declared and previous crop by name, with the fallow one click away', () => {
     const html = plain(render(makeSheet()));
     expect(html).toContain('Cultivo declarado');

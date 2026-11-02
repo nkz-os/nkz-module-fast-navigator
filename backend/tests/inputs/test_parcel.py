@@ -97,3 +97,12 @@ def test_no_enclosures_keeps_cadastral_fallback():
 def test_malformed_enclosures_are_ignored():
     info = parcel_info(_parcel(sigpacEnclosures=[{"reference": "nope"}, "x", {"overlapPct": 5}]))
     assert info.enclosures == () and not info.identifier.known
+
+
+@pytest.mark.parametrize("key", ["sigpacEnclosures", "https://nkz-os.org/ns/sigpacEnclosures",
+                                 "https://uri.etsi.org/ngsi-ld/default-context/sigpacEnclosures"])
+def test_single_enclosure_compacted_by_the_broker_to_an_object(key):
+    # Orion-LD compacts a one-element array into the bare element
+    info = parcel_info(_parcel(cadastralReference="31201A00100123") | {key: ENCL[0]})
+    assert [e["reference"] for e in info.enclosures] == ["31:97:0:0:4:228:1"]
+    assert info.identifier.value == "31:97:0:0:4:228:1"

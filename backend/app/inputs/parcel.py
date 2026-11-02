@@ -28,8 +28,11 @@ def parse_enclosures(entity: dict) -> tuple[dict, ...]:
     overlap_ha}. Absent, malformed or empty gives ()."""
     raw = None
     for key in ENCLOSURES_KEYS:
-        if isinstance(entity.get(key), list):
-            raw = entity[key]
+        value = entity.get(key)
+        if isinstance(value, dict):     # the broker compacts a one-element array to the element
+            value = [value]
+        if isinstance(value, list):
+            raw = value
             break
     out = []
     for item in raw or ():

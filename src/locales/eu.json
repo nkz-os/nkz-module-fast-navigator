@@ -323,6 +323,15 @@
         "slurry": "Minda",
         "compost": "Konposta",
         "other": "Beste material bat"
+      },
+      "product": "Produktua (MAPAren iradokizuna)",
+      "productPlaceholder": "Aukeratu produktu bat: mota eta % betetzen ditu",
+      "compositionSource": "Osaeraren jatorria",
+      "hint": "MAPA gidaren balio orientagarria; produktuaren analisia baduzu, erabili hura. Edozein zifra aldatu dezakezu.",
+      "midpoint": "≈ MAPAren tartearen erdiko balioa (gutx.–gehi.)",
+      "basis": {
+        "fresh": "materia freskoaren gainean",
+        "not_stated": "oinarria zehaztu gabe"
       }
     },
     "sigpacLabel": "SIGPAC",

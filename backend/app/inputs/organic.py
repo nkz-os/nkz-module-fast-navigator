@@ -12,6 +12,8 @@ from .provenance import MissingInput, Notice, Override, Sourced, missing, table
 ORGANIC_TABLE_VERSION = "mapa-2010-ch6-p47"
 MAPA_SOURCE_ID = "mapa_guia_2010"
 MATERIALS = ("cattle_manure", "other_manure", "slurry", "compost", "other")
+# Where the composition came from: a suggestion taken as is, or what the user declared.
+COMPOSITION_SOURCES = ("table:mapa_guia_2010", "declared")
 
 
 @dataclass(frozen=True)
@@ -42,8 +44,11 @@ class OrganicApplication:
     n_pct: float          # % of fresh matter, from the supplier or the holder (art. 5.1.c)
     p2o5_pct: float
     k2o_pct: float
+    composition_source: str = "declared"
 
     def __post_init__(self) -> None:
+        if self.composition_source not in COMPOSITION_SOURCES:
+            raise ValueError(f"composition_source must be one of {', '.join(COMPOSITION_SOURCES)}")
         if self.material not in MATERIALS:
             raise ValueError(f"material must be one of {', '.join(MATERIALS)}")
         for name in ("rate_t_ha", "n_pct", "p2o5_pct", "k2o_pct"):

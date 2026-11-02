@@ -323,6 +323,15 @@
         "slurry": "Lisier",
         "compost": "Compost",
         "other": "Autre matière"
+      },
+      "product": "Produit (suggestion MAPA)",
+      "productPlaceholder": "Choisissez un produit : renseigne le type et les %",
+      "compositionSource": "Origine de la composition",
+      "hint": "Valeur indicative du guide MAPA ; utilisez l'analyse du produit si vous en avez une. Vous pouvez modifier chaque chiffre.",
+      "midpoint": "≈ milieu de la fourchette MAPA (min–max)",
+      "basis": {
+        "fresh": "sur matière fraîche",
+        "not_stated": "base non indiquée"
       }
     },
     "sigpacLabel": "SIGPAC",

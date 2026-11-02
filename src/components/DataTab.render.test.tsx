@@ -10,6 +10,19 @@ vi.mock('../hooks/useCrops', async () => {
   const fx = await import('../test/fixtures/source-crops.json');
   return { useCrops: () => ({ data: fx.crops, error: null, loading: false, retry: () => undefined }) };
 });
+vi.mock('../hooks/useOrganicProducts', () => ({
+  useOrganicProducts: () => ({
+    data: {
+      products: [{
+        id: 'cattle_manure_table', material: 'cattle_manure', basis: 'fresh', source_ref: 'MAPA 2010, ch. 6, p. 47, table 6.7',
+        n_pct: { value: 0.45, min: 0.3, max: 0.6 }, p2o5_pct: { value: 0.25, min: 0.1, max: 0.4 }, k2o_pct: { value: 0.7, min: 0.4, max: 1 },
+        names: { es: 'Estiércol de vacuno', en: 'Cattle manure' },
+      }],
+      attribution: { source_id: 'mapa_guia_2010', text: 'Ministerio de Agricultura (2010). Ley 37/2007.' },
+    },
+    error: null, loading: false, retry: () => undefined,
+  }),
+}));
 vi.mock('../hooks/useLoad', () => ({ useLoad: () => ({ data: 'Trigo blando', error: null, loading: false, retry: vi.fn() }) }));
 
 import type { PlanSheet } from '../api/types';
@@ -140,6 +153,23 @@ describe('DataTab (es)', () => {
     expect(render(sheet, false)).toContain('Purín · 20 t/ha');
     const blank = makeSheet({ inputs: { ...makeSheet().inputs, organic: [{ ...organic[0], material: '' }] } });
     expect(render(blank)).toContain('Elige el tipo de material de cada aporte para guardar.');
+  });
+
+  it('offers the MAPA products, shows the suggestion with its labelled range and the attribution', () => {
+    const organic = [{ material: 'cattle_manure', rate_t_ha: 20, n_pct: 0.45, p2o5_pct: 0.25, k2o_pct: 0.7, composition_source: 'table:mapa_guia_2010' as const }];
+    const html = plain(render(makeSheet({ inputs: { ...makeSheet().inputs, organic } })));
+    expect(html).toContain('Producto (sugerencia MAPA)');
+    expect(html).toContain('Origen de la composición');
+    expect(html).toContain('▤ tabla');
+    expect(html).toContain('Valor orientativo de la guía MAPA');
+    expect(html).toContain('Ley 37/2007');
+  });
+
+  it('a declared composition shows the declared chip and no suggestion hint', () => {
+    const organic = [{ material: 'slurry', rate_t_ha: 20, n_pct: 0.6, p2o5_pct: 0.3, k2o_pct: 0.5 }];
+    const html = plain(render(makeSheet({ inputs: { ...makeSheet().inputs, organic } })));
+    expect(html).toContain('◐ declarado');
+    expect(html).not.toContain('Valor orientativo de la guía MAPA');
   });
 
   it('shows the estimated organic matter notice', () => {

@@ -323,6 +323,15 @@
         "slurry": "Purín",
         "compost": "Compost",
         "other": "Otro material"
+      },
+      "product": "Producto (sugerencia MAPA)",
+      "productPlaceholder": "Elige un producto: rellena tipo y %",
+      "compositionSource": "Origen de la composición",
+      "hint": "Valor orientativo de la guía MAPA; use el análisis del producto si lo tiene. Puede editar cualquier cifra.",
+      "midpoint": "≈ medio del rango MAPA (mín–máx)",
+      "basis": {
+        "fresh": "sobre materia fresca",
+        "not_stated": "base no indicada"
       }
     },
     "sigpacLabel": "SIGPAC",

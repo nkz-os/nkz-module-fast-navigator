@@ -323,6 +323,15 @@
         "slurry": "Purí",
         "compost": "Compost",
         "other": "Un altre material"
+      },
+      "product": "Producte (suggeriment MAPA)",
+      "productPlaceholder": "Tria un producte: omple el tipus i els %",
+      "compositionSource": "Origen de la composició",
+      "hint": "Valor orientatiu de la guia MAPA; feu servir l'anàlisi del producte si en teniu. Podeu editar qualsevol xifra.",
+      "midpoint": "≈ mitjà del rang MAPA (mín–màx)",
+      "basis": {
+        "fresh": "sobre matèria fresca",
+        "not_stated": "base no indicada"
       }
     },
     "sigpacLabel": "SIGPAC",

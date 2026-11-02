@@ -323,6 +323,15 @@
         "slurry": "Chorume",
         "compost": "Composto",
         "other": "Outro material"
+      },
+      "product": "Produto (sugestão MAPA)",
+      "productPlaceholder": "Escolha um produto: preenche o tipo e os %",
+      "compositionSource": "Origem da composição",
+      "hint": "Valor indicativo do guia MAPA; use a análise do produto se a tiver. Pode editar qualquer valor.",
+      "midpoint": "≈ ponto médio do intervalo MAPA (mín–máx)",
+      "basis": {
+        "fresh": "sobre matéria fresca",
+        "not_stated": "base não indicada"
       }
     },
     "sigpacLabel": "SIGPAC",

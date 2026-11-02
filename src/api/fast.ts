@@ -2,6 +2,7 @@ import type {
   CampaignParcels, PdfEnvelope, Plan, PlanListItem, PlanSheetIn,
 } from './types';
 import type { SourceCrop } from '../model/crops';
+import type { OrganicProducts } from '../model/organic';
 import { apiOrigin, request, requestUrl, FastApiError } from './client';
 
 export const listPlans = (campaign: number, signal?: AbortSignal) =>
@@ -39,6 +40,10 @@ export const campaignParcels = (campaign: number, signal?: AbortSignal) =>
 /** Crops the user can pick by name (FaST reads them from BioOrch; 503 when BioOrch is down). */
 export const sourceCrops = (signal?: AbortSignal) =>
   request<{ crops: SourceCrop[] }>('GET', '/sources/crops', undefined, signal).then((r) => r.crops);
+
+/** MAPA (2010) composition suggestions for organic inputs, with the attribution to show. */
+export const sourceOrganicProducts = (signal?: AbortSignal) =>
+  request<OrganicProducts>('GET', '/sources/organic-products', undefined, signal);
 
 /** The PDF travels inside a JSON envelope: the gateway proxy only carries JSON. */
 export async function fetchPlanPdf(id: string, lang: 'es' | 'en'): Promise<{ filename: string; blob: Blob }> {

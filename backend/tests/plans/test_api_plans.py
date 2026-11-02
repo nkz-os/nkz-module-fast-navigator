@@ -380,3 +380,22 @@ def test_list_of_a_new_plan(client):
     item = client.get(BASE, headers=HOLDER).json()[0]
     assert item["findings"] == {"block": 0, "warn": 0, "info": 0}
     assert item["sheets_count"] == 0 and item["signed_at"] is None
+
+
+def test_the_composition_source_is_stored_and_defaults_to_declared(client):
+    plan = _new(client)
+    suggested = GOOD_ORGANIC | {"composition_source": "table:mapa_guia_2010"}
+    r = client.put(f"{BASE}/{plan['id']}/sheets", headers=HOLDER,
+                   json={"row_version": plan["row_version"],
+                         "sheets": [SHEET | {"organic": [suggested, GOOD_ORGANIC]}]})
+    assert r.status_code == 200, r.text
+    organic = _stored_sheets(client, plan)[0]["inputs"]["organic"]
+    assert [o["composition_source"] for o in organic] == ["table:mapa_guia_2010", "declared"]
+
+
+def test_an_unknown_composition_source_is_a_422(client):
+    plan = _new(client)
+    r = client.put(f"{BASE}/{plan['id']}/sheets", headers=HOLDER,
+                   json={"row_version": plan["row_version"],
+                         "sheets": [SHEET | {"organic": [GOOD_ORGANIC | {"composition_source": "x"}]}]})
+    assert r.status_code == 422, r.text

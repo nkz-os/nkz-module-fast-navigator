@@ -21,6 +21,7 @@ from app.inputs.crops import (
     EPPO, campaign_main_cycles, cover_before, crops_for_campaign, cycle_view,
 )
 from app.inputs.organic import OrganicApplication
+from app.inputs.organic_products import ATTRIBUTION as ORGANIC_ATTRIBUTION, load_products
 from app.inputs.overrides import check_override, farmer_may_override
 from app.inputs.parcel import parcel_info
 from app.inputs.provenance import Override
@@ -67,6 +68,7 @@ class OrganicIn(BaseModel):
     n_pct: float
     p2o5_pct: float
     k2o_pct: float
+    composition_source: Literal["table:mapa_guia_2010", "declared"] = "declared"
 
 
 class SheetIn(BaseModel):
@@ -222,6 +224,12 @@ async def campaign_parcels(campaign: Annotated[int, Path(ge=2000, le=2100)],
     logger.info("campaign parcels tenant=%s campaign=%s count=%d ms=%d", auth.tenant_id,
                 campaign, len(parcels), int((time.monotonic() - started) * 1000))
     return {"campaign": campaign, "parcels": parcels}
+
+
+@router.get("/sources/organic-products")
+async def source_organic_products(auth: AuthContext = require_auth(PLAN_ROLES)) -> dict:
+    """MAPA (2010) composition suggestions for organic inputs; the user can edit every figure."""
+    return {"products": load_products(), "attribution": ORGANIC_ATTRIBUTION}
 
 
 @router.get("/sources/crops")

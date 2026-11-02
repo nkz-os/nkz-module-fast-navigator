@@ -9,7 +9,8 @@ import { formatDate, formatKgHa } from '../model/format';
 import { mayAdjust, overrideRange } from '../model/overrides';
 import { COEFFICIENT_PARAMS, formatParam, PARAMS, paramLabelKey, SOIL_PARAMS, WATER_PARAMS, YIELD_PARAMS } from '../model/params';
 import type { Roles } from '../model/roles';
-import { ORGANIC_MATERIALS } from '../model/organic';
+import { applyProduct, editComposition, ORGANIC_MATERIALS, productName, type OrganicProduct } from '../model/organic';
+import { useOrganicProducts } from '../hooks/useOrganicProducts';
 import { applyPreviousCrop, editSheet, lacksPreviousCrop, ownerLink } from '../model/sheets';
 import { CropLabel } from './CropLabel';
 import { CropPicker } from './CropPicker';
@@ -174,6 +175,13 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
   const residueNow = inputs['crop.residue_left_pct']?.value;
   const residueChoice = (val('residues') as 'left' | 'removed' | null | undefined)
     ?? (residueNow === 100 ? 'left' : residueNow === 0 ? 'removed' : null);
+  const suggestions = useOrganicProducts(editable);
+  const products: OrganicProduct[] = Array.isArray(suggestions.data?.products) ? suggestions.data!.products : [];
+  const productOptions = products.map((p) => ({ value: p.id, label: productName(p, lang) }));
+  // The product each row was filled from, for the labelled default; it is not stored in the sheet.
+  const [picked, setPicked] = useState<Record<number, string>>({});
+  const fmtNum = (v: number) => new Intl.NumberFormat(lang, { maximumFractionDigits: 3 }).format(v);
+  const range = (n: { min: number; max: number }) => (n.min === n.max ? fmtNum(n.min) : `${fmtNum(n.min)}–${fmtNum(n.max)}`);
   const materialOptions = ORGANIC_MATERIALS.map((m) => ({ value: m, label: t(`data.organic.materials.${m}`) }));
   const organicIncomplete = organic.some((o) => !(ORGANIC_MATERIALS as readonly string[]).includes(o.material));
 
@@ -368,23 +376,52 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
             const param = `organic.${i}.availability`;
             const a = inputs[param];
             const edit = (p: Partial<OrganicInput>) => set({ organic: organic.map((x, j) => (j === i ? { ...x, ...p } : x)) });
+            const editContent = (p: Partial<Pick<OrganicInput, 'material' | 'n_pct' | 'p2o5_pct' | 'k2o_pct'>>) =>
+              set({ organic: organic.map((x, j) => (j === i ? editComposition(x, p) : x)) });
+            const pick = (id: string) => {
+              const prod = products.find((x) => x.id === id);
+              if (!prod) return;
+              setPicked({ ...picked, [i]: id });
+              set({ organic: organic.map((x, j) => (j === i ? applyProduct(x, prod) : x)) });
+            };
+            const suggestion = o.composition_source === 'table:mapa_guia_2010' ? products.find((x) => x.id === picked[i]) : undefined;
+            const compositionSource: Sourced = o.composition_source === 'table:mapa_guia_2010'
+              ? { value: null, provenance: 'table:mapa_guia_2010', source: 'mapa_guia_2010', note: null }
+              : { value: null, provenance: 'declared', source: 'plan', note: null };
             return (
               <Stack key={i} gap="tight">
                 {editable ? (
                   <FormGrid columns={3}>
+                    {productOptions.length > 0 && (
+                      <FormField label={t('data.organic.product')}>
+                        <Select value={picked[i] ?? ''} placeholder={t('data.organic.productPlaceholder')} options={productOptions} onValueChange={pick} />
+                      </FormField>
+                    )}
                     <FormField label={t('data.organic.material')} error={fieldError(`organic.${i}.material`)}>
-                      <Select value={o.material} placeholder={t('wizard.form.choose')} options={materialOptions} onValueChange={(v) => edit({ material: v })} />
+                      <Select value={o.material} placeholder={t('wizard.form.choose')} options={materialOptions} onValueChange={(v) => editContent({ material: v })} />
                     </FormField>
                     <FormField label={t('data.organic.rate')}><Input type="number" min={0} step="any" value={o.rate_t_ha} onChange={(e) => edit({ rate_t_ha: Number(e.target.value) })} /></FormField>
-                    <FormField label={t('data.organic.n')}><Input type="number" min={0} step="any" value={o.n_pct} onChange={(e) => edit({ n_pct: Number(e.target.value) })} /></FormField>
-                    <FormField label={t('data.organic.p2o5')}><Input type="number" min={0} step="any" value={o.p2o5_pct} onChange={(e) => edit({ p2o5_pct: Number(e.target.value) })} /></FormField>
-                    <FormField label={t('data.organic.k2o')}><Input type="number" min={0} step="any" value={o.k2o_pct} onChange={(e) => edit({ k2o_pct: Number(e.target.value) })} /></FormField>
+                    <FormField label={t('data.organic.n')}><Input type="number" min={0} step="any" value={o.n_pct} onChange={(e) => editContent({ n_pct: Number(e.target.value) })} /></FormField>
+                    <FormField label={t('data.organic.p2o5')}><Input type="number" min={0} step="any" value={o.p2o5_pct} onChange={(e) => editContent({ p2o5_pct: Number(e.target.value) })} /></FormField>
+                    <FormField label={t('data.organic.k2o')}><Input type="number" min={0} step="any" value={o.k2o_pct} onChange={(e) => editContent({ k2o_pct: Number(e.target.value) })} /></FormField>
                     <div className="flex items-end">
-                      <Button size="sm" variant="danger" onClick={() => set({ organic: organic.filter((_, j) => j !== i) })}>{t('data.organic.remove')}</Button>
+                      <Button size="sm" variant="danger" onClick={() => { set({ organic: organic.filter((_, j) => j !== i) }); setPicked(Object.fromEntries(Object.entries(picked).filter(([k]) => Number(k) !== i).map(([k, v]) => [Number(k) > i ? Number(k) - 1 : Number(k), v]))); }}>{t('data.organic.remove')}</Button>
                     </div>
                   </FormGrid>
                 ) : (
                   <p className="text-nkz-sm text-nkz-text-primary">{t(`data.organic.materials.${o.material}`, { defaultValue: o.material })} · {o.rate_t_ha} t/ha · N {o.n_pct} % · P₂O₅ {o.p2o5_pct} % · K₂O {o.k2o_pct} %</p>
+                )}
+                <Inline gap="inline" align="center" wrap>
+                  <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.organic.compositionSource')}</span>
+                  <ProvenanceChip value={compositionSource} />
+                  {o.composition_source === 'table:mapa_guia_2010' && (
+                    <span className="text-nkz-xs text-nkz-text-muted">{t('data.organic.hint')}</span>
+                  )}
+                </Inline>
+                {suggestion && (
+                  <p className="text-nkz-xs text-nkz-text-muted">
+                    {t('data.organic.midpoint')}: N {range(suggestion.n_pct)} %, P₂O₅ {range(suggestion.p2o5_pct)} %, K₂O {range(suggestion.k2o_pct)} % · {t(`data.organic.basis.${suggestion.basis}`)} · {suggestion.source_ref}
+                  </p>
                 )}
                 <Inline gap="inline" align="center" wrap>
                   <span className="w-64 text-nkz-sm text-nkz-text-secondary">{t('data.organic.availability')}</span>
@@ -396,8 +433,11 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
               </Stack>
             );
           })}
+          {editable && organic.length > 0 && suggestions.data?.attribution?.text && (
+            <p className="text-nkz-xs text-nkz-text-muted">{suggestions.data.attribution.text}</p>
+          )}
           {editable && organic.length < 20 && (
-            <Button size="sm" variant="ghost" onClick={() => set({ organic: [...organic, { material: '', rate_t_ha: 0, n_pct: 0, p2o5_pct: 0, k2o_pct: 0 }] })}>
+            <Button size="sm" variant="ghost" onClick={() => set({ organic: [...organic, { material: '', rate_t_ha: 0, n_pct: 0, p2o5_pct: 0, k2o_pct: 0, composition_source: 'declared' }] })}>
               {t('data.organic.add')}
             </Button>
           )}

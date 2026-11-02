@@ -323,6 +323,15 @@
         "slurry": "Slurry",
         "compost": "Compost",
         "other": "Other material"
+      },
+      "product": "Product (MAPA suggestion)",
+      "productPlaceholder": "Choose a product: fills type and %",
+      "compositionSource": "Composition source",
+      "hint": "Indicative value from the MAPA guide; use the product's analysis if you have it. You can edit any figure.",
+      "midpoint": "≈ midpoint of the MAPA range (min–max)",
+      "basis": {
+        "fresh": "fresh matter basis",
+        "not_stated": "basis not stated"
       }
     },
     "sigpacLabel": "SIGPAC",

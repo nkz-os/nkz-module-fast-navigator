@@ -104,6 +104,8 @@ export interface SheetResult {
 
 export interface OrganicInput {
   material: string; rate_t_ha: number; n_pct: number; p2o5_pct: number; k2o_pct: number;
+  /** Absent in sheets saved before the suggestions: read as declared. */
+  composition_source?: 'table:mapa_guia_2010' | 'declared';
 }
 
 /** What a sheet stores: the SheetIn fields without key, parcels, applications, sigpac, overrides. */

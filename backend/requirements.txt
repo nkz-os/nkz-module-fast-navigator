@@ -15,6 +15,6 @@ nkz-platform-sdk>=0.13.0
 # PostgreSQL (plans live in the module's own schema, spec §9)
 asyncpg>=0.29
 jinja2>=3.1
-weasyprint==65.1
+weasyprint==70.0
 pydyf==0.12.1
 pyyaml>=6.0

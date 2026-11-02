@@ -24,8 +24,10 @@ export interface OrganicLike {
   composition_source?: CompositionSource;
 }
 
-export const productName = (p: OrganicProduct, lang: string): string =>
-  p.names[lang.split('-')[0]] ?? p.names.en ?? p.names.es ?? p.id;
+export const productName = (p: OrganicProduct, lang: string): string => {
+  const { names } = p;
+  return names[lang.split('-')[0]] ?? names['en'] ?? names['es'] ?? p.id;
+};
 
 /** Picking a product fills the type and the three contents at once; the rate stays the user's. */
 export const applyProduct = (o: OrganicLike, p: OrganicProduct): OrganicLike => ({

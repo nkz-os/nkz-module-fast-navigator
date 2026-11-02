@@ -13,7 +13,7 @@ ATTRIBUTION = {
     "text": ("Ministerio de Agricultura, Pesca y Alimentación (2010), Guía práctica de la "
              "fertilización racional de los cultivos en España. Reutilización de información del "
              "sector público (Ley 37/2007)."),
-    "url": "https://www.mapa.gob.es",
+    "url": None,
     "licence_url": None,
 }
 

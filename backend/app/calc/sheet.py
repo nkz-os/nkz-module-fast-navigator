@@ -15,7 +15,7 @@ from app.inputs.crops import FALLOW, CropChoice
 from app.inputs.irrigation import IrrigationCredit
 from app.inputs.organic import ORGANIC_TABLE_VERSION, OrganicCredit
 from app.inputs.parcel import ParcelInfo
-from app.inputs.provenance import DECLARED, MissingInput, Notice, Sourced
+from app.inputs.provenance import DECLARED, MEASURED, MissingInput, Notice, Sourced
 from app.inputs.soil import SoilInputs
 from app.inputs.yield_target import YieldTarget
 
@@ -194,6 +194,10 @@ def _inputs(a: AssembledInputs) -> dict[str, dict]:
     for parcel in a.parcels:
         out[f"parcel.{parcel.urn}.area_ha"] = parcel.area_ha.to_dict()
         out[f"parcel.{parcel.urn}.identifier"] = parcel.identifier.to_dict()
+        if parcel.enclosures:
+            out[f"parcel.{parcel.urn}.enclosures"] = {
+                "value": list(parcel.enclosures), "provenance": MEASURED,
+                "source": parcel.identifier.source, "note": None}
     return out
 
 

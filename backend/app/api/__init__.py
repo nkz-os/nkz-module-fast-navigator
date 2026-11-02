@@ -170,7 +170,8 @@ async def _parcel_summary(sources, entity: dict, campaign: int, today: date,
     main = campaign_main_cycles(cycles, campaign)
     return {
         "parcel": {"id": urn, "name": info.name, "area_ha": info.area_ha.to_dict(),
-                   "identifier": info.identifier.to_dict(), "farm": info.farm,
+                   "identifier": info.identifier.to_dict(), "enclosures": list(info.enclosures),
+                   "farm": info.farm,
                    "irrigation_regime": info.irrigation_regime},
         "crop": choice.crop.to_dict(), "previous_crop": choice.previous.to_dict(),
         "previous_campaign": choice.previous_campaign,

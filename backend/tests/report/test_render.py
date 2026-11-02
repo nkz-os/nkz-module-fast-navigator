@@ -219,3 +219,23 @@ def test_long_strings_pdf_does_not_fail():
     doc = document()
     doc["sheets"][0]["parcels"][0]["urn"] = "urn:ngsi-ld:AgriParcel:" + "z" * 300
     assert plan_pdf(doc).startswith(b"%PDF")
+
+
+def test_several_enclosures_listed_with_overlap():
+    doc = document()
+    sheet = doc["sheets"][0]
+    sheet["parcels"] = [{"urn": P1, "sigpac": None}]
+    sheet["result"]["inputs"][f"parcel.{P1}.enclosures"] = {"value": [
+        {"reference": "31:97:0:0:4:228:1", "overlap_pct": 43.36},
+        {"reference": "31:97:0:0:4:90020:1", "overlap_pct": 29.41}]}
+    html = plan_html(doc)
+    assert "31:97:0:0:4:228:1 (43.36 %)" in html and "31:97:0:0:4:90020:1 (29.41 %)" in html
+
+
+def test_broker_enclosures_take_precedence_over_an_older_manual_sigpac():
+    doc = document()
+    sheet = doc["sheets"][0]       # parcel carries manual sigpac 31:201:0:0:1:123:1
+    sheet["result"]["inputs"][f"parcel.{P1}.enclosures"] = {"value": [
+        {"reference": "31:97:0:0:4:228:1", "overlap_pct": 43.36}]}
+    html = plan_html(doc)
+    assert "31:97:0:0:4:228:1 (43.36 %)" in html and "31:201:0:0:1:123:1" not in html

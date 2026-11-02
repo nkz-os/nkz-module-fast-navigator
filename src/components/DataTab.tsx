@@ -412,14 +412,26 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
             const id = inputs[`parcel.${p.urn}.identifier`];
             const known = !!p.sigpac || (id != null && id.value != null && id.provenance !== 'missing');
             const typed = sigpac[p.urn];
+            const encl = inputs[`parcel.${p.urn}.enclosures`]?.value;
+            const enclosures = !p.sigpac && Array.isArray(encl)
+              ? (encl as { reference: string; overlap_pct?: number | null }[]) : [];
+            const fromBroker = enclosures.length > 0;
             return (
               <Inline key={p.urn} gap="inline" align="center" wrap>
                 <span className="w-64 text-nkz-sm text-nkz-text-primary">{name}</span>
-                {known
+                {fromBroker
+                  ? <span className="text-nkz-sm">
+                      {enclosures.map((e) => (
+                        <span key={e.reference} className="block">
+                          {e.reference}{e.overlap_pct != null ? ` (${e.overlap_pct} %)` : ''}
+                        </span>
+                      ))}
+                    </span>
+                  : known
                   ? <span className="text-nkz-sm">{p.sigpac ?? String(id?.value)}</span>
                   : <span className="text-nkz-sm text-nkz-text-muted">—</span>}
                 <ProvenanceChip value={p.sigpac ? { value: p.sigpac, provenance: 'declared', source: 'plan', note: null } : id} />
-                {editable && (
+                {editable && !fromBroker && (
                   <FormField label={known ? t('data.sigpacLabel') : t('data.sigpacWrite')} error={fieldError('sigpac')}>
                     <Input value={typed ?? p.sigpac ?? ''} placeholder="31:201:0:0:12:45:1"
                       onChange={(e) => setSigpac((cur) => ({ ...cur, [p.urn]: e.target.value }))} />

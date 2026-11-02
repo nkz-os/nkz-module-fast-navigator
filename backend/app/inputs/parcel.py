@@ -11,6 +11,10 @@ SAREF_AREA = "https://saref.etsi.org/saref4agri/Area"
 _SIGPAC = re.compile(r"^\d{1,2}:\d{1,3}:\d{1,3}:\d{1,3}:\d{1,3}:\d{1,5}:\d{1,4}$")
 _CADASTRAL = re.compile(r"^[0-9A-Z]{14}([0-9A-Z]{6})?$")
 _INE = re.compile(r"^\d{5}$")
+# The cadastral module writes the enclosures under this name; until the platform context carries
+# it, the broker returns the default-context IRI (or the platform one) instead.
+ENCLOSURES_KEYS = ("sigpacEnclosures", "https://nkz-os.org/ns/sigpacEnclosures",
+                   "https://uri.etsi.org/ngsi-ld/default-context/sigpacEnclosures")
 
 
 def is_parcel_identifier(value: str) -> bool:
@@ -19,12 +23,31 @@ def is_parcel_identifier(value: str) -> bool:
     return bool(v) and bool(_SIGPAC.match(v) or _CADASTRAL.match(v))
 
 
+def parse_enclosures(entity: dict) -> tuple[dict, ...]:
+    """SIGPAC enclosures stored on the parcel: valid references only, as {reference, overlap_pct,
+    overlap_ha}. Absent, malformed or empty gives ()."""
+    raw = None
+    for key in ENCLOSURES_KEYS:
+        if isinstance(entity.get(key), list):
+            raw = entity[key]
+            break
+    out = []
+    for item in raw or ():
+        ref = item.get("reference") if isinstance(item, dict) else None
+        if not isinstance(ref, str) or not _SIGPAC.match(ref.strip()):
+            continue
+        out.append({"reference": ref.strip(), "overlap_pct": item.get("overlapPct"),
+                    "overlap_ha": item.get("overlapAreaHa")})
+    return tuple(out)
+
+
 @dataclass(frozen=True)
 class ParcelInfo:
     urn: str
     name: str | None
     area_ha: Sourced
     identifier: Sourced                   # SIGPAC or cadastral reference (art. 6.1)
+    enclosures: tuple[dict, ...]          # every SIGPAC enclosure the parcel overlaps, largest first
     municipality_code: str | None         # INE code, only when the parcel carries one
     point: tuple[float, float] | None     # (lat, lon): mean of the outer ring's vertices
     farm: str | None
@@ -73,9 +96,14 @@ def parcel_info(entity: dict) -> ParcelInfo:
     else:
         area = missing(f"broker:{urn}")
         absent.append(MissingInput("parcel.area_ha", "broker", {"parcel": urn}))
+    enclosures = parse_enclosures(entity)
     ref = entity.get("cadastralReference")
     ref = ref.strip().upper() if isinstance(ref, str) and ref.strip() else None
-    if ref and is_parcel_identifier(ref):
+    if enclosures:
+        # The enclosures come first; the cadastral reference stays the fallback.
+        identifier = Sourced(", ".join(e["reference"] for e in enclosures), MEASURED,
+                             f"broker:{urn}:sigpacEnclosures", "sigpac")
+    elif ref and is_parcel_identifier(ref):
         identifier = Sourced(ref, MEASURED, f"broker:{urn}", "sigpac" if ":" in ref else "cadastral")
     else:
         identifier = missing(f"broker:{urn}")
@@ -89,6 +117,7 @@ def parcel_info(entity: dict) -> ParcelInfo:
         name=name if isinstance(name, str) else None,
         area_ha=area,
         identifier=identifier,
+        enclosures=enclosures,
         municipality_code=muni if isinstance(muni, str) and _INE.match(muni) else None,
         point=_point(entity.get("location")),
         farm=_rel(entity.get("hasAgriFarm")) or _rel(entity.get("refAgriFarm")),

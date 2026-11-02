@@ -72,3 +72,28 @@ def test_farm_from_either_relationship_name():
                                       ("CATAST_Pol_ParcelaRusti.344737", False), ("", False)])
 def test_is_parcel_identifier(value, ok):
     assert is_parcel_identifier(value) is ok
+
+
+ENCL = [{"reference": "31:97:0:0:4:228:1", "overlapAreaHa": 0.947, "overlapPct": 43.36},
+        {"reference": "31:97:0:0:4:90020:1", "overlapAreaHa": 0.642, "overlapPct": 29.41}]
+
+
+@pytest.mark.parametrize("key", ["sigpacEnclosures", "https://nkz-os.org/ns/sigpacEnclosures",
+                                 "https://uri.etsi.org/ngsi-ld/default-context/sigpacEnclosures"])
+def test_enclosures_win_over_cadastral_reference(key):
+    info = parcel_info(_parcel(cadastralReference="31201A00100123") | {key: ENCL})
+    assert [e["reference"] for e in info.enclosures] == ["31:97:0:0:4:228:1", "31:97:0:0:4:90020:1"]
+    assert info.identifier.value == "31:97:0:0:4:228:1, 31:97:0:0:4:90020:1"
+    assert info.identifier.provenance == MEASURED and info.identifier.note == "sigpac"
+    assert info.identifier.source.endswith(":sigpacEnclosures")
+    assert info.enclosures[0]["overlap_pct"] == 43.36
+
+
+def test_no_enclosures_keeps_cadastral_fallback():
+    info = parcel_info(_parcel(cadastralReference="31201A00100123", sigpacEnclosures=[]))
+    assert info.enclosures == () and info.identifier.value == "31201A00100123"
+
+
+def test_malformed_enclosures_are_ignored():
+    info = parcel_info(_parcel(sigpacEnclosures=[{"reference": "nope"}, "x", {"overlapPct": 5}]))
+    assert info.enclosures == () and not info.identifier.known

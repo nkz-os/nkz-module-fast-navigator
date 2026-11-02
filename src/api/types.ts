@@ -35,6 +35,7 @@ export interface CampaignParcel {
   name: string | null;
   area_ha: Sourced<number>;
   identifier: Sourced<string>;
+  enclosures?: { reference: string; overlap_pct: number | null; overlap_ha: number | null }[];
   farm: string | null;
   irrigation_regime: 'rainfed' | 'irrigated' | null;
   crop: Sourced<string>;

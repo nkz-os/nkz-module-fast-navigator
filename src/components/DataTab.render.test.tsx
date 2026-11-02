@@ -84,6 +84,19 @@ describe('DataTab (es)', () => {
     expect(render(sheet, false)).toContain('31:201:0:0:12:45:1');
   });
 
+  it('lists every enclosure of the parcel and asks for no typed SIGPAC', () => {
+    const result = clone(COMPLETE);
+    result.inputs[`parcel.${URN}.enclosures`] = {
+      value: [{ reference: '31:97:0:0:4:228:1', overlap_pct: 43.36 }, { reference: '31:97:0:0:4:90020:1', overlap_pct: 29.41 }],
+      provenance: 'measured', source: 'broker', note: null,
+    };
+    const html = render(makeSheet({ result }));
+    expect(html).toContain('31:97:0:0:4:228:1 (43.36 %)');
+    expect(html).toContain('31:97:0:0:4:90020:1 (29.41 %)');
+    expect(html).not.toContain('Escribir SIGPAC');
+    expect(html).not.toContain('placeholder="31:201:0:0:12:45:1"');
+  });
+
   it('chooses the declared and previous crop by name, with the fallow one click away', () => {
     const html = plain(render(makeSheet()));
     expect(html).toContain('Cultivo declarado');

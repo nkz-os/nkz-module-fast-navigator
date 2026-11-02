@@ -230,3 +230,16 @@ def test_oxide_carries_the_engine_class():
     assert r.p2o5["strategy"] == 2
     assert r.k2o["basis"] in ("buildup", "buildup_and_export", "export", "half_export", "none")
     assert r.versions["calc"] == "1.4.0"
+
+
+def test_sheet_records_every_enclosure_of_a_parcel():
+    from app.inputs.parcel import parcel_info
+    urn = "urn:ngsi-ld:AgriParcel:p1"
+    parcels = (parcel_info({"id": urn, "area": 10.0, "sigpacEnclosures": [
+        {"reference": "31:97:0:0:4:228:1", "overlapPct": 60.0, "overlapAreaHa": 6.0},
+        {"reference": "31:97:0:0:4:229:1", "overlapPct": 40.0, "overlapAreaHa": 4.0}]}),)
+    r = calculate(assembled(parcels=parcels))
+    enc = r.inputs[f"parcel.{urn}.enclosures"]
+    assert [e["reference"] for e in enc["value"]] == ["31:97:0:0:4:228:1", "31:97:0:0:4:229:1"]
+    assert enc["provenance"] == "measured"
+    assert r.inputs[f"parcel.{urn}.identifier"]["value"] == "31:97:0:0:4:228:1, 31:97:0:0:4:229:1"

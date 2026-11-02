@@ -17,6 +17,7 @@
         "value": null
       },
       "cycle": null,
+      "enclosures": [],
       "farm": null,
       "id": "urn:ngsi-ld:AgriParcel:p0",
       "identifier": {
@@ -78,6 +79,7 @@
         },
         "status": null
       },
+      "enclosures": [],
       "farm": null,
       "id": "urn:ngsi-ld:AgriParcel:p1",
       "identifier": {

@@ -61,9 +61,21 @@ def _mains(cycles: list[dict]) -> list[dict]:
     return sorted((c for c in cycles if is_main(c)), key=lambda c: _date(c, "start") or date.min)
 
 
+def _in_campaign(cycle: dict, campaign: int) -> bool:
+    """Whether the cycle is a crop of the campaign: a perennial is, from its planting year until
+    the year it ends (open end = still living); any other cycle by its campaign label."""
+    if cycle.get("lifecycle") != "perennial":
+        return cycle.get("campaign_label") == campaign
+    start = _date(cycle, "start")
+    if start is None or start.year > campaign:
+        return False
+    end = _date(cycle, "end")
+    return end is None or end.year >= campaign
+
+
 def campaign_main_cycles(cycles: list[dict], campaign: int) -> list[dict]:
     """Main-crop cycles of a campaign, ordered by start."""
-    return [c for c in _mains(cycles) if c.get("campaign_label") == campaign]
+    return [c for c in _mains(cycles) if _in_campaign(c, campaign)]
 
 
 def cycle_view(cycle: dict | None) -> dict | None:

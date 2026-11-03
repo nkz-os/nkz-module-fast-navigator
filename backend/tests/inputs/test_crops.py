@@ -211,3 +211,42 @@ def test_a_cover_crop_before_the_previous_main_crop_is_not_a_hint():
 def test_no_cover_hint_without_a_cover_crop_or_a_main_crop():
     assert cover_before(CYCLES[:2], 2027) is None
     assert cover_before([cycle("VICSA", 2027, "2026-10-15", "2027-04-14", role="cover_crop")], 2027) is None
+
+
+def perennial(species, start, end=None, label=None):
+    return {"crop_id": f"urn:ngsi-ld:AgriCrop:{species}{start}", "role": "main_crop",
+            "species": species, "lifecycle": "perennial", "start": {"date": start},
+            "end": {"date": end}, "campaign_label": label or int(start[:4])}
+
+
+def test_living_olive_is_crop_of_campaign():
+    c = crops_for_campaign([perennial("OLVEU", "2000-03-01")], 2026)
+    assert c.crop.value == "OLVEU" and c.crop.provenance == MEASURED
+
+
+def test_uprooted_olive_not_in_later_campaign():
+    c = crops_for_campaign([perennial("OLVEU", "2000-03-01", "2025-02-01")], 2026)
+    assert MissingInput("crop", "plan", {"campaign": 2026}) in c.missing
+    assert crops_for_campaign([perennial("OLVEU", "2000-03-01", "2025-02-01")], 2025).crop.value == "OLVEU"
+
+
+def test_annual_campaign_match_unchanged():
+    cycles = [cycle("TRZAX", 2027, "2026-10-25", "2027-07-10")]
+    assert crops_for_campaign(cycles, 2027).crop.value == "TRZAX"
+    assert crops_for_campaign(cycles, 2026).crop.value is None
+
+
+def test_living_olive_is_not_its_own_previous_crop():
+    c = crops_for_campaign([perennial("OLVEU", "2000-03-01")], 2026)
+    assert MissingInput("previous_crop", "plan", {"campaign": 2026}) in c.missing
+    assert c.previous_campaign is None
+
+
+def test_previous_crop_of_a_perennial_is_the_cycle_ended_before_its_start():
+    cycles = [cycle("TRZAX", 1999, "1998-11-01", "1999-07-01"), perennial("OLVEU", "2000-03-01")]
+    c = crops_for_campaign(cycles, 2026)
+    assert c.previous.value == "TRZAX" and c.previous_campaign == 1999
+
+
+def test_cover_before_a_living_olive_does_not_crash():
+    assert cover_before([perennial("OLVEU", "2000-03-01")], 2026) is None

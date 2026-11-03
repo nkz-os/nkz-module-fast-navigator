@@ -1,4 +1,4 @@
-from app.inputs.crops import FALLOW, cover_before, crops_for_campaign
+from app.inputs.crops import FALLOW, campaign_main_cycles, cover_before, crops_for_campaign
 from app.inputs.provenance import DECLARED, MEASURED, MissingInput, Notice
 
 
@@ -257,3 +257,49 @@ def test_declared_perennial_without_start_matches_by_campaign_label():
     cycle = {"lifecycle": "perennial", "start": {"date": None}, "campaign_label": 2024}
     assert _in_campaign(cycle, 2024)
     assert not _in_campaign(cycle, 2026)
+
+
+def declared(species, label):
+    return {"crop_id": f"urn:ngsi-ld:AgriCrop:decl{species}{label}", "role": "main_crop",
+            "species": species, "start": {}, "end": {}, "campaign_label": label,
+            "declared_campaign": label, "status": "harvested"}
+
+
+def test_a_declared_cycle_of_the_campaign_before_is_the_previous_crop():
+    cycles = [declared("HELAN", 2026), cycle("TRZAX", 2027, "2026-10-25", "2027-07-10")]
+    c = crops_for_campaign(cycles, 2027)
+    assert c.crop.value == "TRZAX"
+    assert c.previous.value == "HELAN" and c.previous.provenance == MEASURED
+    assert c.previous.source == "broker:crop-cycles:urn:ngsi-ld:AgriCrop:declHELAN2026"
+    assert c.previous_campaign == 2026 and not c.missing
+
+
+def test_a_declared_cycle_is_the_previous_crop_without_a_current_cycle():
+    c = crops_for_campaign([declared("HELAN", 2026)], 2027, declared_crop="TRZAX")
+    assert c.previous.value == "HELAN" and c.previous_campaign == 2026
+
+
+def test_a_dated_previous_cycle_wins_over_a_declared_one():
+    cycles = [declared("PISSA", 2026), cycle("HELAN", 2026, "2026-04-10", "2026-09-20"),
+              cycle("TRZAX", 2027, "2026-10-25", "2027-07-10")]
+    c = crops_for_campaign(cycles, 2027)
+    assert c.previous.value == "HELAN"
+
+
+def test_a_declared_cycle_two_campaigns_back_is_not_the_previous_crop():
+    c = crops_for_campaign([declared("HELAN", 2025), cycle("TRZAX", 2027, "2026-10-25", "2027-07-10")], 2027)
+    assert not c.previous.known
+    assert MissingInput("previous_crop", "plan", {"campaign": 2027}) in c.missing
+
+
+def test_a_declared_cycle_is_never_the_crop_of_its_own_campaign():
+    c = crops_for_campaign([declared("HELAN", 2027)], 2027)
+    assert not c.crop.known
+    assert MissingInput("crop", "plan", {"campaign": 2027}) in c.missing
+    assert campaign_main_cycles([declared("HELAN", 2027)], 2027) == []
+
+
+def test_a_declared_cycle_is_the_previous_crop_of_a_double_crop_without_a_first_cycle():
+    cycles = [declared("HELAN", 2026)]
+    c = crops_for_campaign(cycles, 2027, cycle_index=1, declared_crop="ZEAMX")
+    assert c.previous.value == "HELAN" and c.previous_campaign == 2026

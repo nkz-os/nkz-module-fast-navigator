@@ -78,9 +78,24 @@ def _in_campaign(cycle: dict, campaign: int) -> bool:
     return end is None or end.year >= campaign
 
 
+def is_declared_only(cycle: dict) -> bool:
+    """A past crop the farmer declared by campaign alone: no start, no end, a declared campaign."""
+    return (cycle.get("declared_campaign") is not None
+            and _date(cycle, "start") is None and _date(cycle, "end") is None)
+
+
 def campaign_main_cycles(cycles: list[dict], campaign: int) -> list[dict]:
-    """Main-crop cycles of a campaign, ordered by start."""
-    return [c for c in _mains(cycles) if _in_campaign(c, campaign)]
+    """Main-crop cycles of a campaign, ordered by start.
+
+    A declared-only cycle is history: it is never the crop of the campaign being computed.
+    """
+    return [c for c in _mains(cycles) if _in_campaign(c, campaign) and not is_declared_only(c)]
+
+
+def _declared_previous(mains: list[dict], campaign: int) -> dict | None:
+    """The declared-only main cycle of the campaign right before, when the dated rule finds none."""
+    return next((c for c in mains if is_declared_only(c)
+                 and c.get("campaign_label") == campaign - 1), None)
 
 
 def cycle_view(cycle: dict | None) -> dict | None:
@@ -127,6 +142,8 @@ def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
         last = of_campaign[cycle_index - 1] if len(of_campaign) >= cycle_index else None
         if last is None:
             notices.append(Notice("double_crop_first_cycle_unknown", {"campaign": campaign}))
+        if last is None:
+            last = _declared_previous(mains, campaign)
         if _is_pending(last):
             _flag_pending(last, notices)
             last = None
@@ -148,6 +165,8 @@ def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
                       and isinstance(c.get("campaign_label"), int)
                       and c["campaign_label"] < campaign]
         last = max(before, key=lambda c: _date(c, "end"), default=None)
+        if last is None:
+            last = _declared_previous(mains, campaign)
         if _is_pending(last):
             # A planned cycle never confirmed is not a crop that was grown: never fall back to the
             # older confirmed cycle behind it, the previous crop is the one the user declares.

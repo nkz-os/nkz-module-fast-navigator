@@ -12,7 +12,7 @@ from datetime import UTC, date, datetime
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from nkz_platform_sdk import OrionClient
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.calc.assemble import ParcelNotFound, SheetRequest, Sources, assemble
 from app.calc.sheet import calculate
@@ -23,7 +23,7 @@ from app.inputs.crops import (
 from app.inputs.organic import OrganicApplication
 from app.inputs.organic_products import ATTRIBUTION as ORGANIC_ATTRIBUTION, load_products
 from app.inputs.overrides import check_override, farmer_may_override
-from app.inputs.parcel import parcel_info
+from app.inputs.parcel import is_sigpac_enclosure, parcel_info
 from app.inputs.provenance import Override
 from app.middleware import AuthContext, require_auth
 from app.sources.errors import SourceUnavailable
@@ -95,6 +95,10 @@ class SheetIn(BaseModel):
                                          max_length=200)
     no3_mg_l: float | None = Field(default=None, ge=0, le=1000)
     nuts: str | None = Field(default=None, pattern=r"^[A-Z]{2}[0-9A-Z]{2}$")
+    # SIGPAC enclosures that identify each parcel, when the user changed the default choice
+    enclosures: dict[Annotated[str, Field(max_length=200)],
+                     list[Annotated[str, Field(max_length=40)]]] = Field(
+        default_factory=dict, max_length=200)
     overrides: list[OverrideIn] = Field(default_factory=list, max_length=100)
 
     @field_validator("declared_yields", "previous_declared_yields")
@@ -104,6 +108,23 @@ class SheetIn(BaseModel):
             if not 2000 <= year <= 2100 or not 0 < kg <= 200_000:
                 raise ValueError("declared yields are kg/ha > 0 per year 2000-2100")
         return v
+
+    @model_validator(mode="after")
+    def _enclosures(self) -> SheetIn:
+        urns = {_urn(p) for p in self.parcel_ids}
+        chosen: dict[str, list[str]] = {}
+        for parcel, refs in self.enclosures.items():
+            urn = _urn(parcel)
+            if urn not in urns:
+                raise ValueError(f"enclosures given for {parcel}, which is not in the sheet")
+            if urn in chosen:
+                raise ValueError("enclosures give one parcel twice")
+            refs = [r.strip() for r in refs]
+            if not 1 <= len(refs) <= 200 or not all(is_sigpac_enclosure(r) for r in refs):
+                raise ValueError(f"enclosures for {parcel} must be 1-200 SIGPAC recinto codes")
+            chosen[urn] = refs
+        self.enclosures = chosen
+        return self
 
 
 def _urn(parcel_id: str) -> str:

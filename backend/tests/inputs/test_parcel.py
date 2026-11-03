@@ -106,3 +106,58 @@ def test_single_enclosure_compacted_by_the_broker_to_an_object(key):
     info = parcel_info(_parcel(cadastralReference="31201A00100123") | {key: ENCL[0]})
     assert [e["reference"] for e in info.enclosures] == ["31:97:0:0:4:228:1"]
     assert info.identifier.value == "31:97:0:0:4:228:1"
+
+
+def _uses(*pairs):
+    return [{"reference": ref, "overlapPct": pct, "sigpacUse": use} for ref, pct, use in pairs]
+
+
+def test_only_agricultural_enclosures_are_selected_by_default():
+    info = parcel_info(_parcel(sigpacEnclosures=_uses(
+        ("31:125:0:0:2:729:1", 84.27, "TA"), ("31:125:0:0:2:730:1", 9.1, "PR"),
+        ("31:125:0:0:2:9001:1", 3.0, "CA"), ("31:125:0:0:2:731:1", 2.0, "ED"))))
+    assert [(e["reference"], e["sigpac_use"], e["selected"]) for e in info.enclosures] == [
+        ("31:125:0:0:2:729:1", "TA", True), ("31:125:0:0:2:730:1", "PR", True),
+        ("31:125:0:0:2:9001:1", "CA", False), ("31:125:0:0:2:731:1", "ED", False)]
+    assert info.identifier.value == "31:125:0:0:2:729:1, 31:125:0:0:2:730:1"
+
+
+@pytest.mark.parametrize("use", ["AG", "CA", "ED", "EP", "FO", "IM", "IS", "MT", "ZC", "ZU", "ZV"])
+def test_non_agricultural_uses_are_not_preselected(use):
+    info = parcel_info(_parcel(sigpacEnclosures=_uses(
+        ("31:1:0:0:1:1:1", 90.0, "TA"), ("31:1:0:0:1:2:1", 10.0, use))))
+    assert [e["selected"] for e in info.enclosures] == [True, False]
+
+
+def test_unknown_or_absent_use_is_preselected():
+    info = parcel_info(_parcel(sigpacEnclosures=[
+        {"reference": "31:1:0:0:1:1:1", "overlapPct": 60.0},
+        {"reference": "31:1:0:0:1:2:1", "overlapPct": 40.0, "sigpacUse": "XX"}]))
+    assert [e["selected"] for e in info.enclosures] == [True, True]
+    assert info.enclosures[0]["sigpac_use"] is None
+
+
+def test_only_non_agricultural_enclosures_keeps_them_all():
+    # never leave the parcel without an identifier just because SIGPAC calls it a road
+    info = parcel_info(_parcel(sigpacEnclosures=_uses(
+        ("31:1:0:0:1:1:1", 70.0, "IM"), ("31:1:0:0:1:2:1", 30.0, "CA"))))
+    assert [e["selected"] for e in info.enclosures] == [True, True]
+    assert info.identifier.value == "31:1:0:0:1:1:1, 31:1:0:0:1:2:1"
+
+
+def test_declared_choice_replaces_the_default():
+    info = parcel_info(_parcel(sigpacEnclosures=_uses(
+        ("31:1:0:0:1:1:1", 80.0, "TA"), ("31:1:0:0:1:2:1", 15.0, "TA"),
+        ("31:1:0:0:1:3:1", 5.0, "IM"))),
+        chosen=("31:1:0:0:1:1:1", "31:1:0:0:1:3:1"))
+    assert [e["selected"] for e in info.enclosures] == [True, False, True]
+    assert info.identifier.value == "31:1:0:0:1:1:1, 31:1:0:0:1:3:1"
+    assert info.identifier.provenance == MEASURED
+
+
+def test_a_stale_choice_falls_back_to_the_default():
+    # the geometry changed and none of the chosen enclosures is still overlapped
+    info = parcel_info(_parcel(sigpacEnclosures=_uses(
+        ("31:1:0:0:1:1:1", 90.0, "TA"), ("31:1:0:0:1:3:1", 10.0, "IM"))),
+        chosen=("31:9:0:0:9:9:9",))
+    assert [e["selected"] for e in info.enclosures] == [True, False]

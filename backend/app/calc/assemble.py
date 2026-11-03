@@ -71,6 +71,7 @@ class SheetRequest:
     water_quality_id: str | None = None
     no3_mg_l: float | None = None
     nuts: str | None = None
+    enclosures: dict[str, list[str]] = field(default_factory=dict)  # parcel URN -> chosen recintos
     overrides: tuple[Override, ...] = ()
 
 
@@ -184,7 +185,8 @@ async def assemble(req: SheetRequest, sources, today: date) -> AssembledInputs:
     for urn, entity in zip(req.parcel_ids, entities):
         if entity is None:
             raise ParcelNotFound(urn)
-    parcels = tuple(parcel_info(e) for e in entities)
+    parcels = tuple(parcel_info(e, tuple(req.enclosures.get(urn) or ()) or None)
+                    for urn, e in zip(req.parcel_ids, entities))
     first = parcels[0].urn
 
     timelines, analyses, harvests, estimated = await asyncio.gather(

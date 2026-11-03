@@ -78,9 +78,24 @@ def _in_campaign(cycle: dict, campaign: int) -> bool:
     return end is None or end.year >= campaign
 
 
+def _is_declared_only(cycle: dict) -> bool:
+    """A past crop the farmer declared by campaign alone: no start, no end, a declared campaign."""
+    return (cycle.get("declared_campaign") is not None
+            and _date(cycle, "start") is None and _date(cycle, "end") is None)
+
+
 def campaign_main_cycles(cycles: list[dict], campaign: int) -> list[dict]:
-    """Main-crop cycles of a campaign, ordered by start."""
-    return [c for c in _mains(cycles) if _in_campaign(c, campaign)]
+    """Main-crop cycles of a campaign, ordered by start.
+
+    A declared-only cycle is history: it is never the crop of the campaign being computed.
+    """
+    return [c for c in _mains(cycles) if _in_campaign(c, campaign) and not _is_declared_only(c)]
+
+
+def _declared_previous(mains: list[dict], campaign: int) -> dict | None:
+    """The declared-only main cycle of the campaign right before, when the dated rule finds none."""
+    return next((c for c in mains if _is_declared_only(c)
+                 and c.get("campaign_label") == campaign - 1), None)
 
 
 def cycle_view(cycle: dict | None) -> dict | None:
@@ -148,13 +163,20 @@ def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
                       and isinstance(c.get("campaign_label"), int)
                       and c["campaign_label"] < campaign]
         last = max(before, key=lambda c: _date(c, "end"), default=None)
+        declared_before = _declared_previous(mains, campaign)
+        if declared_before is not None and (
+                last is None or not isinstance(last.get("campaign_label"), int)
+                or last["campaign_label"] < campaign - 1):
+            last = declared_before   # the declared cycle wins only when strictly later
         if _is_pending(last):
             # A planned cycle never confirmed is not a crop that was grown: never fall back to the
             # older confirmed cycle behind it, the previous crop is the one the user declares.
             _flag_pending(last, notices)
             last = None
         if _species(last):
-            previous = Sourced(_species(last), MEASURED, f"{_SOURCE}:{last.get('crop_id')}")
+            # A person stated a declared-only cycle; nothing recorded it.
+            how = DECLARED if _is_declared_only(last) else MEASURED
+            previous = Sourced(_species(last), how, f"{_SOURCE}:{last.get('crop_id')}")
             previous_campaign = last.get("campaign_label")
         else:
             previous = missing(_SOURCE)

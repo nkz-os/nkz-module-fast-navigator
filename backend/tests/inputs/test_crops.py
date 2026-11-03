@@ -304,3 +304,17 @@ def test_a_declared_cycle_is_not_the_previous_of_a_later_cycle_with_no_first_cyc
     assert not c.previous.known
     assert MissingInput("previous_crop", "plan", {"campaign": 2027}) in c.missing
     assert Notice("double_crop_first_cycle_unknown", {"campaign": 2027}) in c.notices
+
+
+def test_a_declared_previous_wins_over_an_older_dated_cycle():
+    cycles = [cycle("PISSA", 2024, "2024-04-10", "2024-09-20"), declared("HELAN", 2026),
+              cycle("TRZAX", 2027, "2026-10-25", "2027-07-10")]
+    c = crops_for_campaign(cycles, 2027)
+    assert c.previous.value == "HELAN" and c.previous_campaign == 2026
+
+
+def test_an_older_dated_cycle_alone_is_the_previous_crop_as_before():
+    cycles = [cycle("PISSA", 2024, "2024-04-10", "2024-09-20"),
+              cycle("TRZAX", 2027, "2026-10-25", "2027-07-10")]
+    c = crops_for_campaign(cycles, 2027)
+    assert c.previous.value == "PISSA" and c.previous_campaign == 2024

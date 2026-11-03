@@ -229,7 +229,10 @@
       "years_other": "{{count}} complete years",
       "annual": "Annual total: {{mm}} mm",
       "month": "{{month}}: {{mm}} mm"
-    }
+    },
+    "separate": "Separate",
+    "rejoin": "Back to the group",
+    "separateHint": "The parcels of a sheet share soil, yield and fertilisation. Separate the one whose data differ."
   },
   "param": {
     "soil_sand_pct": "Sand",
@@ -369,7 +372,6 @@
       "removed": "They were removed"
     },
     "enclosuresHint": "Only ticked enclosures count. Farmland uses are ticked by default; roads, buildings, forest or unproductive land are left out.",
-    "enclosureLeftOut": "left out of the plan",
     "sigpacUse": {
       "AG": "Watercourses and water bodies",
       "CA": "Roads",
@@ -405,7 +407,11 @@
       "ZC": "Land consolidation area outside the orthophoto",
       "ZU": "Urban area",
       "ZV": "Restricted area"
-    }
+    },
+    "enclosuresLeftOut_one": "{{count}} enclosure left out of the plan",
+    "enclosuresLeftOut_other": "{{count}} enclosures left out of the plan",
+    "enclosuresChange": "change",
+    "enclosuresDone": "Done"
   },
   "workspace": {
     "back": "Plans",

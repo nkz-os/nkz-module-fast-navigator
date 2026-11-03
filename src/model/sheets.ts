@@ -24,6 +24,8 @@ export interface ParcelGroup {
   noCrop: boolean;
   parcels: CampaignParcel[];
   areaHa: number | null;
+  /** The group a separated parcel left: it gets a sheet, and so its own data, of its own. */
+  splitFrom?: string;
 }
 
 const hasValue = (s: Sourced | null | undefined) => !!s && s.value != null && s.provenance !== 'missing';
@@ -37,23 +39,30 @@ function areaOf(parcels: CampaignParcel[]): number | null {
   return total;
 }
 
-/** Parcels of a campaign grouped by (crop, irrigation regime); the ones without a crop go apart. */
-export function groupParcels(parcels: CampaignParcel[]): ParcelGroup[] {
+/**
+ * Parcels of a campaign grouped by (crop, irrigation regime); the ones without a crop go apart.
+ * Each parcel in `split` leaves its group for one of its own, listed right after it.
+ */
+export function groupParcels(parcels: CampaignParcel[], split: ReadonlySet<string> = new Set()): ParcelGroup[] {
   const groups = new Map<string, ParcelGroup>();
   for (const p of parcels) {
     const crop = hasValue(p.crop) ? String(p.crop.value) : null;
     const regime: Regime | null = p.irrigation_regime === 'rainfed' || p.irrigation_regime === 'irrigated' ? p.irrigation_regime : null;
-    const id = crop === null ? 'no-crop' : `${crop}|${regime ?? 'unknown'}`;
+    const base = crop === null ? 'no-crop' : `${crop}|${regime ?? 'unknown'}`;
+    const id = split.has(p.id) ? `${base}#${p.id}` : base;
     let g = groups.get(id);
     if (!g) {
       g = { id, crop, regime: crop === null ? null : regime, regimeUnknown: crop !== null && regime === null, noCrop: crop === null, parcels: [], areaHa: null };
+      if (id !== base) g.splitFrom = base;
       groups.set(id, g);
     }
     g.parcels.push(p);
   }
   const out = [...groups.values()];
   for (const g of out) g.areaHa = areaOf(g.parcels);
-  return out.sort((a, b) => Number(a.noCrop) - Number(b.noCrop) || a.id.localeCompare(b.id));
+  const base = (g: ParcelGroup) => g.splitFrom ?? g.id;
+  return out.sort((a, b) => Number(a.noCrop) - Number(b.noCrop) || base(a).localeCompare(base(b))
+    || Number(!!a.splitFrom) - Number(!!b.splitFrom) || a.id.localeCompare(b.id));
 }
 
 /** A key (`^[a-z0-9-]{1,40}$`) for a new sheet, unique among `taken`. */

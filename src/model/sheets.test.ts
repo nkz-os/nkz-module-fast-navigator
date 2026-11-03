@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { CampaignParcels, Plan, PlanSheet, SheetResult } from '../api/types';
 import parcelsFx from '../test/fixtures/campaign-parcels.json';
 import completeFx from '../test/fixtures/sheet-result-complete.json';
-import { groupParcels, sheetArea, sheetKey, toSheetIn } from './sheets';
+import { defaultManagement, groupParcels, sheetArea, sheetKey, toSheetIn, wizardSheets } from './sheets';
 
 const PARCELS = (parcelsFx as unknown as CampaignParcels).parcels;
 const RESULT = completeFx as unknown as SheetResult;
@@ -52,6 +52,36 @@ describe('groupParcels', () => {
   });
 });
 
+describe('separated parcels', () => {
+  const base = PARCELS[1];
+  const mk = (id: string) => ({ ...base, id, irrigation_regime: 'rainfed' as const });
+  const all = [mk('a'), mk('b'), mk('c')];
+
+  it('a separated parcel gets a group of its own, right after the one it left', () => {
+    const groups = groupParcels(all, new Set(['b']));
+    expect(groups.map((g) => [g.id, g.parcels.map((p) => p.id), g.splitFrom ?? null])).toEqual([
+      ['TRZAX|rainfed', ['a', 'c'], null],
+      ['TRZAX|rainfed#b', ['b'], 'TRZAX|rainfed'],
+    ]);
+    expect(groups[1].crop).toBe('TRZAX');
+    expect(groups[1].regime).toBe('rainfed');
+  });
+
+  it('a separated parcel without a crop keeps declaring its own', () => {
+    const none = { ...base, id: 'n', crop: { value: null, provenance: 'missing' as const, source: 'x', note: null } };
+    const groups = groupParcels([none, { ...none, id: 'm' }], new Set(['m']));
+    expect(groups.map((g) => [g.noCrop, g.splitFrom ?? null])).toEqual([[true, null], [true, 'no-crop']]);
+  });
+
+  it('every group becomes its own sheet with its own key', () => {
+    const groups = groupParcels(all, new Set(['b']));
+    const m = { ...defaultManagement(groups[0]), irrigated: false, tillage: true, rotationYears: 4 };
+    const sheets = wizardSheets(groups, { [groups[0].id]: m, [groups[1].id]: m }, [], 2027);
+    expect(sheets.map((x) => [x.key, x.parcel_ids])).toEqual([
+      ['trzax-rainfed', ['a', 'c']], ['trzax-rainfed-2', ['b']]]);
+  });
+});
+
 describe('sheetKey', () => {
   it('is unique among the taken ones', () => {
     expect(sheetKey('TRZAX', 'rainfed', new Set(['trzax-rainfed']))).toBe('trzax-rainfed-2');
@@ -70,7 +100,7 @@ describe('sheetArea', () => {
   });
 });
 
-import { defaultManagement, wizardBlockers, wizardSheets, type GroupManagement } from './sheets';
+import { wizardBlockers, type GroupManagement } from './sheets';
 
 describe('wizard', () => {
   const groups = groupParcels(PARCELS);

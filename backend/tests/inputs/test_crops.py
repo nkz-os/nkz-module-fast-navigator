@@ -250,3 +250,10 @@ def test_previous_crop_of_a_perennial_is_the_cycle_ended_before_its_start():
 
 def test_cover_before_a_living_olive_does_not_crash():
     assert cover_before([perennial("OLVEU", "2000-03-01")], 2026) is None
+
+
+def test_declared_perennial_without_start_matches_by_campaign_label():
+    from app.inputs.crops import _in_campaign
+    cycle = {"lifecycle": "perennial", "start": {"date": None}, "campaign_label": 2024}
+    assert _in_campaign(cycle, 2024)
+    assert not _in_campaign(cycle, 2026)

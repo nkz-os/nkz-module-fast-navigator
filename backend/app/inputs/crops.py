@@ -63,11 +63,16 @@ def _mains(cycles: list[dict]) -> list[dict]:
 
 def _in_campaign(cycle: dict, campaign: int) -> bool:
     """Whether the cycle is a crop of the campaign: a perennial is, from its planting year until
-    the year it ends (open end = still living); any other cycle by its campaign label."""
+    the year it ends (open end = still living); any other cycle by its campaign label.
+    A perennial with no start date (declared only) falls back to its campaign label.
+    Mirrors nkz_platform_sdk.crop_cycles.CropCycle.in_campaign over to_dict output;
+    keep it in step with that method."""
     if cycle.get("lifecycle") != "perennial":
         return cycle.get("campaign_label") == campaign
     start = _date(cycle, "start")
-    if start is None or start.year > campaign:
+    if start is None:
+        return cycle.get("campaign_label") == campaign
+    if start.year > campaign:
         return False
     end = _date(cycle, "end")
     return end is None or end.year >= campaign

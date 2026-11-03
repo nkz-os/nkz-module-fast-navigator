@@ -269,7 +269,7 @@ def test_a_declared_cycle_of_the_campaign_before_is_the_previous_crop():
     cycles = [declared("HELAN", 2026), cycle("TRZAX", 2027, "2026-10-25", "2027-07-10")]
     c = crops_for_campaign(cycles, 2027)
     assert c.crop.value == "TRZAX"
-    assert c.previous.value == "HELAN" and c.previous.provenance == MEASURED
+    assert c.previous.value == "HELAN" and c.previous.provenance == DECLARED
     assert c.previous.source == "broker:crop-cycles:urn:ngsi-ld:AgriCrop:declHELAN2026"
     assert c.previous_campaign == 2026 and not c.missing
 
@@ -283,7 +283,7 @@ def test_a_dated_previous_cycle_wins_over_a_declared_one():
     cycles = [declared("PISSA", 2026), cycle("HELAN", 2026, "2026-04-10", "2026-09-20"),
               cycle("TRZAX", 2027, "2026-10-25", "2027-07-10")]
     c = crops_for_campaign(cycles, 2027)
-    assert c.previous.value == "HELAN"
+    assert c.previous.value == "HELAN" and c.previous.provenance == MEASURED
 
 
 def test_a_declared_cycle_two_campaigns_back_is_not_the_previous_crop():

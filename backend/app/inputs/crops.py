@@ -174,7 +174,9 @@ def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
             _flag_pending(last, notices)
             last = None
         if _species(last):
-            previous = Sourced(_species(last), MEASURED, f"{_SOURCE}:{last.get('crop_id')}")
+            # A person stated a declared-only cycle; nothing recorded it.
+            how = DECLARED if _is_declared_only(last) else MEASURED
+            previous = Sourced(_species(last), how, f"{_SOURCE}:{last.get('crop_id')}")
             previous_campaign = last.get("campaign_label")
         else:
             previous = missing(_SOURCE)

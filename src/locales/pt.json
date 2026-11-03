@@ -229,7 +229,10 @@
       "years_other": "{{count}} anos completos",
       "annual": "Total anual: {{mm}} mm",
       "month": "{{month}}: {{mm}} mm"
-    }
+    },
+    "separate": "Separar",
+    "rejoin": "Voltar ao grupo",
+    "separateHint": "As parcelas de uma folha partilham solo, rendimento e fertilização. Separe a que tiver dados diferentes."
   },
   "param": {
     "soil_sand_pct": "Areia",
@@ -369,7 +372,6 @@
       "removed": "Foram retirados"
     },
     "enclosuresHint": "Só contam os recintos marcados. Por defeito marcam-se os de uso agrícola; caminhos, edificações, florestal ou improdutivo ficam de fora.",
-    "enclosureLeftOut": "fora do plano",
     "sigpacUse": {
       "AG": "Cursos e superfícies de água",
       "CA": "Vias",
@@ -405,7 +407,11 @@
       "ZC": "Zona emparcelada fora do ortofotomapa",
       "ZU": "Zona urbana",
       "ZV": "Zona censurada"
-    }
+    },
+    "enclosuresLeftOut_one": "{{count}} recinto fora do plano",
+    "enclosuresLeftOut_other": "{{count}} recintos fora do plano",
+    "enclosuresChange": "alterar",
+    "enclosuresDone": "Feito"
   },
   "workspace": {
     "back": "Planos",

@@ -23,6 +23,7 @@ const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 const PARCELS = fixture as unknown as CampaignParcels;
 const PLAN = { id: 'p', campaign: 2027, state: 'draft', row_version: 1, sheets: [], rain_normal: null } as unknown as Plan;
 const noop = () => undefined;
+const plain = (html: string) => html.replace(/<!-- -->/g, '');
 /** The attributes of the button that carries `label`. */
 const buttonAttrs = (html: string, label: string) => new RegExp(`<button([^>]*)>(?:<[^>]+>)*[^<]*${label}`).exec(html)?.[1] ?? null;
 const isDisabled = (html: string, label: string) => /\sdisabled(=""|\s|$)/.test(buttonAttrs(html, label) ?? '');
@@ -41,6 +42,28 @@ describe('Wizard (es)', () => {
     expect(html).toContain('10,0 ha');
     expect(html).toContain('Sin cultivo para 2027 (1)');
     expect(html).toContain('✕ falta');
+  });
+
+  it('a group of several parcels offers to separate each one', () => {
+    cropNameAnswer = 'Trigo blando';
+    const two = clone(PARCELS);
+    two.parcels[0] = { ...two.parcels[1], id: 'urn:ngsi-ld:AgriParcel:p2', name: 'South' };
+    const html = plain(renderToStaticMarkup(<Wizard plan={PLAN} parcels={two} onSaved={noop} />));
+    expect(html).toContain('2 parcelas');
+    expect(html.match(/>Separar</g)).toHaveLength(2);
+    expect(html).toContain('Las parcelas de una hoja comparten suelo, rendimiento y abonado');
+    expect(html).not.toContain('Volver al grupo');
+  });
+
+  it('a separated parcel is its own group and can go back', () => {
+    cropNameAnswer = 'Trigo blando';
+    const two = clone(PARCELS);
+    two.parcels[0] = { ...two.parcels[1], id: 'urn:ngsi-ld:AgriParcel:p2', name: 'South' };
+    const html = plain(renderToStaticMarkup(<Wizard plan={PLAN} parcels={two} onSaved={noop}
+      initial={{ split: ['urn:ngsi-ld:AgriParcel:p2'] }} />));
+    expect(html.match(/>1 parcela /g)).toHaveLength(2);
+    expect(html).not.toContain('>Separar<');
+    expect(html.match(/>Volver al grupo</g)).toHaveLength(1);
   });
 
   it('declares the crop of the parcels without one by name, not by code', () => {

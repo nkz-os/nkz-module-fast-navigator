@@ -88,6 +88,13 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
 
   const [patch, setPatch] = useState<Partial<PlanSheetIn>>({});
   const [sigpac, setSigpac] = useState<Record<string, string>>({});
+  // Parcels whose enclosure list is unfolded to tick or untick them; folded, only the ticked show.
+  const [openEnclosures, setOpenEnclosures] = useState<Set<string>>(new Set());
+  const openEnclosure = (urn: string, open: boolean) => setOpenEnclosures((cur) => {
+    const next = new Set(cur);
+    if (open) next.add(urn); else next.delete(urn);
+    return next;
+  });
   const crops = useCrops(editable);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -471,14 +478,31 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
                 <span className="w-64 text-nkz-sm text-nkz-text-primary">{name}</span>
                 {fromBroker
                   ? <span className="text-nkz-sm">
-                      {enclosures.map((e) => (editable
-                        ? <Checkbox key={e.reference} checked={chosen.has(e.reference)} label={label(e)}
-                            disabled={chosen.has(e.reference) && chosen.size === 1}
-                            onChange={(on) => toggle(e.reference, on)} />
-                        : <span key={e.reference} className={chosen.has(e.reference) ? 'block' : 'block text-nkz-text-muted'}>
-                            {chosen.has(e.reference) ? label(e) : `${label(e)} · ${t('data.enclosureLeftOut')}`}
-                          </span>))}
-                      {editable && <span className="block text-nkz-xs text-nkz-text-muted">{t('data.enclosuresHint')}</span>}
+                      {editable && openEnclosures.has(p.urn)
+                        ? <>
+                            {enclosures.map((e) => (
+                              <Checkbox key={e.reference} checked={chosen.has(e.reference)} label={label(e)}
+                                disabled={chosen.has(e.reference) && chosen.size === 1}
+                                onChange={(on) => toggle(e.reference, on)} />))}
+                            <span className="block text-nkz-xs text-nkz-text-muted">{t('data.enclosuresHint')}</span>
+                            <Button size="sm" variant="ghost" onClick={() => openEnclosure(p.urn, false)}>{t('data.enclosuresDone')}</Button>
+                          </>
+                        : <>
+                            {enclosures.filter((e) => chosen.has(e.reference)).map((e) => (
+                              <span key={e.reference} className="block">{label(e)}</span>))}
+                            {enclosures.length > chosen.size && !editable && (
+                              <span className="block text-nkz-xs text-nkz-text-muted">
+                                {t('data.enclosuresLeftOut', { count: enclosures.length - chosen.size })}
+                              </span>
+                            )}
+                            {editable && enclosures.length > 1 && (
+                              <Button size="sm" variant="ghost" onClick={() => openEnclosure(p.urn, true)}>
+                                {enclosures.length > chosen.size
+                                  ? `${t('data.enclosuresLeftOut', { count: enclosures.length - chosen.size })} · ${t('data.enclosuresChange')}`
+                                  : t('data.enclosuresChange')}
+                              </Button>
+                            )}
+                          </>}
                     </span>
                   : known
                   ? <span className="text-nkz-sm">{p.sigpac ?? String(id?.value)}</span>

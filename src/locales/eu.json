@@ -229,7 +229,10 @@
       "years_other": "{{count}} urte oso",
       "annual": "Urteko guztira: {{mm}} mm",
       "month": "{{month}}: {{mm}} mm"
-    }
+    },
+    "separate": "Bereizi",
+    "rejoin": "Taldera itzuli",
+    "separateHint": "Orri bateko lursailek lurzorua, errendimendua eta ongarritzea partekatzen dituzte. Bereizi datu desberdinak dituena."
   },
   "param": {
     "soil_sand_pct": "Harea",
@@ -369,7 +372,6 @@
       "removed": "Kendu ziren"
     },
     "enclosuresHint": "Markatutako errekintoak baino ez dira kontuan hartzen. Lehenespenez nekazaritza-erabilerakoak markatzen dira; bideak, eraikinak, basoa edo ekoizpenik gabekoak kanpoan geratzen dira.",
-    "enclosureLeftOut": "planetik kanpo",
     "sigpacUse": {
       "AG": "Ur-lasterrak eta ur-azalerak",
       "CA": "Bideak",
@@ -405,7 +407,11 @@
       "ZC": "Ortoargazkitik kanpoko lur-bateratze eremua",
       "ZU": "Hiri-eremua",
       "ZV": "Zentsuratutako eremua"
-    }
+    },
+    "enclosuresLeftOut_one": "Errekinto {{count}} planetik kanpo",
+    "enclosuresLeftOut_other": "{{count}} errekinto planetik kanpo",
+    "enclosuresChange": "aldatu",
+    "enclosuresDone": "Eginda"
   },
   "workspace": {
     "back": "Planak",

@@ -229,7 +229,10 @@
       "years_other": "{{count}} años completos",
       "annual": "Total anual: {{mm}} mm",
       "month": "{{month}}: {{mm}} mm"
-    }
+    },
+    "separate": "Separar",
+    "rejoin": "Volver al grupo",
+    "separateHint": "Las parcelas de una hoja comparten suelo, rendimiento y abonado. Separa la que tenga datos distintos."
   },
   "param": {
     "soil_sand_pct": "Arena",
@@ -369,7 +372,6 @@
       "removed": "Se retiraron"
     },
     "enclosuresHint": "Solo cuentan los recintos marcados. Por defecto se marcan los de uso agrícola; caminos, edificaciones, forestal o improductivo quedan fuera.",
-    "enclosureLeftOut": "fuera del plan",
     "sigpacUse": {
       "AG": "Corrientes y superficies de agua",
       "CA": "Viales",
@@ -405,7 +407,11 @@
       "ZC": "Zona concentrada fuera de la ortofoto",
       "ZU": "Zona urbana",
       "ZV": "Zona censurada"
-    }
+    },
+    "enclosuresLeftOut_one": "{{count}} recinto fuera del plan",
+    "enclosuresLeftOut_other": "{{count}} recintos fuera del plan",
+    "enclosuresChange": "cambiar",
+    "enclosuresDone": "Listo"
   },
   "workspace": {
     "back": "Planes",

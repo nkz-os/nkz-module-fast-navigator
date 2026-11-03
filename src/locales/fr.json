@@ -229,7 +229,10 @@
       "years_other": "{{count}} années complètes",
       "annual": "Total annuel : {{mm}} mm",
       "month": "{{month}} : {{mm}} mm"
-    }
+    },
+    "separate": "Séparer",
+    "rejoin": "Revenir au groupe",
+    "separateHint": "Les parcelles d'une fiche partagent sol, rendement et fertilisation. Séparez celle dont les données diffèrent."
   },
   "param": {
     "soil_sand_pct": "Sable",
@@ -369,7 +372,6 @@
       "removed": "Ils ont été exportés"
     },
     "enclosuresHint": "Seuls les recintos cochés comptent. Les usages agricoles sont cochés par défaut ; chemins, bâtiments, forêt ou improductif restent exclus.",
-    "enclosureLeftOut": "hors du plan",
     "sigpacUse": {
       "AG": "Cours et plans d'eau",
       "CA": "Voirie",
@@ -405,7 +407,11 @@
       "ZC": "Zone de remembrement hors orthophoto",
       "ZU": "Zone urbaine",
       "ZV": "Zone censurée"
-    }
+    },
+    "enclosuresLeftOut_one": "{{count}} recinto hors du plan",
+    "enclosuresLeftOut_other": "{{count}} recintos hors du plan",
+    "enclosuresChange": "modifier",
+    "enclosuresDone": "Terminé"
   },
   "workspace": {
     "back": "Plans",

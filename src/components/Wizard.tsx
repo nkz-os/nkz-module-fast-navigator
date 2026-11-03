@@ -17,9 +17,9 @@ import { ProvenanceChip } from './ProvenanceChip';
 
 type Step = 1 | 2 | 3;
 
-export interface WizardInitial { step?: Step; rainError?: unknown; management?: Record<string, GroupManagement> }
+export interface WizardInitial { step?: Step; rainError?: unknown; management?: Record<string, GroupManagement>; split?: string[] }
 
-function ParcelRow({ parcel, campaign }: { parcel: CampaignParcel; campaign: number }) {
+function ParcelRow({ parcel, campaign, action }: { parcel: CampaignParcel; campaign: number; action?: React.ReactNode }) {
   const { t, i18n } = useTranslation('fast-navigator');
   const lang = i18n.language;
   const cycle = parcel.cycle;
@@ -40,12 +40,14 @@ function ParcelRow({ parcel, campaign }: { parcel: CampaignParcel; campaign: num
         {parcel.previous_crop.value != null ? String(parcel.previous_crop.value) : ''}{' '}
         <ProvenanceChip value={parcel.previous_crop} />
       </span>
+      {action}
     </Inline>
   );
 }
 
-function GroupCard({ group, campaign, m, onChange, children }: {
-  group: ParcelGroup; campaign: number; m: GroupManagement; onChange: (m: GroupManagement) => void; children?: React.ReactNode;
+function GroupCard({ group, campaign, m, onChange, onSeparate, onRejoin, children }: {
+  group: ParcelGroup; campaign: number; m: GroupManagement; onChange: (m: GroupManagement) => void;
+  onSeparate: (parcelId: string) => void; onRejoin: (parcelId: string) => void; children?: React.ReactNode;
 }) {
   const { t, i18n } = useTranslation('fast-navigator');
   const regime = group.regime ? t(`wizard.regime.${group.regime}`) : t('wizard.regime.unknown');
@@ -61,7 +63,17 @@ function GroupCard({ group, campaign, m, onChange, children }: {
             {t('wizard.parcels', { count: group.parcels.length })} · {formatHa(group.areaHa, i18n.language)} {t('common.unit.ha')}
           </span>
         </Inline>
-        {group.parcels.map((p) => <ParcelRow key={p.id} parcel={p} campaign={campaign} />)}
+        {group.parcels.map((p) => (
+          <ParcelRow key={p.id} parcel={p} campaign={campaign} action={
+            group.splitFrom
+              ? <Button size="sm" variant="ghost" onClick={() => onRejoin(p.id)}>{t('wizard.rejoin')}</Button>
+              : group.parcels.length > 1
+                ? <Button size="sm" variant="ghost" onClick={() => onSeparate(p.id)}>{t('wizard.separate')}</Button>
+                : undefined} />
+        ))}
+        {!group.splitFrom && group.parcels.length > 1 && (
+          <p className="text-nkz-xs text-nkz-text-muted">{t('wizard.separateHint')}</p>
+        )}
         {children}
       </Stack>
     </Surface>
@@ -99,7 +111,9 @@ export function Wizard({ plan, parcels, onSaved, onReload, initial }: {
   const { t } = useTranslation('fast-navigator');
   const campaign = plan.campaign;
   const used = useMemo(() => new Set(plan.sheets.flatMap((s) => s.parcels.map((p) => p.urn))), [plan.sheets]);
-  const groups = useMemo(() => groupParcels(parcels.parcels.filter((p) => !used.has(p.id))), [parcels.parcels, used]);
+  const [split, setSplit] = useState<Set<string>>(() => new Set(initial?.split ?? []));
+  const groups = useMemo(() => groupParcels(parcels.parcels.filter((p) => !used.has(p.id)), split),
+    [parcels.parcels, used, split]);
 
   const crops = useCrops();
   const [step, setStep] = useState<Step>(initial?.step ?? 1);
@@ -126,6 +140,18 @@ export function Wizard({ plan, parcels, onSaved, onReload, initial }: {
 
   const update = (id: string, m: GroupManagement) => {
     setManagement((cur) => ({ ...cur, [id]: m }));
+    setDirty(true);
+  };
+
+  /** The separated parcel starts with what its group had chosen. */
+  const separate = (group: ParcelGroup, parcelId: string) => {
+    setManagement((cur) => ({ ...cur, [`${group.id}#${parcelId}`]: { ...(cur[group.id] ?? defaultManagement(group)) } }));
+    setSplit((cur) => new Set(cur).add(parcelId));
+    setDirty(true);
+  };
+  const rejoin = (group: ParcelGroup, parcelId: string) => {
+    setManagement((cur) => { const next = { ...cur }; delete next[group.id]; return next; });
+    setSplit((cur) => { const next = new Set(cur); next.delete(parcelId); return next; });
     setDirty(true);
   };
 
@@ -219,7 +245,8 @@ export function Wizard({ plan, parcels, onSaved, onReload, initial }: {
           )}
           {groups.length === 0 && <p className="text-nkz-sm text-nkz-text-secondary">{t('wizard.noParcels')}</p>}
           {groups.map((g) => (
-            <GroupCard key={g.id} group={g} campaign={campaign} m={management[g.id] ?? defaultManagement(g)} onChange={(m) => update(g.id, m)}>
+            <GroupCard key={g.id} group={g} campaign={campaign} m={management[g.id] ?? defaultManagement(g)} onChange={(m) => update(g.id, m)}
+              onSeparate={(id) => separate(g, id)} onRejoin={(id) => rejoin(g, id)}>
               {g.noCrop && (
                 <Stack gap="tight">
                   <p className="text-nkz-sm text-nkz-text-secondary">{t('wizard.noCrop.hint')}</p>
@@ -247,7 +274,9 @@ export function Wizard({ plan, parcels, onSaved, onReload, initial }: {
               <Surface key={g.id} variant="raised" padding="stack">
                 <Stack gap="inline">
                   <p className="text-nkz-base font-semibold text-nkz-text-primary">
-                    {g.noCrop ? <CropLabel eppo={m.declaredCrop ?? ''} /> : <CropLabel eppo={g.crop as string} />} · {t('wizard.parcels', { count: g.parcels.length })}
+                    {g.noCrop ? <CropLabel eppo={m.declaredCrop ?? ''} /> : <CropLabel eppo={g.crop as string} />} · {g.splitFrom
+                      ? g.parcels.map((p) => p.name ?? p.id).join(', ')
+                      : t('wizard.parcels', { count: g.parcels.length })}
                   </p>
                   <FormGrid columns={2}>
                     <FormField label={t('wizard.form.regime')} required>

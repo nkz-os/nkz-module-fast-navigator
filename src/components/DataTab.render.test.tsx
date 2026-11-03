@@ -120,6 +120,53 @@ describe('DataTab (es)', () => {
     expect(html).not.toContain('31:201:0:0:12:45:1');
   });
 
+  it('preselects the farmland enclosures and lets the editor tick the rest', () => {
+    const result = clone(COMPLETE);
+    result.inputs[`parcel.${URN}.enclosures`] = {
+      value: [
+        { reference: '31:125:0:0:2:729:1', overlap_pct: 84.27, sigpac_use: 'TA', selected: true },
+        { reference: '31:125:0:0:2:9001:1', overlap_pct: 3, sigpac_use: 'CA', selected: false },
+      ],
+      provenance: 'measured', source: 'broker', note: null,
+    };
+    const html = plain(render(makeSheet({ result })));
+    expect(html).toContain('31:125:0:0:2:729:1 (84.27 %) · Tierra arable');
+    expect(html).toContain('31:125:0:0:2:9001:1 (3 %) · Viales');
+    expect(html.match(/type="checkbox"/g)).toHaveLength(2);
+    expect(html.match(/type="checkbox"[^>]*checked/g)).toHaveLength(1);
+    expect(html).toContain('Solo cuentan los recintos marcados');
+  });
+
+  it('a stored choice of enclosures wins over the default', () => {
+    const result = clone(COMPLETE);
+    result.inputs[`parcel.${URN}.enclosures`] = {
+      value: [
+        { reference: '31:125:0:0:2:729:1', overlap_pct: 84.27, sigpac_use: 'TA', selected: true },
+        { reference: '31:125:0:0:2:9001:1', overlap_pct: 3, sigpac_use: 'CA', selected: false },
+      ],
+      provenance: 'measured', source: 'broker', note: null,
+    };
+    const sheet = makeSheet({ result, inputs: { ...makeSheet().inputs, enclosures: { [URN]: ['31:125:0:0:2:9001:1'] } } });
+    const html = plain(render(sheet));
+    expect(html.match(/type="checkbox"[^>]*checked/g)).toHaveLength(1);
+    expect(html).toMatch(/type="checkbox"[^>]*checked[^>]*>[\s\S]{0,400}31:125:0:0:2:9001:1/);
+  });
+
+  it('read-only, the unticked enclosures are shown as left out', () => {
+    const result = clone(COMPLETE);
+    result.inputs[`parcel.${URN}.enclosures`] = {
+      value: [
+        { reference: '31:125:0:0:2:729:1', overlap_pct: 84.27, sigpac_use: 'TA', selected: true },
+        { reference: '31:125:0:0:2:9001:1', overlap_pct: 3, sigpac_use: 'CA', selected: false },
+      ],
+      provenance: 'measured', source: 'broker', note: null,
+    };
+    const html = plain(render(makeSheet({ result }), false));
+    expect(html).not.toContain('type="checkbox"');
+    expect(html).toContain('31:125:0:0:2:9001:1 (3 %) · Viales · fuera del plan');
+    expect(html).not.toContain('31:125:0:0:2:729:1 (84.27 %) · Tierra arable · fuera del plan');
+  });
+
   it('chooses the declared and previous crop by name, with the fallow one click away', () => {
     const html = plain(render(makeSheet()));
     expect(html).toContain('Cultivo declarado');

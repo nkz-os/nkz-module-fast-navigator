@@ -172,3 +172,15 @@ async def test_the_previous_crop_residues_choice_unblocks_a_legume_before_wheat(
     r = calculate(a)
     assert r.inputs["previous_crop.residue_left_pct"]["provenance"] == "declared"
     assert "previous_crop.residue_left_pct" not in [m.field for m in r.missing]
+
+
+async def test_the_plan_choice_of_enclosures_reaches_the_identifier():
+    data = complete_data()
+    data["parcels"][URN]["sigpacEnclosures"] = [
+        {"reference": "31:1:0:0:1:1:1", "overlapPct": 90.0, "sigpacUse": "TA"},
+        {"reference": "31:1:0:0:1:2:1", "overlapPct": 10.0, "sigpacUse": "CA"}]
+    default = await assemble(REQ, FakeSources(**data), TODAY)
+    assert default.parcels[0].identifier.value == "31:1:0:0:1:1:1"
+    chosen = await assemble(replace(REQ, enclosures={URN: ["31:1:0:0:1:1:1", "31:1:0:0:1:2:1"]}),
+                            FakeSources(**data), TODAY)
+    assert chosen.parcels[0].identifier.value == "31:1:0:0:1:1:1, 31:1:0:0:1:2:1"

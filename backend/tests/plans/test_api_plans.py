@@ -142,6 +142,9 @@ def test_overrides_through_their_own_endpoint(client):
     {"parcel_ids": [URN, URN]},
     {"sigpac": {"urn:ngsi-ld:AgriParcel:other": "31201A00100123"}},
     {"sigpac": {URN: "CATAST_Pol_ParcelaRusti.344737"}},
+    {"enclosures": {"urn:ngsi-ld:AgriParcel:other": ["31:1:0:0:1:1:1"]}},
+    {"enclosures": {URN: ["31201A00100123"]}},
+    {"enclosures": {URN: []}},
     {"key": "Not A Key"},
     {"campaign": 2026},
     {"applications": [{"stage": "pre_plant", "kind": "organic", "organic_index": 0,
@@ -399,3 +402,14 @@ def test_an_unknown_composition_source_is_a_422(client):
                    json={"row_version": plan["row_version"],
                          "sheets": [SHEET | {"organic": [GOOD_ORGANIC | {"composition_source": "x"}]}]})
     assert r.status_code == 422, r.text
+
+
+def test_enclosure_choice_is_stored_under_the_parcel_urn(client):
+    plan = _new(client)
+    short = URN.rsplit(":", 1)[1]
+    r = client.put(f"{BASE}/{plan['id']}/sheets", headers=HOLDER, json={
+        "row_version": plan["row_version"],
+        "sheets": [SHEET | {"enclosures": {short: ["31:1:0:0:1:1:1", " 31:1:0:0:1:2:1 "]}}]})
+    assert r.status_code == 200, r.text
+    assert r.json()["sheets"][0]["inputs"]["enclosures"] == {
+        URN: ["31:1:0:0:1:1:1", "31:1:0:0:1:2:1"]}

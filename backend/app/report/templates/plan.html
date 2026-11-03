@@ -58,7 +58,7 @@
 
 <h3>{{ t.recintos }}</h3>
 <table><tr><th>{{ t.parcel }}</th><th>{{ t.identifier }}</th><th>{{ t.area }}</th></tr>
-{% for p in s.parcels %}{% set encl = value(s, "parcel." ~ p.urn ~ ".enclosures") %}<tr><td>{{ p.urn }}</td><td>{% if encl %}{% for e in encl %}{{ e.reference }}{% if e.overlap_pct is not none %} ({{ e.overlap_pct }} %){% endif %}{% if not loop.last %}<br>{% endif %}{% endfor %}{% elif p.sigpac %}{{ p.sigpac }}{% else %}{{ value(s, "parcel." ~ p.urn ~ ".identifier") or "—" }}{% endif %}</td><td>{{ value(s, "parcel." ~ p.urn ~ ".area_ha") }}</td></tr>{% endfor %}
+{% for p in s.parcels %}{% set encl = value(s, "parcel." ~ p.urn ~ ".enclosures") %}<tr><td>{{ p.urn }}</td><td>{% if encl %}{% for e in encl | rejectattr("selected", "sameas", false) %}{{ e.reference }}{% if e.overlap_pct is not none %} ({{ e.overlap_pct }} %){% endif %}{% if not loop.last %}<br>{% endif %}{% endfor %}{% elif p.sigpac %}{{ p.sigpac }}{% else %}{{ value(s, "parcel." ~ p.urn ~ ".identifier") or "—" }}{% endif %}</td><td>{{ value(s, "parcel." ~ p.urn ~ ".area_ha") }}</td></tr>{% endfor %}
 </table>
 
 <h3>{{ t.soil }}</h3>

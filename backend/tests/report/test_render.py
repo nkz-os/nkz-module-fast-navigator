@@ -239,3 +239,13 @@ def test_broker_enclosures_take_precedence_over_an_older_manual_sigpac():
         {"reference": "31:97:0:0:4:228:1", "overlap_pct": 43.36}]}
     html = plan_html(doc)
     assert "31:97:0:0:4:228:1 (43.36 %)" in html and "31:201:0:0:1:123:1" not in html
+
+
+def test_unselected_enclosures_are_left_out_of_the_record():
+    doc = document()
+    sheet = doc["sheets"][0]
+    sheet["result"]["inputs"][f"parcel.{P1}.enclosures"] = {"value": [
+        {"reference": "31:97:0:0:4:228:1", "overlap_pct": 90.0, "selected": True},
+        {"reference": "31:97:0:0:4:9001:1", "overlap_pct": 10.0, "selected": False}]}
+    html = plan_html(doc)
+    assert "31:97:0:0:4:228:1 (90.0 %)" in html and "31:97:0:0:4:9001:1" not in html

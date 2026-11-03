@@ -35,7 +35,7 @@ export interface CampaignParcel {
   name: string | null;
   area_ha: Sourced<number>;
   identifier: Sourced<string>;
-  enclosures?: { reference: string; overlap_pct: number | null; overlap_ha: number | null }[];
+  enclosures?: Enclosure[];
   farm: string | null;
   irrigation_regime: 'rainfed' | 'irrigated' | null;
   crop: Sourced<string>;
@@ -109,6 +109,15 @@ export interface OrganicInput {
   composition_source?: 'table:mapa_guia_2010' | 'declared';
 }
 
+/** A SIGPAC enclosure the parcel overlaps; `selected` ones identify it in the plan. */
+export interface Enclosure {
+  reference: string;
+  overlap_pct: number | null;
+  overlap_ha?: number | null;
+  sigpac_use?: string | null;
+  selected?: boolean;
+}
+
 /** What a sheet stores: the SheetIn fields without key, parcels, applications, sigpac, overrides. */
 export interface SheetInputs {
   campaign: number;
@@ -133,6 +142,8 @@ export interface SheetInputs {
   water_quality_id: string | null;
   no3_mg_l: number | null;
   nuts: string | null;
+  /** SIGPAC enclosures chosen per parcel URN; absent = the farmland ones. */
+  enclosures?: Record<string, string[]>;
   [extra: string]: unknown;
 }
 

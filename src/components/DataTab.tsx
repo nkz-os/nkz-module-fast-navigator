@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from '@nekazari/sdk';
-import { Button, FormField, FormGrid, Inline, Input, Select, Stack, Surface, Textarea } from '@nekazari/ui-kit';
+import { Button, Checkbox, FormField, FormGrid, Inline, Input, Select, Stack, Surface, Textarea } from '@nekazari/ui-kit';
 import { deleteOverride, putOverride, putSheets } from '../api/fast';
 import { useCrops } from '../hooks/useCrops';
-import type { CampaignParcel, OrganicInput, Plan, PlanSheet, PlanSheetIn, SheetResult, Sourced } from '../api/types';
+import type { CampaignParcel, Enclosure, OrganicInput, Plan, PlanSheet, PlanSheetIn, SheetResult, Sourced } from '../api/types';
 import { errorView } from '../model/errors';
 import { formatDate, formatKgHa } from '../model/format';
 import { mayAdjust, overrideRange } from '../model/overrides';
@@ -453,19 +453,32 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
             const known = !!p.sigpac || (id != null && id.value != null && id.provenance !== 'missing');
             const typed = sigpac[p.urn];
             const encl = inputs[`parcel.${p.urn}.enclosures`]?.value;
-            const enclosures = Array.isArray(encl)
-              ? (encl as { reference: string; overlap_pct?: number | null }[]) : [];
+            const enclosures = Array.isArray(encl) ? (encl as Enclosure[]) : [];
             const fromBroker = enclosures.length > 0;
+            const stored = val('enclosures')?.[p.urn]?.filter((r) => enclosures.some((e) => e.reference === r));
+            const chosen = new Set(stored && stored.length > 0
+              ? stored : enclosures.filter((e) => e.selected !== false).map((e) => e.reference));
+            const toggle = (ref: string, on: boolean) => {
+              const next = enclosures.map((e) => e.reference).filter((r) => (r === ref ? on : chosen.has(r)));
+              if (next.length > 0) set({ enclosures: { ...(val('enclosures') ?? {}), [p.urn]: next } });
+            };
+            const label = (e: Enclosure) => [
+              `${e.reference}${e.overlap_pct != null ? ` (${e.overlap_pct} %)` : ''}`,
+              ...(e.sigpac_use ? [t(`data.sigpacUse.${e.sigpac_use}`, { defaultValue: e.sigpac_use })] : []),
+            ].join(' · ');
             return (
               <Inline key={p.urn} gap="inline" align="center" wrap>
                 <span className="w-64 text-nkz-sm text-nkz-text-primary">{name}</span>
                 {fromBroker
                   ? <span className="text-nkz-sm">
-                      {enclosures.map((e) => (
-                        <span key={e.reference} className="block">
-                          {e.reference}{e.overlap_pct != null ? ` (${e.overlap_pct} %)` : ''}
-                        </span>
-                      ))}
+                      {enclosures.map((e) => (editable
+                        ? <Checkbox key={e.reference} checked={chosen.has(e.reference)} label={label(e)}
+                            disabled={chosen.has(e.reference) && chosen.size === 1}
+                            onChange={(on) => toggle(e.reference, on)} />
+                        : <span key={e.reference} className={chosen.has(e.reference) ? 'block' : 'block text-nkz-text-muted'}>
+                            {chosen.has(e.reference) ? label(e) : `${label(e)} · ${t('data.enclosureLeftOut')}`}
+                          </span>))}
+                      {editable && <span className="block text-nkz-xs text-nkz-text-muted">{t('data.enclosuresHint')}</span>}
                     </span>
                   : known
                   ? <span className="text-nkz-sm">{p.sigpac ?? String(id?.value)}</span>

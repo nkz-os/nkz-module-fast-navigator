@@ -299,7 +299,8 @@ def test_a_declared_cycle_is_never_the_crop_of_its_own_campaign():
     assert campaign_main_cycles([declared("HELAN", 2027)], 2027) == []
 
 
-def test_a_declared_cycle_is_the_previous_crop_of_a_double_crop_without_a_first_cycle():
-    cycles = [declared("HELAN", 2026)]
-    c = crops_for_campaign(cycles, 2027, cycle_index=1, declared_crop="ZEAMX")
-    assert c.previous.value == "HELAN" and c.previous_campaign == 2026
+def test_a_declared_cycle_is_not_the_previous_of_a_later_cycle_with_no_first_cycle_recorded():
+    c = crops_for_campaign([declared("HELAN", 2026)], 2027, cycle_index=1, declared_crop="ZEAMX")
+    assert not c.previous.known
+    assert MissingInput("previous_crop", "plan", {"campaign": 2027}) in c.missing
+    assert Notice("double_crop_first_cycle_unknown", {"campaign": 2027}) in c.notices

@@ -142,8 +142,6 @@ def crops_for_campaign(cycles: list[dict], campaign: int, cycle_index: int = 0,
         last = of_campaign[cycle_index - 1] if len(of_campaign) >= cycle_index else None
         if last is None:
             notices.append(Notice("double_crop_first_cycle_unknown", {"campaign": campaign}))
-        if last is None:
-            last = _declared_previous(mains, campaign)
         if _is_pending(last):
             _flag_pending(last, notices)
             last = None

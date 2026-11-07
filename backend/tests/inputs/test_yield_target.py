@@ -83,9 +83,18 @@ def test_history_basis_with_three_campaigns_or_more():
 def test_declared_when_the_history_is_too_short():
     t = resolve_yield(2026, {2025: 5000.0, 2024: 5100.0},
                       {2023: 6000.0, 2024: 6200.0, 2025: 5800.0}, None, {}, TODAY)
-    assert t.basis == "declared" and t.yield_kg_ha.value == 6000.0
+    # The measured harvests of 2024/2025 beat their declared values: median of 6000, 5100, 5000.
+    assert t.basis == "declared" and t.yield_kg_ha.value == 5100.0
     assert t.cv_pct.provenance == "declared"
     assert Notice("history_too_short", {"years": [2024, 2025]}) in t.notices
+
+
+def test_a_measured_harvest_beats_that_years_declared_value():
+    t = resolve_yield(2026, {2025: 5000.0}, {2025: 9000.0, 2024: 5100.0}, None, {}, TODAY)
+    # The measured 5000 of 2025 must not be overwritten by its declared 9000.
+    assert t.basis == "declared" and t.years == (2024, 2025)
+    assert t.yield_kg_ha.value == statistics.median([5000.0, 5100.0])
+    assert t.yield_kg_ha.source == "field-operations:harvests+plan:declared-yields"
 
 
 def test_one_declared_year_takes_the_cv_from_the_zone():
@@ -231,7 +240,7 @@ def test_merge_declared_yields_precedence_and_sources():
     from_plan = {2024: 4500.0}
     merged, source = merge_declared_yields(from_cycles, from_plan)
     assert merged == {2022: 3800.0, 2023: 4000.0, 2024: 4500.0}
-    assert source == "field-operations:declared-crops+plan"
+    assert source == "field-operations:declared-crops+plan:declared-yields"
 
     # Only from cycles
     merged, source = merge_declared_yields(from_cycles, {})
@@ -241,12 +250,12 @@ def test_merge_declared_yields_precedence_and_sources():
     # Only from plan
     merged, source = merge_declared_yields({}, from_plan)
     assert merged == from_plan
-    assert source == "plan"
+    assert source == "plan:declared-yields"
 
     # Plan overrides ALL keys from cycles
     merged, source = merge_declared_yields({2024: 4200.0}, {2024: 5000.0})
     assert merged == {2024: 5000.0}
-    assert source == "plan"
+    assert source == "plan:declared-yields"
 
 
 def test_resolve_yield_with_three_years_of_declared_cycle_yields():

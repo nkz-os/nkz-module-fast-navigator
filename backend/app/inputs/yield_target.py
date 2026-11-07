@@ -148,10 +148,10 @@ def merge_declared_yields(from_cycles: dict[int, float], from_plan: dict[int, fl
     plan = from_plan or {}
     merged = {**cycles, **plan}
     if not cycles or all(k in plan for k in merged):
-        return merged, "plan"
+        return merged, "plan:declared-yields"
     if not plan:
         return merged, "field-operations:declared-crops"
-    return merged, "field-operations:declared-crops+plan"
+    return merged, "field-operations:declared-crops+plan:declared-yields"
 
 
 def _window(campaign: int, by_year: dict[int, float]) -> dict[int, float]:
@@ -195,7 +195,7 @@ def _zone(zone: dict | None):
 
 def resolve_yield(campaign: int, history: dict[int, float], declared: dict[int, float],
                   zone: dict | None, overrides: dict[str, Override], today: date,
-                  prefix: str = "yield", declared_source: str = "plan") -> YieldTarget:
+                  prefix: str = "yield", declared_source: str = "plan:declared-yields") -> YieldTarget:
     notices: list[Notice] = []
     hist = _window(campaign, history)
     decl = _window(campaign, declared)
@@ -208,9 +208,9 @@ def resolve_yield(campaign: int, history: dict[int, float], declared: dict[int, 
         cv = Sourced(_cv(values), MEASURED, _HISTORY_SOURCE)
         basis, years = "history", tuple(sorted(hist))
     elif decl:
-        combined = {**hist, **decl}
-        eff_source = (f"{_HISTORY_SOURCE}+{declared_source}"
-                      if any(yr not in decl for yr in hist) else declared_source)
+        # A measured harvest of a year beats that year's declared value (facts beat declarations).
+        combined = {**decl, **hist}
+        eff_source = (f"{_HISTORY_SOURCE}+{declared_source}" if hist else declared_source)
         values = list(combined.values())
         y = Sourced(statistics.median(values), DECLARED, eff_source)
         own_cv = _cv(values)

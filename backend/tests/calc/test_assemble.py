@@ -226,6 +226,6 @@ async def test_assemble_merges_plan_declared_over_cycle_declared():
     a = await assemble(req, src, TODAY)
     assert a.yield_target.basis == "declared"
     assert a.yield_target.yield_kg_ha.provenance == "declared"
-    assert a.yield_target.yield_kg_ha.source == "field-operations:declared-crops+plan"
+    assert a.yield_target.yield_kg_ha.source == "field-operations:declared-crops+plan:declared-yields"
     assert a.yield_target.yield_kg_ha.value == 4400.0  # median of [4400, 4200, 5000]
     assert not any(c[0] == "regional_yields" for c in src.calls)

@@ -184,3 +184,48 @@ async def test_the_plan_choice_of_enclosures_reaches_the_identifier():
     chosen = await assemble(replace(REQ, enclosures={URN: ["31:1:0:0:1:1:1", "31:1:0:0:1:2:1"]}),
                             FakeSources(**data), TODAY)
     assert chosen.parcels[0].identifier.value == "31:1:0:0:1:1:1, 31:1:0:0:1:2:1"
+
+
+async def test_assemble_uses_declared_cycle_yields_when_available():
+    data = complete_data()
+    data["timelines"][URN] = {
+        "cycles": [
+            {"species": "TRZAX", "role": "main_crop", "campaign_label": 2027, "status": "planned"},
+            {"species": "TRZAX", "role": "main_crop", "campaign_label": 2026,
+             "declared_yield_kg_ha": 4000.0, "status": "harvested"},
+            {"species": "TRZAX", "role": "main_crop", "campaign_label": 2025,
+             "declared_yield_kg_ha": 4200.0, "status": "harvested"},
+            {"species": "TRZAX", "role": "main_crop", "campaign_label": 2024,
+             "declared_yield_kg_ha": 4400.0, "status": "harvested"},
+        ]
+    }
+    src = FakeSources(**data)
+    a = await assemble(REQ, src, TODAY)
+    assert a.yield_target.basis == "declared"
+    assert a.yield_target.yield_kg_ha.provenance == "declared"
+    assert a.yield_target.yield_kg_ha.source == "field-operations:declared-crops"
+    assert a.yield_target.yield_kg_ha.value == 4200.0
+    assert not any(c[0] == "regional_yields" for c in src.calls)
+
+
+async def test_assemble_merges_plan_declared_over_cycle_declared():
+    data = complete_data()
+    data["timelines"][URN] = {
+        "cycles": [
+            {"species": "TRZAX", "role": "main_crop", "campaign_label": 2027, "status": "planned"},
+            {"species": "TRZAX", "role": "main_crop", "campaign_label": 2026,
+             "declared_yield_kg_ha": 4000.0, "status": "harvested"},
+            {"species": "TRZAX", "role": "main_crop", "campaign_label": 2025,
+             "declared_yield_kg_ha": 4200.0, "status": "harvested"},
+            {"species": "TRZAX", "role": "main_crop", "campaign_label": 2024,
+             "declared_yield_kg_ha": 4400.0, "status": "harvested"},
+        ]
+    }
+    req = replace(REQ, declared_yields={2026: 5000.0})
+    src = FakeSources(**data)
+    a = await assemble(req, src, TODAY)
+    assert a.yield_target.basis == "declared"
+    assert a.yield_target.yield_kg_ha.provenance == "declared"
+    assert a.yield_target.yield_kg_ha.source == "field-operations:declared-crops+plan"
+    assert a.yield_target.yield_kg_ha.value == 4400.0  # median of [4400, 4200, 5000]
+    assert not any(c[0] == "regional_yields" for c in src.calls)

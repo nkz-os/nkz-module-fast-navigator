@@ -3,10 +3,12 @@ from datetime import date
 
 import pytest
 
-from app.inputs.provenance import ENTERED, MissingInput, Notice, Override
+from app.inputs.provenance import DECLARED, ENTERED, MEASURED, MissingInput, Notice, Override
 from app.inputs.yield_target import (
     combine_histories,
+    declared_cycle_yields,
     history_yields,
+    merge_declared_yields,
     resolve_yield,
     zone_needed,
 )
@@ -195,3 +197,110 @@ def test_declared_years_outside_the_window_are_reported():
     declared = {2010: 4000.0, 2024: 5000.0}
     t = resolve_yield(2026, {}, declared, None, {}, TODAY)
     assert Notice("declared_years_ignored", {"years": [2010]}) in t.notices
+
+
+def test_declared_cycle_yields_extracts_declared_yield_and_ignores_invalids():
+    cycles = [
+        # Standard declared-only past cycle
+        {"species": "TRZAX", "declared_campaign": 2024, "campaign_label": 2024,
+         "declared_yield_kg_ha": 4200.0},
+        # Year determined by declared_campaign fallback when campaign_label missing
+        {"species": "TRZAX", "declared_campaign": 2023, "declared_yield_kg_ha": 4000.0},
+        # Year determined by end date fallback when labels missing
+        {"species": "TRZAX", "end": {"date": "2022-07-15"}, "declared_yield_kg_ha": 3800.0},
+        # Different crop ignored
+        {"species": "HORVX", "campaign_label": 2024, "declared_yield_kg_ha": 5000.0},
+        # Cancelled cycle ignored
+        {"species": "TRZAX", "status": "cancelled", "campaign_label": 2025,
+         "declared_yield_kg_ha": 6000.0},
+        # Zero, negative, nan, inf, bool, None ignored
+        {"species": "TRZAX", "campaign_label": 2021, "declared_yield_kg_ha": 0},
+        {"species": "TRZAX", "campaign_label": 2020, "declared_yield_kg_ha": -100.0},
+        {"species": "TRZAX", "campaign_label": 2019, "declared_yield_kg_ha": float("nan")},
+        {"species": "TRZAX", "campaign_label": 2018, "declared_yield_kg_ha": float("inf")},
+        {"species": "TRZAX", "campaign_label": 2017, "declared_yield_kg_ha": True},
+        {"species": "TRZAX", "campaign_label": 2016, "declared_yield_kg_ha": None},
+    ]
+    got = declared_cycle_yields(cycles, "TRZAX")
+    assert got == {2024: 4200.0, 2023: 4000.0, 2022: 3800.0}
+
+
+def test_merge_declared_yields_precedence_and_sources():
+    from_cycles = {2022: 3800.0, 2023: 4000.0, 2024: 4200.0}
+    # Plan overrides a year and merges sources
+    from_plan = {2024: 4500.0}
+    merged, source = merge_declared_yields(from_cycles, from_plan)
+    assert merged == {2022: 3800.0, 2023: 4000.0, 2024: 4500.0}
+    assert source == "field-operations:declared-crops+plan"
+
+    # Only from cycles
+    merged, source = merge_declared_yields(from_cycles, {})
+    assert merged == from_cycles
+    assert source == "field-operations:declared-crops"
+
+    # Only from plan
+    merged, source = merge_declared_yields({}, from_plan)
+    assert merged == from_plan
+    assert source == "plan"
+
+    # Plan overrides ALL keys from cycles
+    merged, source = merge_declared_yields({2024: 4200.0}, {2024: 5000.0})
+    assert merged == {2024: 5000.0}
+    assert source == "plan"
+
+
+def test_resolve_yield_with_three_years_of_declared_cycle_yields():
+    cycles = [
+        {"species": "TRZAX", "campaign_label": 2023, "declared_yield_kg_ha": 4000.0},
+        {"species": "TRZAX", "campaign_label": 2024, "declared_yield_kg_ha": 4200.0},
+        {"species": "TRZAX", "campaign_label": 2025, "declared_yield_kg_ha": 4400.0},
+    ]
+    declared = declared_cycle_yields(cycles, "TRZAX")
+    eff_declared, source = merge_declared_yields(declared, {})
+    assert not zone_needed(2026, {}, eff_declared, {})
+    t = resolve_yield(2026, {}, eff_declared, None, {}, TODAY, declared_source=source)
+    assert t.basis == "declared"
+    assert t.years == (2023, 2024, 2025)
+    assert t.yield_kg_ha.value == 4200.0
+    assert t.yield_kg_ha.provenance == DECLARED
+    assert t.yield_kg_ha.source == "field-operations:declared-crops"
+    assert t.cv_pct.provenance == DECLARED
+    assert t.cv_pct.source == "field-operations:declared-crops"
+    assert t.cv_pct.value == pytest.approx(statistics.stdev([4000.0, 4200.0, 4400.0]) / 4200.0 * 100)
+    assert not t.missing
+
+
+def test_measured_harvest_history_takes_precedence_over_declared_cycle_yields():
+    history = {2023: 5000.0, 2024: 5200.0, 2025: 5400.0}
+    declared = {2023: 4000.0, 2024: 4200.0, 2025: 4400.0}
+    eff_declared, source = merge_declared_yields(declared, {})
+    t = resolve_yield(2026, history, eff_declared, None, {}, TODAY, declared_source=source)
+    assert t.basis == "history"
+    assert t.yield_kg_ha.provenance == MEASURED
+    assert t.yield_kg_ha.source == "field-operations:harvests"
+    assert t.yield_kg_ha.value == 5200.0
+    assert t.cv_pct.provenance == MEASURED
+
+
+def test_mixed_measured_and_declared_years_uses_declared_basis_and_composite_source():
+    history = {2025: 4600.0}
+    declared = {2023: 4000.0, 2024: 4200.0}
+    eff_declared, source = merge_declared_yields(declared, {})
+    assert not zone_needed(2026, history, eff_declared, {})
+    t = resolve_yield(2026, history, eff_declared, None, {}, TODAY, declared_source=source)
+    assert t.basis == "declared"
+    assert t.years == (2023, 2024, 2025)
+    assert t.yield_kg_ha.value == 4200.0
+    assert t.yield_kg_ha.provenance == DECLARED
+    assert t.yield_kg_ha.source == "field-operations:harvests+field-operations:declared-crops"
+    assert t.cv_pct.provenance == DECLARED
+    assert t.cv_pct.source == "field-operations:harvests+field-operations:declared-crops"
+    assert not t.missing
+
+
+def test_cover_crops_are_ignored_in_declared_cycle_yields():
+    cycles = [
+        {"species": "TRZAX", "role": "cover_crop", "campaign_label": 2024,
+         "declared_yield_kg_ha": 4200.0},
+    ]
+    assert declared_cycle_yields(cycles, "TRZAX") == {}

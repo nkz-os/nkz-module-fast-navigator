@@ -29,7 +29,9 @@ from app.inputs.soil import build_soil
 from app.inputs.yield_target import (
     YieldTarget,
     combine_histories,
+    declared_cycle_yields,
     history_yields,
+    merge_declared_yields,
     previous_zone_needed,
     resolve_previous_yield,
     resolve_yield,
@@ -225,23 +227,27 @@ async def assemble(req: SheetRequest, sources, today: date) -> AssembledInputs:
 
     async def target(eppo: str | None, campaign: int, declared: dict[int, float],
                      prefix: str) -> YieldTarget:
-        per_parcel, history_notices = [], []
+        per_parcel, per_parcel_declared, history_notices = [], [], []
         for parcel, cyc, hv in zip(parcels, cycle_lists, harvests):
             if eppo and parcel.area_ha.known:
                 got, found = history_yields(cyc, hv, eppo, parcel.area_ha.value)
                 per_parcel.append((got, parcel.area_ha.value))
                 history_notices.extend(found)
+                per_parcel_declared.append((declared_cycle_yields(cyc, eppo), parcel.area_ha.value))
         history = combine_histories(per_parcel)
+        cycle_declared = combine_histories(per_parcel_declared)
+        eff_declared, declared_source = merge_declared_yields(cycle_declared, declared)
         previous = prefix == "previous_yield"
         needed = (previous_zone_needed if previous else zone_needed)(
-            campaign, history, declared, overrides, prefix)
+            campaign, history, eff_declared, overrides, prefix)
         zone = None
         if eppo and needed:
             nuts = await region_value()
             if nuts.known:
                 zone = await sources.regional_yields(eppo, nuts.value)
         resolve = resolve_previous_yield if previous else resolve_yield
-        resolved = resolve(campaign, history, declared, zone, overrides, today, prefix)
+        resolved = resolve(campaign, history, eff_declared, zone, overrides, today, prefix,
+                           declared_source=declared_source)
         return replace(resolved, notices=tuple(history_notices) + resolved.notices)
 
     yield_target = await target(crop_eppo, req.campaign, req.declared_yields, "yield")

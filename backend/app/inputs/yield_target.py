@@ -1,6 +1,7 @@
 """Target yield of a sheet and its variability (spec §4: parcel history, declared, zone)."""
 from __future__ import annotations
 
+import math
 import statistics
 from dataclasses import dataclass, replace
 from datetime import date, timedelta
@@ -103,6 +104,56 @@ def combine_histories(per_parcel: list[tuple[dict[int, float], float]]) -> dict[
     return out
 
 
+def _same_crop(species: object, eppo: str) -> bool:
+    if not isinstance(species, str) or not isinstance(eppo, str):
+        return False
+    return species.strip().upper() == eppo.strip().upper()
+
+
+def declared_cycle_yields(cycles: list[dict], eppo: str) -> dict[int, float]:
+    """kg/ha per campaign from the farmer's declared yields on past crop cycles."""
+    out: dict[int, float] = {}
+    for cy in cycles:
+        if not is_main(cy) or cy.get("status") == "cancelled" or not _same_crop(cy.get("species"), eppo):
+            continue
+        raw_yield = cy.get("declared_yield_kg_ha")
+        if isinstance(raw_yield, dict):
+            raw_yield = raw_yield.get("value")
+        if not (isinstance(raw_yield, (int, float)) and not isinstance(raw_yield, bool)
+                and math.isfinite(raw_yield) and raw_yield > 0):
+            continue
+        y = cy.get("campaign_label")
+        if isinstance(y, int) and not isinstance(y, bool):
+            year = y
+        else:
+            y = cy.get("declared_campaign")
+            if isinstance(y, int) and not isinstance(y, bool):
+                year = y
+            else:
+                end_day = _day((cy.get("end") or {}).get("date"))
+                year = end_day.year if end_day is not None else None
+        if year is not None:
+            out[year] = float(raw_yield)
+    return out
+
+
+def merge_declared_yields(from_cycles: dict[int, float], from_plan: dict[int, float]
+                          ) -> tuple[dict[int, float], str]:
+    """Combine cycle-level declared yields with plan-level overrides.
+
+    Explicit plan-level declared_yields for a given year override cycle-level declared yields.
+    Returns (merged, source) where source indicates the origin of the active values.
+    """
+    cycles = from_cycles or {}
+    plan = from_plan or {}
+    merged = {**cycles, **plan}
+    if not cycles or all(k in plan for k in merged):
+        return merged, "plan:declared-yields"
+    if not plan:
+        return merged, "field-operations:declared-crops"
+    return merged, "field-operations:declared-crops+plan:declared-yields"
+
+
 def _window(campaign: int, by_year: dict[int, float]) -> dict[int, float]:
     return {y: v for y, v in by_year.items()
             if campaign - WINDOW_YEARS <= y < campaign and v > 0}
@@ -120,9 +171,13 @@ def zone_needed(campaign: int, history: dict[int, float], declared: dict[int, fl
     """Whether resolve_yield could use the zone series (for the yield or for its CV)."""
     if f"{prefix}.kg_ha" in overrides and f"{prefix}.cv_pct" in overrides:
         return False
-    if len(_window(campaign, history)) >= MIN_YEARS_FOR_CV:
+    hist = _window(campaign, history)
+    if len(hist) >= MIN_YEARS_FOR_CV:
         return False
-    return len(_window(campaign, declared)) < MIN_YEARS_FOR_CV
+    decl = _window(campaign, declared)
+    if not decl:
+        return True
+    return len({**hist, **decl}) < MIN_YEARS_FOR_CV
 
 
 def _zone(zone: dict | None):
@@ -140,7 +195,7 @@ def _zone(zone: dict | None):
 
 def resolve_yield(campaign: int, history: dict[int, float], declared: dict[int, float],
                   zone: dict | None, overrides: dict[str, Override], today: date,
-                  prefix: str = "yield") -> YieldTarget:
+                  prefix: str = "yield", declared_source: str = "plan:declared-yields") -> YieldTarget:
     notices: list[Notice] = []
     hist = _window(campaign, history)
     decl = _window(campaign, declared)
@@ -153,16 +208,19 @@ def resolve_yield(campaign: int, history: dict[int, float], declared: dict[int, 
         cv = Sourced(_cv(values), MEASURED, _HISTORY_SOURCE)
         basis, years = "history", tuple(sorted(hist))
     elif decl:
-        values = list(decl.values())
-        y = Sourced(statistics.median(values), DECLARED, "plan:declared-yields")
+        # A measured harvest of a year beats that year's declared value (facts beat declarations).
+        combined = {**decl, **hist}
+        eff_source = (f"{_HISTORY_SOURCE}+{declared_source}" if hist else declared_source)
+        values = list(combined.values())
+        y = Sourced(statistics.median(values), DECLARED, eff_source)
         own_cv = _cv(values)
         if own_cv is not None:
-            cv = Sourced(own_cv, DECLARED, "plan:declared-yields")
+            cv = Sourced(own_cv, DECLARED, eff_source)
         elif zone_cv is not None:
             cv = Sourced(zone_cv, zone_prov, _ZONE_SOURCE, "cv_from_zone")
         else:
             cv = missing(_ZONE_SOURCE)
-        basis, years = "declared", tuple(sorted(decl))
+        basis, years = "declared", tuple(sorted(combined))
     elif zone_kg is not None:
         y = Sourced(zone_kg, zone_prov, _ZONE_SOURCE, zone_note)
         cv = Sourced(zone_cv, zone_prov, _ZONE_SOURCE) if zone_cv is not None else missing(_ZONE_SOURCE)
@@ -214,7 +272,8 @@ def previous_zone_needed(campaign: int, history: dict[int, float], declared: dic
 
 def resolve_previous_yield(campaign: int, history: dict[int, float], declared: dict[int, float],
                            zone: dict | None, overrides: dict[str, Override], today: date,
-                           prefix: str = "previous_yield") -> YieldTarget:
+                           prefix: str = "previous_yield",
+                           declared_source: str = "plan") -> YieldTarget:
     """Yield of the preceding crop: its own campaign's harvest, else its declared value, else
     the usual rule (window median, then zone). Its CV is never read, so never reported missing."""
     no_cv = Sourced(None, MISSING)
@@ -224,8 +283,9 @@ def resolve_previous_yield(campaign: int, history: dict[int, float], declared: d
             return YieldTarget(Sourced(measured, MEASURED, _HISTORY_SOURCE), no_cv, "history",
                                (campaign,), (), ())
         if stated is not None:
-            return YieldTarget(Sourced(stated, DECLARED, "plan:declared-yields"), no_cv,
+            return YieldTarget(Sourced(stated, DECLARED, declared_source), no_cv,
                                "declared", (campaign,), (), ())
-    fallback = resolve_yield(campaign, history, declared, zone, overrides, today, prefix)
+    fallback = resolve_yield(campaign, history, declared, zone, overrides, today, prefix,
+                             declared_source=declared_source)
     return replace(fallback, missing=tuple(m for m in fallback.missing
                                            if not m.field.endswith(".cv_pct")))

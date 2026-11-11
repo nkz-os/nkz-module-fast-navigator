@@ -174,11 +174,11 @@ export function ZoneDosesBlock({ planId, sheet, parcels }: { planId: string; she
 
             <FormGrid columns={2}>
               <FormField label={t('zoneDoses.target')} error={problem === 'target' && targetText.trim() !== '' ? t('zoneDoses.problem.target') : undefined}>
-                <Input type="number" min={0} step="any" value={targetText} onChange={(e) => setTargetText(e.target.value)} />
+                <Input type="number" min={0} step="any" value={targetText} aria-label={t('zoneDoses.target')} onChange={(e) => setTargetText(e.target.value)} />
               </FormField>
               <FormField label={t('zoneDoses.cap')} error={problem === 'cap' ? t('zoneDoses.problem.cap') : undefined}>
                 <Inline gap="inline" align="center" wrap>
-                  <Input type="number" min={0} max={30} step="any" value={capText} onChange={(e) => setCapText(e.target.value)} />
+                  <Input type="number" min={0} max={30} step="any" value={capText} aria-label={t('zoneDoses.cap')} onChange={(e) => setCapText(e.target.value)} />
                   {res && res.cap.min_n_kg_ha != null && res.cap.max_n_kg_ha != null && (
                     <span className="text-nkz-sm text-nkz-text-secondary">
                       {t('zoneDoses.capRange', { min: k1(res.cap.min_n_kg_ha), max: k1(res.cap.max_n_kg_ha) })}
@@ -193,10 +193,10 @@ export function ZoneDosesBlock({ planId, sheet, parcels }: { planId: string; she
 
             <FormGrid columns={2}>
               <FormField label={t('zoneDoses.productName')} error={problem === 'product' ? t('zoneDoses.problem.product') : undefined}>
-                <Input value={productName} onChange={(e) => setProductName(e.target.value)} />
+                <Input value={productName} aria-label={t('zoneDoses.productName')} onChange={(e) => setProductName(e.target.value)} />
               </FormField>
               <FormField label={t('zoneDoses.productRichness')}>
-                <Input type="number" min={0} max={100} step="any" value={nPctText} onChange={(e) => setNPctText(e.target.value)} />
+                <Input type="number" min={0} max={100} step="any" value={nPctText} aria-label={t('zoneDoses.productRichness')} onChange={(e) => setNPctText(e.target.value)} />
               </FormField>
             </FormGrid>
 

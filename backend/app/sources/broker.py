@@ -85,15 +85,33 @@ async def fetch_water_quality(orion, entity_id: str) -> dict | None:
 
 ZONE_TYPE = "AgriManagementZone"
 ZONE_LINKS = ("hasAgriParcel", "refAgriParcel")    # the link may arrive under either name
+_TERM_PREFIXES = ("", "nkz:", "https://nkz-os.org/ns/", "https://uri.etsi.org/ngsi-ld/default-context/")
+
+
+def _zone_parcels(entity: dict) -> set[str]:
+    """Every parcel URN the zone links to, whatever the link's name, spelling or form."""
+    out: set[str] = set()
+    for name in ZONE_LINKS:
+        for prefix in _TERM_PREFIXES:
+            link = entity.get(prefix + name)
+            if isinstance(link, dict):
+                link = link.get("object", link.get("value"))
+            if isinstance(link, str):
+                out.add(link)
+    return out
 
 
 async def fetch_zone_entities(orion, parcel_urn: str) -> list[dict]:
     """Every management zone linked to the parcel, in the broker's own representation (normalized
-    with sysAttrs, as the other readers of zones do), de-duplicated by id."""
+    with sysAttrs, as the other readers of zones do), de-duplicated by id.
+
+    The zones of the tenant are read whole and filtered here: a `q` on the parcel link returns
+    nothing for the zones the zoning jobs write, although each zone carries the link.
+    """
     if '"' in parcel_urn or "\\" in parcel_urn:
         raise ValueError("parcel urn contains invalid characters")
     found: dict[str, dict] = {}
-    for link in ZONE_LINKS:
-        for entity in await _query_all(orion, ZONE_TYPE, f'{link}=="{parcel_urn}"', "sysAttrs"):
-            found.setdefault(str(entity.get("id")), entity)
+    for entity in await _query_all(orion, ZONE_TYPE, None, "sysAttrs"):
+        if parcel_urn in _zone_parcels(entity) and entity.get("id"):
+            found.setdefault(str(entity["id"]), entity)
     return list(found.values())

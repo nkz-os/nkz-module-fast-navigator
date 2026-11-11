@@ -93,7 +93,10 @@ def zonings_of(entities: list[dict], parcel_urn: str) -> list[ZoningRead]:
         entity_list = [by_id[ref.id] for ref in z.zones if ref.id in by_id]
         variable = next((v for e in entity_list
                          if isinstance(v := attr(e, "variableAttribute"), str)), None)
-        date = str(z.date)[:10] if z.date else None
+        # The image is as old as the zoning: the oldest `dateZoned` of the run. The SDK's run date
+        # falls back to `modifiedAt`, which a later re-save moves forward.
+        zoned = sorted(str(d)[:10] for e in entity_list if (d := attr(e, "dateZoned")))
+        date = zoned[0] if zoned else None
         out.append(ZoningRead(z.run_id, z.method, variable, date,
                               tuple(_zone(by_id[ref.id], ref.label, ref.rank, ref.geometry)
                                     for ref in z.zones if ref.id in by_id)))

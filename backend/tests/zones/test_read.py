@@ -87,27 +87,59 @@ def test_an_entity_linked_to_another_parcel_is_ignored():
 
 
 class FakeOrion:
-    def __init__(self, by_link):
-        self.by_link, self.calls = by_link, []
+    """A broker whose `q` filter on the parcel link finds nothing, as the live broker does for
+    zones written by the zoning jobs: only an unfiltered, paged read returns them."""
+    def __init__(self, entities, page=100):
+        self.entities, self.page, self.calls = entities, page, []
 
     async def query_entities(self, type=None, q=None, limit=100, offset=0, attrs=None,
                              options=None):
         self.calls.append((type, q, offset, options))
-        link = q.split("==")[0]
-        return self.by_link.get(link, []) if offset == 0 else []
+        if q is not None:
+            return []
+        rows = [e for e in self.entities if e.get("type") == type]
+        return rows[offset:offset + min(limit, self.page)]
 
 
-async def test_the_broker_read_queries_both_links_and_merges_by_id():
-    orion = FakeOrion({"hasAgriParcel": [kv(0), kv(1)],
-                       "refAgriParcel": [kv(1, link="refAgriParcel"), kv(2, link="refAgriParcel")]})
+OTHER = "urn:ngsi-ld:AgriParcel:parcel-2"
+
+
+async def test_the_broker_read_keeps_only_the_zones_of_the_parcel_whatever_the_link_name():
+    entities = [kv(0), kv(1, link="refAgriParcel"), normalized(2),
+                kv(3, parcel=OTHER), normalized(4, parcel=OTHER),
+                {**kv(5), "hasAgriParcel": None}, {"id": "x", "type": "AgriManagementZone"},
+                {**kv(1, link="refAgriParcel")}]                    # a duplicate of Z1
+    orion = FakeOrion(entities)
     got = await broker.fetch_zone_entities(orion, PARCEL)
     assert sorted(e["id"][-2:] for e in got) == ["Z0", "Z1", "Z2"]
-    assert [(t, q) for t, q, *_ in orion.calls] == [
-        ("AgriManagementZone", f'hasAgriParcel=="{PARCEL}"'),
-        ("AgriManagementZone", f'refAgriParcel=="{PARCEL}"')]
-    assert {o for *_, o in orion.calls} == {"sysAttrs"}
+    assert {(t, q, o) for t, q, _, o in orion.calls} == {("AgriManagementZone", None, "sysAttrs")}
+
+
+async def test_the_broker_read_follows_every_page():
+    entities = [kv(i) for i in range(230)] + [kv(i, parcel=OTHER) for i in range(230, 260)]
+    orion = FakeOrion(entities)
+    got = await broker.fetch_zone_entities(orion, PARCEL)
+    assert len(got) == 230
+    assert [off for _, _, off, _ in orion.calls] == [0, 100, 200]
 
 
 async def test_the_broker_read_refuses_a_urn_that_could_break_the_query():
     with pytest.raises(ValueError):
         await broker.fetch_zone_entities(FakeOrion({}), 'urn:x"; type=="y')
+
+
+def test_the_zoning_date_is_when_it_was_zoned_not_when_a_zone_was_last_saved():
+    """A zone re-saved later carries a newer modifiedAt; the image is as old as `dateZoned`."""
+    a = normalized(0)
+    b = normalized(1)
+    b["modifiedAt"] = "2026-11-10T08:00:00Z"
+    b["dateZoned"] = {"type": "Property", "value": {"@type": "DateTime", "@value": "2026-09-20T05:00:00Z"}}
+    zoning = select_zoning([a, b], PARCEL, "run-a")
+    assert zoning.date == "2026-09-20"     # the oldest dateZoned of the run
+
+
+def test_a_zoning_without_dateZoned_has_no_date():
+    e = kv(0)
+    del e["dateZoned"]
+    e["modifiedAt"] = "2026-11-10T08:00:00Z"
+    assert select_zoning([e], PARCEL, "run-a").date is None

@@ -112,6 +112,9 @@ class Sources:
     async def water_quality(self, entity_id: str) -> dict | None:
         return await broker.fetch_water_quality(self._orion, entity_id)
 
+    async def zone_entities(self, urn: str) -> list[dict]:
+        return await broker.fetch_zone_entities(self._orion, urn)
+
     async def lab_analyses(self, urn: str) -> list[dict]:
         return await soil.fetch_lab_analyses(self._client, self._s.soil_url, self._tenant,
                                              self._s.hmac_secret, urn)

@@ -33,13 +33,14 @@ async def _get(orion, entity_id: str) -> dict | None:
         raise _failure(exc) from exc
 
 
-async def _query_all(orion, entity_type: str, q: str | None) -> list[dict]:
+async def _query_all(orion, entity_type: str, q: str | None,
+                     options: str = "keyValues") -> list[dict]:
     out: list[dict] = []
     offset = 0
     try:
         while True:
             page = await orion.query_entities(type=entity_type, q=q, limit=PAGE, offset=offset,
-                                              options="keyValues")
+                                              options=options)
             out.extend(page or [])
             if not page or len(page) < PAGE:
                 return out
@@ -80,3 +81,19 @@ async def fetch_fertilizations(orion, parcel_urn: str) -> list[dict]:
 
 async def fetch_water_quality(orion, entity_id: str) -> dict | None:
     return await _get(orion, entity_id)
+
+
+ZONE_TYPE = "AgriManagementZone"
+ZONE_LINKS = ("hasAgriParcel", "refAgriParcel")    # the link may arrive under either name
+
+
+async def fetch_zone_entities(orion, parcel_urn: str) -> list[dict]:
+    """Every management zone linked to the parcel, in the broker's own representation (normalized
+    with sysAttrs, as the other readers of zones do), de-duplicated by id."""
+    if '"' in parcel_urn or "\\" in parcel_urn:
+        raise ValueError("parcel urn contains invalid characters")
+    found: dict[str, dict] = {}
+    for link in ZONE_LINKS:
+        for entity in await _query_all(orion, ZONE_TYPE, f'{link}=="{parcel_urn}"', "sysAttrs"):
+            found.setdefault(str(entity.get("id")), entity)
+    return list(found.values())

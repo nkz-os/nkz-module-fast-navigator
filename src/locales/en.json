@@ -561,6 +561,14 @@
       "zones_do_not_cover_parcel": "The zones do not cover the whole parcel: {{rest_ha}} ha of {{parcel_ha}} ha are left, at the stated dose.",
       "zones_exceed_parcel": "The zones add up to {{zones_ha}} ha, more than the parcel ({{parcel_ha}} ha).",
       "total_above_planned": "The shared total is above what the uniform dose would give."
+    },
+    "toPrescription": "Take to prescription",
+    "toPrescriptionHint": "The routing module opens with these doses filled in; the technician still chooses the machine and pattern and generates the pass.",
+    "prescriptionBlocked": {
+      "stale": "The form has changed: recalculate the split.",
+      "noProduct": "Give a product and its content to get doses in kg of product/ha.",
+      "missingRate": "A zone or the rest has no product dose.",
+      "tooManyZones": "A prescription takes at most 50 zones."
     }
   }
 }

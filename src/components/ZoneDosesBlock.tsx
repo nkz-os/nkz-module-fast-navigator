@@ -5,7 +5,8 @@ import { sheetZonings, zoneDoses } from '../api/fast';
 import type { CampaignParcel, PlanSheet, ZoneDosesResponse, ZoneStrategy } from '../api/types';
 import { useLoad } from '../hooks/useLoad';
 import { DASH, formatDecimal1, formatDecimal2, formatHa, formatKgHa } from '../model/format';
-import { basisKey, buildZoneDosesRequest, noticeView, unavailableKey, zoneLabel, zoningLabel } from '../model/zoneDoses';
+import { navigateTo } from '../model/navigate';
+import { basisKey, buildPrescriptionLink, buildZoneDosesRequest, noticeView, unavailableKey, zoneLabel, zoningLabel } from '../model/zoneDoses';
 import { ErrorBanner } from './ErrorBanner';
 
 const STRATEGIES: ZoneStrategy[] = ['uniform', 'potential', 'compensate'];
@@ -86,6 +87,21 @@ export function ZoneDosesResult({ res }: { res: ZoneDosesResponse }) {
           })}
         </ul>
       )}
+    </Stack>
+  );
+}
+
+/** "Llevar a receta": opens the routing module with the product rates of the answer; disabled, with the reason, when it cannot. */
+export function PrescriptionButton({ res, parcelUrn, current }: { res: ZoneDosesResponse; parcelUrn: string; current: boolean }) {
+  const { t } = useTranslation('fast-navigator');
+  const link = buildPrescriptionLink({ res, parcelUrn, current });
+  return (
+    <Stack gap="inline">
+      <Inline gap="inline" align="center" wrap>
+        <Button variant="secondary" disabled={!link.ok} onClick={() => { if (link.ok) navigateTo(link.path); }}>{t('zoneDoses.toPrescription')}</Button>
+        {!link.ok && <span role="status" className="text-nkz-sm text-nkz-warning">{t(`zoneDoses.prescriptionBlocked.${link.reason}`)}</span>}
+      </Inline>
+      <p className="text-nkz-xs text-nkz-text-muted">{t('zoneDoses.toPrescriptionHint')}</p>
     </Stack>
   );
 }
@@ -209,6 +225,7 @@ export function ZoneDosesBlock({ planId, sheet, parcels }: { planId: string; she
         {current?.error != null && <ErrorBanner error={current.error} onRetry={calculate} />}
 
         {res && <ZoneDosesResult res={res} />}
+        {res && parcelUrn && <PrescriptionButton res={res} parcelUrn={parcelUrn} current={current != null} />}
       </Stack>
     </Surface>
   );

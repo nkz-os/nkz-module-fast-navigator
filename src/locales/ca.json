@@ -561,6 +561,14 @@
       "zones_do_not_cover_parcel": "Les zones no cobreixen tota la parcel·la: queden {{rest_ha}} ha de {{parcel_ha}} ha, amb la dosi indicada.",
       "zones_exceed_parcel": "Les zones sumen {{zones_ha}} ha, més que la parcel·la ({{parcel_ha}} ha).",
       "total_above_planned": "El total repartit supera el que donaria la dosi uniforme."
+    },
+    "toPrescription": "Porta a recepta",
+    "toPrescriptionHint": "El mòdul de rutes s'obre amb aquestes dosis ja omplertes; el tècnic tria la màquina i el patró i genera la passada.",
+    "prescriptionBlocked": {
+      "stale": "El formulari ha canviat: torna a calcular el repartiment.",
+      "noProduct": "Indica un producte i la seva riquesa per tenir dosis en kg de producte/ha.",
+      "missingRate": "Alguna zona o la resta no té dosi de producte.",
+      "tooManyZones": "La recepta admet com a màxim 50 zones."
     }
   }
 }

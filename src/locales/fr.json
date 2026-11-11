@@ -561,6 +561,14 @@
       "zones_do_not_cover_parcel": "Les zones ne couvrent pas toute la parcelle : il reste {{rest_ha}} ha sur {{parcel_ha}} ha, à la dose indiquée.",
       "zones_exceed_parcel": "Les zones totalisent {{zones_ha}} ha, plus que la parcelle ({{parcel_ha}} ha).",
       "total_above_planned": "Le total réparti dépasse celui que donnerait la dose uniforme."
+    },
+    "toPrescription": "Envoyer vers l'ordonnance",
+    "toPrescriptionHint": "Le module d'itinéraires s'ouvre avec ces doses déjà remplies ; le technicien choisit la machine et le motif et génère le passage.",
+    "prescriptionBlocked": {
+      "stale": "Le formulaire a changé : recalculez la répartition.",
+      "noProduct": "Indiquez un produit et sa teneur pour obtenir des doses en kg de produit/ha.",
+      "missingRate": "Une zone ou le reste n'a pas de dose de produit.",
+      "tooManyZones": "Une ordonnance admet au plus 50 zones."
     }
   }
 }

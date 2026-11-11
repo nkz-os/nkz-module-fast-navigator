@@ -561,6 +561,14 @@
       "zones_do_not_cover_parcel": "Zonek ez dute partzela osoa estaltzen: {{rest_ha}} ha geratzen dira {{parcel_ha}} ha-tik, adierazitako dosiarekin.",
       "zones_exceed_parcel": "Zonek {{zones_ha}} ha batzen dituzte, partzelak baino gehiago ({{parcel_ha}} ha).",
       "total_above_planned": "Banatutako guztizkoa dosi uniformeak emango lukeena baino handiagoa da."
+    },
+    "toPrescription": "Errezetara eraman",
+    "toPrescriptionHint": "Bideratze modulua dosi hauek beteta irekitzen da; teknikariak makina eta eredua aukeratzen ditu eta pasaldia sortzen du.",
+    "prescriptionBlocked": {
+      "stale": "Formularioa aldatu da: kalkulatu berriro banaketa.",
+      "noProduct": "Eman produktu bat eta bere aberastasuna, produktu-kg/ha-tan dosiak izateko.",
+      "missingRate": "Eremu batek edo gainerakoak ez du produktu-dosirik.",
+      "tooManyZones": "Errezetak gehienez 50 eremu onartzen ditu."
     }
   }
 }

@@ -70,3 +70,47 @@ export function noticeView(n: ZoneDosesResponse['notices'][number], lang: string
   }
   return { key: `zoneDoses.notice.${n.code}`, params };
 }
+
+/** The routing module reads at most this many zone rates from the link. */
+export const MAX_PRESCRIPTION_ZONES = 50;
+/** Route of the routing module, as it declares it in its module definition. */
+export const ROUTING_ROUTE = '/gis-routing';
+
+export type PrescriptionBlock = 'stale' | 'noProduct' | 'missingRate' | 'tooManyZones';
+export type PrescriptionLink = { ok: true; path: string } | { ok: false; reason: PrescriptionBlock };
+
+/** RFC 4648 section 5 alphabet, no padding, over the UTF-8 bytes of the text. */
+export function base64UrlEncode(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+const isRate = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+
+/**
+ * The link that opens the routing module with the product rates of the CURRENT answer filled in.
+ * Never partial: any missing rate, no product or too many zones gives a reason instead of a link.
+ */
+export function buildPrescriptionLink(i: { res: ZoneDosesResponse; parcelUrn: string; current: boolean }): PrescriptionLink {
+  const { res } = i;
+  if (!i.current) return { ok: false, reason: 'stale' };
+  const product = res.target.product;
+  if (!product) return { ok: false, reason: 'noProduct' };
+  if (res.zones.length > MAX_PRESCRIPTION_ZONES) return { ok: false, reason: 'tooManyZones' };
+  const rest = res.rest.product_kg_ha;
+  const nDose = res.target.n_kg_ha;
+  if (res.zones.length === 0 || !isRate(rest) || !isRate(nDose) || !res.zones.every((z) => isRate(z.product_kg_ha))) {
+    return { ok: false, reason: 'missingRate' };
+  }
+  const zone_rates: Record<string, number> = {};
+  for (const z of res.zones) zone_rates[z.zone_id] = z.product_kg_ha as number;
+  const payload = {
+    v: 1, source: 'fast', zoning_run_id: res.zoning.run_id, unit: 'kg_ha', product: product.name,
+    zone_rates, rest_rate: rest,
+    origin: { plan: res.plan.id, sheet: res.sheet.key, strategy: res.strategy_unavailable ? 'uniform' : res.strategy, n_kg_ha: nDose },
+  };
+  const vra = base64UrlEncode(JSON.stringify(payload));
+  return { ok: true, path: `${ROUTING_ROUTE}?view=work&parcel=${encodeURIComponent(i.parcelUrn)}&vra=${vra}` };
+}

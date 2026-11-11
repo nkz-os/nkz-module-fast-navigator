@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { basisKey, buildZoneDosesRequest, noticeView, parseNumber, unavailableKey, zoneLabel, zoningLabel } from './zoneDoses';
+import type { ZoneDosesResponse } from '../api/types';
+import { base64UrlEncode, basisKey, buildPrescriptionLink, buildZoneDosesRequest, noticeView, parseNumber, unavailableKey, zoneLabel, zoningLabel } from './zoneDoses';
 
 const BASE = { parcelUrn: 'urn:ngsi-ld:AgriParcel:parcel-1', runId: 'run-1', strategy: 'uniform' as const, capText: '20', targetText: '60', productName: '', nPctText: '' };
 
@@ -69,5 +70,78 @@ describe('labels', () => {
     expect(noticeView({ code: 'zones_do_not_cover_parcel', params: { rest_ha: 2.5, parcel_ha: 10 } }, 'en'))
       .toEqual({ key: 'zoneDoses.notice.zones_do_not_cover_parcel', params: { rest_ha: '2.5', parcel_ha: '10.0' } });
     expect(noticeView({ code: 'total_above_planned' }, 'es')).toEqual({ key: 'zoneDoses.notice.total_above_planned', params: {} });
+  });
+});
+
+const RES: ZoneDosesResponse = {
+  plan: { id: 'plan-1', state: 'calculated', campaign: 2027 },
+  sheet: { key: 'wheat', n_kg_ha: null, crop: { eppo: 'TRZAX', n_fixing: false } },
+  zoning: { run_id: 'run-1', method: 'vegetationIndex', variable: 'NDVI', date: '2026-10-14', zone_count: 2 },
+  strategy: 'potential', strategy_unavailable: null,
+  target: { n_kg_ha: 60, source: 'given', product: { name: 'Nitrato álcali 27 %', n_pct: 27 } },
+  cap: { pct: 20, min_n_kg_ha: 48, max_n_kg_ha: 72 },
+  zones: [
+    { zone_id: 'urn:ngsi-ld:AgriManagementZone:z1', label: null, rank: 1, area_ha: 2, basis: 'vigor', relative_vigor: 1.2, factor: 1.2, capped: false, n_kg_ha: 72, product_kg_ha: 266.67, soil_analysis: null, missing: [] },
+    { zone_id: 'urn:ngsi-ld:AgriManagementZone:z2', label: null, rank: 2, area_ha: 2, basis: 'vigor', relative_vigor: 0.8, factor: 0.8, capped: false, n_kg_ha: 48, product_kg_ha: 177.78, soil_analysis: null, missing: [] },
+  ],
+  rest: { area_ha: 1, n_kg_ha: 60, product_kg_ha: 222.22 },
+  totals: { area_ha: 5, n_kg: 300, mean_n_kg_ha: 60, uniform_n_kg: 300 },
+  notices: [], units: { n: 'kg N/ha', product: 'kg/ha' }, versions: {},
+};
+const PARCEL = 'urn:ngsi-ld:AgriParcel:parcel-1';
+
+function decode(path: string) {
+  const q = new URL(path, 'https://x.invalid').searchParams;
+  const b64 = q.get('vra') as string;
+  expect(b64).toMatch(/^[A-Za-z0-9_-]+$/);
+  const std = b64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (b64.length % 4)) % 4);
+  const bin = atob(std);
+  return { q, json: JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)))) };
+}
+
+describe('base64UrlEncode', () => {
+  it('uses the URL-safe alphabet without padding', () => {
+    expect(base64UrlEncode('\u00fb\u00ff\u00fe')).toBe('w7vDv8O-');
+    expect(base64UrlEncode('a')).toBe('YQ');
+    expect(base64UrlEncode('?>>')).toBe('Pz4-');
+  });
+});
+
+describe('buildPrescriptionLink', () => {
+  it('round-trips the answer: rates by zone id, rest, run, product, applied strategy and origin; accents survive', () => {
+    const r = buildPrescriptionLink({ res: RES, parcelUrn: PARCEL, current: true });
+    if (!r.ok) throw new Error('expected a link');
+    expect(r.path.startsWith('/gis-routing?view=work&parcel=urn%3Angsi-ld%3AAgriParcel%3Aparcel-1&vra=')).toBe(true);
+    const { q, json } = decode(r.path);
+    expect(q.get('view')).toBe('work');
+    expect(q.get('parcel')).toBe(PARCEL);
+    expect(json).toEqual({
+      v: 1, source: 'fast', zoning_run_id: 'run-1', unit: 'kg_ha', product: 'Nitrato álcali 27 %',
+      zone_rates: { 'urn:ngsi-ld:AgriManagementZone:z1': 266.67, 'urn:ngsi-ld:AgriManagementZone:z2': 177.78 },
+      rest_rate: 222.22,
+      origin: { plan: 'plan-1', sheet: 'wheat', strategy: 'potential', n_kg_ha: 60 },
+    });
+  });
+
+  it('sends the strategy actually applied: uniform when the requested one was unavailable', () => {
+    const r = buildPrescriptionLink({ res: { ...RES, strategy_unavailable: 'single_zone' }, parcelUrn: PARCEL, current: true });
+    if (!r.ok) throw new Error('expected a link');
+    expect(decode(r.path).json.origin.strategy).toBe('uniform');
+  });
+
+  it('gives a reason, never a partial link', () => {
+    const why = (res: ZoneDosesResponse, current = true) => { const r = buildPrescriptionLink({ res, parcelUrn: PARCEL, current }); return r.ok ? 'ok' : r.reason; };
+    expect(why(RES, false)).toBe('stale');
+    expect(why({ ...RES, target: { ...RES.target, product: null } })).toBe('noProduct');
+    expect(why({ ...RES, zones: [{ ...RES.zones[0], product_kg_ha: null }, RES.zones[1]] })).toBe('missingRate');
+    expect(why({ ...RES, rest: { ...RES.rest, product_kg_ha: null } })).toBe('missingRate');
+    expect(why({ ...RES, target: { ...RES.target, n_kg_ha: null } })).toBe('missingRate');
+    expect(why({ ...RES, zones: [] })).toBe('missingRate');
+  });
+
+  it('allows 50 zones and refuses 51', () => {
+    const zones = (n: number) => Array.from({ length: n }, (_, i) => ({ ...RES.zones[0], zone_id: `z${i}` }));
+    expect(buildPrescriptionLink({ res: { ...RES, zones: zones(50) }, parcelUrn: PARCEL, current: true }).ok).toBe(true);
+    expect(buildPrescriptionLink({ res: { ...RES, zones: zones(51) }, parcelUrn: PARCEL, current: true })).toEqual({ ok: false, reason: 'tooManyZones' });
   });
 });

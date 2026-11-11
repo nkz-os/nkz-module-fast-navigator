@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { formatDate, formatHa, formatKgHa, formatMgKg, formatPct, pdfLang } from './format';
+import { formatDate, formatDecimal1, formatHa, formatKgHa, formatMgKg, formatPct, pdfLang } from './format';
 
 it('kg/ha is whole', () => {
   expect(formatKgHa(141.6, 'es')).toBe('142');
@@ -20,3 +20,4 @@ it('the PDF is Spanish unless the language is English', () => {
   expect(pdfLang('en-GB')).toBe('en');
   expect(pdfLang('eu')).toBe('es');
 });
+it('one decimal for doses', () => expect(formatDecimal1(60.48, 'es')).toBe('60,5'));

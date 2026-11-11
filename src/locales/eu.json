@@ -484,5 +484,83 @@
     "useCode": "Erabili {{code}} kodea",
     "typeToSearch": "Idatzi {{count}} laborantzen artean bilatzeko.",
     "listFailed": "Ezin izan da laborantzen zerrenda kargatu: idatzi EPPO kodea."
+  },
+  "zoneDoses": {
+    "title": "Dosia zonaka",
+    "experimental": "Esperimentala",
+    "disclaimer": "Zifrek pasada honen dosia banatzen dute zona bakoitzaren satelite-indarraren arabera, eta ez dute teknikariaren irizpidea ordezkatzen.",
+    "parcel": "Partzela",
+    "zoningLabel": "Zonakatzea",
+    "zoning": {
+      "vegetationIndex": "Satelitea ({{variable}}) · {{date}} · {{count}} zona",
+      "manual": "Eskuzkoa · {{date}} · {{count}} zona",
+      "other": "Bestelakoa · {{date}} · {{count}} zona"
+    },
+    "noZoning": "Partzela honek ez du gordetako zonakaturik. Zonakatzeak landaredi- edo ibilbide-moduluetan egiten dira.",
+    "strategyLabel": "Banaketa",
+    "strategy": {
+      "uniform": "Uniformea",
+      "potential": "Potentziala",
+      "compensate": "Konpentsatu"
+    },
+    "strategyHint": {
+      "uniform": "Dosi bera zona guztietan.",
+      "potential": "Ongarri gehiago laborea hobeto doan lekuan.",
+      "compensate": "Ongarri gehiago okerrago doan lekuan."
+    },
+    "target": "Pasada honen N dosia (kg N/ha)",
+    "cap": "Aldaketaren muga (%, 0tik 30era)",
+    "capRange": "= {{min}} eta {{max}} kg N/ha artean",
+    "sheetNeed": "Erreferentzia: orriaren N beharra {{avg}} kg N/ha da batez beste ({{min}} eta {{max}} artean). Dosia teknikariak finkatzen du.",
+    "sheetNeedMissing": "Orriak ez du N beharrik kalkulatuta: dosia teknikariak finkatzen du.",
+    "productName": "Produktua (aukerakoa)",
+    "productRichness": "Produktuaren N aberastasuna (%)",
+    "problem": {
+      "target": "Idatzi 0 baino handiagoa eta 1000 kg N/ha arteko dosia.",
+      "cap": "Muga 0tik 30era doa.",
+      "product": "Produktu-kg ikusteko, adierazi izena eta 0 eta 100 arteko aberastasuna."
+    },
+    "calculate": "Banaketa kalkulatu",
+    "unavailableIntro": "Ezin da «{{strategy}}» banaketa aplikatu: {{reason}}. Dosi uniformea erakusten da.",
+    "unavailable": {
+      "n_fixing_crop": "laboreak nitrogenoa finkatzen du eta ez du N aldakorrik hartzen",
+      "n_fixing_unknown": "ez dakigu laboreak nitrogenoa finkatzen duen",
+      "no_target_n": "ez dago banatzeko N dosirik",
+      "single_zone": "zonakatzeak zona bakarra du",
+      "zone_without_area": "zona batek ez du azalerarik",
+      "zoning_without_vegetation_value": "zonakatzeak ez dakar zonako indar-baliorik (eskuzkoek ez dute)"
+    },
+    "col": {
+      "zone": "Zona",
+      "area": "ha",
+      "vigor": "Indar erlatiboa",
+      "origin": "Zifraren jatorria",
+      "n": "kg N/ha",
+      "product": "kg produktu/ha"
+    },
+    "zoneN": "{{n}}. zona",
+    "rest": "Partzelaren gainerakoa",
+    "capped": "Muga",
+    "basis": {
+      "vigor": "Satelite-indarraren araberako doikuntza",
+      "sheet": "Partzelaren dosia",
+      "zone_soil": "Zonaren lur-analisia"
+    },
+    "missing": {
+      "area_ha": "azalerarik gabe",
+      "mean_value": "indar-baliorik gabe",
+      "mean_value_invalid": "indar-balio baliogabea"
+    },
+    "units": "Dosia kg N/ha-tan; produktua kg/ha-tan.",
+    "totals": "Guztira {{n}} kg N · batez bestekoa {{mean}} kg N/ha · dosi uniformearekin {{uniform}} kg N",
+    "notice": {
+      "plan_calculation_stale": "Planak aldatu da azken kalkuluaren ondoren: birkalkulatu N beharra eguneratuta ikusteko.",
+      "cap_saturated": "Zona guztiek ±{{cap_pct}} %-ko muga jotzen dute: banaketak ezin du indarrera gehiago hurbildu.",
+      "zoning_image_old": "Zonakatzearen irudia {{date}} datakoa da ({{days}} egun).",
+      "parcel_area_unknown": "Partzelaren azalera ez da ezagutzen: ezin da egiaztatu zonek estaltzen duten.",
+      "zones_do_not_cover_parcel": "Zonek ez dute partzela osoa estaltzen: {{rest_ha}} ha geratzen dira {{parcel_ha}} ha-tik, adierazitako dosiarekin.",
+      "zones_exceed_parcel": "Zonek {{zones_ha}} ha batzen dituzte, partzelak baino gehiago ({{parcel_ha}} ha).",
+      "total_above_planned": "Banatutako guztizkoa dosi uniformeak emango lukeena baino handiagoa da."
+    }
   }
 }

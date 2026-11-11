@@ -484,5 +484,83 @@
     "useCode": "Usar el código {{code}}",
     "typeToSearch": "Escribe para buscar entre {{count}} cultivos.",
     "listFailed": "No se pudo cargar la lista de cultivos: escribe el código EPPO."
+  },
+  "zoneDoses": {
+    "title": "Dosis por zonas",
+    "experimental": "Experimental",
+    "disclaimer": "Las cifras reparten la dosis de esta pasada según el vigor de satélite de cada zona y no sustituyen el criterio del técnico.",
+    "parcel": "Parcela",
+    "zoningLabel": "Zonificación",
+    "zoning": {
+      "vegetationIndex": "Satélite ({{variable}}) · {{date}} · {{count}} zonas",
+      "manual": "Manual · {{date}} · {{count}} zonas",
+      "other": "Otra · {{date}} · {{count}} zonas"
+    },
+    "noZoning": "Esta parcela no tiene ninguna zonificación guardada. Las zonificaciones se hacen en los módulos de vegetación o de rutas.",
+    "strategyLabel": "Reparto",
+    "strategy": {
+      "uniform": "Uniforme",
+      "potential": "Potencial",
+      "compensate": "Compensar"
+    },
+    "strategyHint": {
+      "uniform": "La misma dosis en todas las zonas.",
+      "potential": "Más abono donde el cultivo va mejor.",
+      "compensate": "Más abono donde va peor."
+    },
+    "target": "Dosis de N de esta pasada (kg N/ha)",
+    "cap": "Tope de variación (%, de 0 a 30)",
+    "capRange": "= de {{min}} a {{max}} kg N/ha",
+    "sheetNeed": "Referencia: la necesidad de N de la hoja es {{avg}} kg N/ha de media (de {{min}} a {{max}}). La dosis la fija el técnico.",
+    "sheetNeedMissing": "La hoja no tiene necesidad de N calculada: la dosis la fija el técnico.",
+    "productName": "Producto (opcional)",
+    "productRichness": "Riqueza en N del producto (%)",
+    "problem": {
+      "target": "Escribe una dosis mayor que 0 y de hasta 1000 kg N/ha.",
+      "cap": "El tope va de 0 a 30.",
+      "product": "Para ver kg de producto indica el nombre y una riqueza entre 0 y 100."
+    },
+    "calculate": "Calcular reparto",
+    "unavailableIntro": "No se puede aplicar el reparto «{{strategy}}»: {{reason}}. Se muestra la dosis uniforme.",
+    "unavailable": {
+      "n_fixing_crop": "el cultivo fija nitrógeno y no lleva N variable",
+      "n_fixing_unknown": "no se sabe si el cultivo fija nitrógeno",
+      "no_target_n": "no hay una dosis de N que repartir",
+      "single_zone": "la zonificación tiene una sola zona",
+      "zone_without_area": "alguna zona no tiene superficie",
+      "zoning_without_vegetation_value": "la zonificación no trae valor de vigor por zona (las manuales no lo traen)"
+    },
+    "col": {
+      "zone": "Zona",
+      "area": "ha",
+      "vigor": "Vigor relativo",
+      "origin": "Origen de la cifra",
+      "n": "kg N/ha",
+      "product": "kg producto/ha"
+    },
+    "zoneN": "Zona {{n}}",
+    "rest": "Resto de la parcela",
+    "capped": "Tope",
+    "basis": {
+      "vigor": "Ajuste por vigor de satélite",
+      "sheet": "Dosis de parcela",
+      "zone_soil": "Análisis de suelo de la zona"
+    },
+    "missing": {
+      "area_ha": "sin superficie",
+      "mean_value": "sin valor de vigor",
+      "mean_value_invalid": "valor de vigor no válido"
+    },
+    "units": "Dosis en kg N/ha; producto en kg/ha.",
+    "totals": "Total {{n}} kg N · media {{mean}} kg N/ha · con dosis uniforme {{uniform}} kg N",
+    "notice": {
+      "plan_calculation_stale": "El plan cambió después del último cálculo: recalcula para ver la necesidad de N al día.",
+      "cap_saturated": "Todas las zonas llegan al tope de ±{{cap_pct}} %: el reparto no puede acercarse más al vigor.",
+      "zoning_image_old": "La imagen de la zonificación es del {{date}} ({{days}} días).",
+      "parcel_area_unknown": "No se conoce la superficie de la parcela: no se puede comprobar si las zonas la cubren.",
+      "zones_do_not_cover_parcel": "Las zonas no cubren toda la parcela: quedan {{rest_ha}} ha de {{parcel_ha}} ha, con la dosis indicada.",
+      "zones_exceed_parcel": "Las zonas suman {{zones_ha}} ha, más que la parcela ({{parcel_ha}} ha).",
+      "total_above_planned": "El total repartido supera el que daría la dosis uniforme."
+    }
   }
 }

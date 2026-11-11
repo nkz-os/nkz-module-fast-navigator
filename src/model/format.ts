@@ -16,6 +16,7 @@ export function formatSignedKgHa(v: number, lang: string): string {
   return Number(v.toFixed(0)) < 0 ? `−${n}` : `+${n}`;
 }
 export const formatDecimal2 = (v: number | null | undefined, lang: string) => fmt(v, lang, 2);
+export const formatDecimal1 = (v: number | null | undefined, lang: string) => fmt(v, lang, 1);
 export const formatHa = (v: number | null | undefined, lang: string) => fmt(v, lang, 1);
 
 /** A date (`2026-10-14`) or a timestamp: numeric day-month-year in the language's order. */

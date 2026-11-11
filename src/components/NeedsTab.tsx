@@ -1,10 +1,11 @@
 import React from 'react';
 import { useTranslation } from '@nekazari/sdk';
 import { Badge, Inline, Stack, Surface } from '@nekazari/ui-kit';
-import type { NResult, OxideResult, SheetResult, Sourced } from '../api/types';
+import type { CampaignParcel, NResult, OxideResult, PlanSheet, SheetResult, Sourced } from '../api/types';
 import { formatDecimal2, formatKgHa, formatMgKg, formatSignedKgHa } from '../model/format';
 import { bandScale, nBreakdown, oxideView } from '../model/needs';
 import { ProvenanceChip } from './ProvenanceChip';
+import { ZoneDosesBlock } from './ZoneDosesBlock';
 
 const groupsOf = (r: SheetResult) => [...new Set(r.missing.map((m) => m.field.split('.')[0]))];
 
@@ -117,8 +118,8 @@ function Oxide({ label, o, soilKey, result }: { label: string; o: OxideResult | 
   );
 }
 
-/** The needs of a sheet: the N band, its breakdown, and P2O5 / K2O with the class the engine decided. */
-export function NeedsTab({ result }: { result: SheetResult | null }) {
+/** The needs of a sheet: the N band, its breakdown, and P2O5 / K2O with the class the engine decided; then, when given, the dose by zones. */
+export function NeedsTab({ result, zoneDoses }: { result: SheetResult | null; zoneDoses?: { planId: string; sheet: PlanSheet; parcels: CampaignParcel[] } }) {
   const { t } = useTranslation('fast-navigator');
   if (!result) return <p className="text-nkz-sm text-nkz-text-secondary">{t('data.notCalculated')}</p>;
   const v = result.versions;
@@ -146,6 +147,7 @@ export function NeedsTab({ result }: { result: SheetResult | null }) {
           <Oxide label={t('needs.k2o')} o={result.k2o} soilKey="soil.k_mg_kg" result={result} />
         </Stack>
       </Surface>
+      {zoneDoses && <ZoneDosesBlock planId={zoneDoses.planId} sheet={zoneDoses.sheet} parcels={zoneDoses.parcels} />}
       <p className="text-nkz-xs text-nkz-text-muted">
         {t('needs.versions', { engine: v.engine ?? '—', calc: v.calc ?? '—' })}
         {v.coefficients ? ` · ${t('needs.coefficientsVersion', { v: v.coefficients })}` : ''}

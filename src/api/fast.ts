@@ -1,5 +1,5 @@
 import type {
-  CampaignParcels, PdfEnvelope, Plan, PlanListItem, PlanSheetIn,
+  CampaignParcels, PdfEnvelope, Plan, PlanListItem, PlanSheetIn, ZoneDosesRequest, ZoneDosesResponse, ZoningInfo,
 } from './types';
 import type { SourceCrop } from '../model/crops';
 import type { OrganicProducts } from '../model/organic';
@@ -33,6 +33,17 @@ export const putOverride = (id: string, key: string, param: string, rowVersion: 
 
 export const deleteOverride = (id: string, key: string, param: string, rowVersion: number) =>
   request<Plan>('DELETE', `${overridePath(id, key, param)}?row_version=${rowVersion}`);
+
+const sheetPath = (id: string, key: string) => `/plans/${encodeURIComponent(id)}/sheets/${encodeURIComponent(key)}`;
+
+/** Zonings the parcel has saved (read-only). */
+export const sheetZonings = (id: string, key: string, parcelUrn: string, signal?: AbortSignal) =>
+  request<{ zonings: ZoningInfo[] }>('GET', `${sheetPath(id, key)}/zonings?parcel_urn=${encodeURIComponent(parcelUrn)}`, undefined, signal)
+    .then((r) => r.zonings);
+
+/** N dose per zone for one pass; nothing is stored. */
+export const zoneDoses = (id: string, key: string, body: ZoneDosesRequest, signal?: AbortSignal) =>
+  request<ZoneDosesResponse>('POST', `${sheetPath(id, key)}/zone-doses`, body, signal);
 
 export const campaignParcels = (campaign: number, signal?: AbortSignal) =>
   request<CampaignParcels>('GET', `/sources/campaigns/${campaign}/parcels`, undefined, signal);

@@ -484,5 +484,83 @@
     "useCode": "Usa el codi {{code}}",
     "typeToSearch": "Escriu per cercar entre {{count}} cultius.",
     "listFailed": "No s’ha pogut carregar la llista de cultius: escriu el codi EPPO."
+  },
+  "zoneDoses": {
+    "title": "Dosi per zones",
+    "experimental": "Experimental",
+    "disclaimer": "Les xifres reparteixen la dosi d'aquesta passada segons el vigor de satèl·lit de cada zona i no substitueixen el criteri del tècnic.",
+    "parcel": "Parcel·la",
+    "zoningLabel": "Zonificació",
+    "zoning": {
+      "vegetationIndex": "Satèl·lit ({{variable}}) · {{date}} · {{count}} zones",
+      "manual": "Manual · {{date}} · {{count}} zones",
+      "other": "Altra · {{date}} · {{count}} zones"
+    },
+    "noZoning": "Aquesta parcel·la no té cap zonificació desada. Les zonificacions es fan als mòduls de vegetació o de rutes.",
+    "strategyLabel": "Repartiment",
+    "strategy": {
+      "uniform": "Uniforme",
+      "potential": "Potencial",
+      "compensate": "Compensar"
+    },
+    "strategyHint": {
+      "uniform": "La mateixa dosi a totes les zones.",
+      "potential": "Més adob on el cultiu va millor.",
+      "compensate": "Més adob on va pitjor."
+    },
+    "target": "Dosi de N d'aquesta passada (kg N/ha)",
+    "cap": "Límit de variació (%, de 0 a 30)",
+    "capRange": "= de {{min}} a {{max}} kg N/ha",
+    "sheetNeed": "Referència: la necessitat de N del full és {{avg}} kg N/ha de mitjana (de {{min}} a {{max}}). La dosi la fixa el tècnic.",
+    "sheetNeedMissing": "El full no té la necessitat de N calculada: la dosi la fixa el tècnic.",
+    "productName": "Producte (opcional)",
+    "productRichness": "Riquesa en N del producte (%)",
+    "problem": {
+      "target": "Escriu una dosi més gran que 0 i de fins a 1000 kg N/ha.",
+      "cap": "El límit va de 0 a 30.",
+      "product": "Per veure kg de producte indica el nom i una riquesa entre 0 i 100."
+    },
+    "calculate": "Calcular repartiment",
+    "unavailableIntro": "No es pot aplicar el repartiment «{{strategy}}»: {{reason}}. Es mostra la dosi uniforme.",
+    "unavailable": {
+      "n_fixing_crop": "el cultiu fixa nitrogen i no porta N variable",
+      "n_fixing_unknown": "no se sap si el cultiu fixa nitrogen",
+      "no_target_n": "no hi ha cap dosi de N per repartir",
+      "single_zone": "la zonificació té una sola zona",
+      "zone_without_area": "alguna zona no té superfície",
+      "zoning_without_vegetation_value": "la zonificació no porta valor de vigor per zona (les manuals no el porten)"
+    },
+    "col": {
+      "zone": "Zona",
+      "area": "ha",
+      "vigor": "Vigor relatiu",
+      "origin": "Origen de la xifra",
+      "n": "kg N/ha",
+      "product": "kg producte/ha"
+    },
+    "zoneN": "Zona {{n}}",
+    "rest": "Resta de la parcel·la",
+    "capped": "Límit",
+    "basis": {
+      "vigor": "Ajust per vigor de satèl·lit",
+      "sheet": "Dosi de parcel·la",
+      "zone_soil": "Anàlisi de sòl de la zona"
+    },
+    "missing": {
+      "area_ha": "sense superfície",
+      "mean_value": "sense valor de vigor",
+      "mean_value_invalid": "valor de vigor no vàlid"
+    },
+    "units": "Dosi en kg N/ha; producte en kg/ha.",
+    "totals": "Total {{n}} kg N · mitjana {{mean}} kg N/ha · amb dosi uniforme {{uniform}} kg N",
+    "notice": {
+      "plan_calculation_stale": "El pla ha canviat després de l'últim càlcul: recalcula per veure la necessitat de N al dia.",
+      "cap_saturated": "Totes les zones arriben al límit de ±{{cap_pct}} %: el repartiment no pot acostar-se més al vigor.",
+      "zoning_image_old": "La imatge de la zonificació és del {{date}} ({{days}} dies).",
+      "parcel_area_unknown": "No es coneix la superfície de la parcel·la: no es pot comprovar si les zones la cobreixen.",
+      "zones_do_not_cover_parcel": "Les zones no cobreixen tota la parcel·la: queden {{rest_ha}} ha de {{parcel_ha}} ha, amb la dosi indicada.",
+      "zones_exceed_parcel": "Les zones sumen {{zones_ha}} ha, més que la parcel·la ({{parcel_ha}} ha).",
+      "total_above_planned": "El total repartit supera el que donaria la dosi uniforme."
+    }
   }
 }

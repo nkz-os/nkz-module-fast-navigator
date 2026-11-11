@@ -484,5 +484,83 @@
     "useCode": "Utiliser le code {{code}}",
     "typeToSearch": "Saisissez pour chercher parmi {{count}} cultures.",
     "listFailed": "La liste des cultures n’a pas pu être chargée : saisissez le code EPPO."
+  },
+  "zoneDoses": {
+    "title": "Dose par zones",
+    "experimental": "Expérimental",
+    "disclaimer": "Les chiffres répartissent la dose de ce passage selon la vigueur satellite de chaque zone et ne remplacent pas le jugement du technicien.",
+    "parcel": "Parcelle",
+    "zoningLabel": "Zonage",
+    "zoning": {
+      "vegetationIndex": "Satellite ({{variable}}) · {{date}} · {{count}} zones",
+      "manual": "Manuel · {{date}} · {{count}} zones",
+      "other": "Autre · {{date}} · {{count}} zones"
+    },
+    "noZoning": "Cette parcelle n'a aucun zonage enregistré. Les zonages se font dans les modules de végétation ou d'itinéraires.",
+    "strategyLabel": "Répartition",
+    "strategy": {
+      "uniform": "Uniforme",
+      "potential": "Potentiel",
+      "compensate": "Compenser"
+    },
+    "strategyHint": {
+      "uniform": "La même dose dans toutes les zones.",
+      "potential": "Plus d'engrais là où la culture va mieux.",
+      "compensate": "Plus d'engrais là où elle va moins bien."
+    },
+    "target": "Dose de N de ce passage (kg N/ha)",
+    "cap": "Plafond de variation (%, de 0 à 30)",
+    "capRange": "= de {{min}} à {{max}} kg N/ha",
+    "sheetNeed": "Repère : le besoin en N de la fiche est de {{avg}} kg N/ha en moyenne ({{min}} à {{max}}). La dose est fixée par le technicien.",
+    "sheetNeedMissing": "La fiche n'a pas de besoin en N calculé : la dose est fixée par le technicien.",
+    "productName": "Produit (facultatif)",
+    "productRichness": "Teneur en N du produit (%)",
+    "problem": {
+      "target": "Saisissez une dose supérieure à 0 et jusqu'à 1000 kg N/ha.",
+      "cap": "Le plafond va de 0 à 30.",
+      "product": "Pour voir les kg de produit, indiquez le nom et une teneur entre 0 et 100."
+    },
+    "calculate": "Calculer la répartition",
+    "unavailableIntro": "La répartition « {{strategy}} » est impossible : {{reason}}. La dose uniforme est affichée.",
+    "unavailable": {
+      "n_fixing_crop": "la culture fixe l'azote et ne reçoit pas de N variable",
+      "n_fixing_unknown": "on ne sait pas si la culture fixe l'azote",
+      "no_target_n": "il n'y a pas de dose de N à répartir",
+      "single_zone": "le zonage n'a qu'une seule zone",
+      "zone_without_area": "une zone n'a pas de surface",
+      "zoning_without_vegetation_value": "le zonage ne fournit pas de valeur de vigueur par zone (les manuels n'en ont pas)"
+    },
+    "col": {
+      "zone": "Zone",
+      "area": "ha",
+      "vigor": "Vigueur relative",
+      "origin": "Origine du chiffre",
+      "n": "kg N/ha",
+      "product": "kg produit/ha"
+    },
+    "zoneN": "Zone {{n}}",
+    "rest": "Reste de la parcelle",
+    "capped": "Plafond",
+    "basis": {
+      "vigor": "Ajustement par vigueur satellite",
+      "sheet": "Dose de la parcelle",
+      "zone_soil": "Analyse de sol de la zone"
+    },
+    "missing": {
+      "area_ha": "sans surface",
+      "mean_value": "sans valeur de vigueur",
+      "mean_value_invalid": "valeur de vigueur non valide"
+    },
+    "units": "Dose en kg N/ha ; produit en kg/ha.",
+    "totals": "Total {{n}} kg N · moyenne {{mean}} kg N/ha · avec dose uniforme {{uniform}} kg N",
+    "notice": {
+      "plan_calculation_stale": "Le plan a changé après le dernier calcul : recalculez pour voir le besoin en N à jour.",
+      "cap_saturated": "Toutes les zones atteignent le plafond de ±{{cap_pct}} % : la répartition ne peut pas suivre davantage la vigueur.",
+      "zoning_image_old": "L'image du zonage date du {{date}} ({{days}} jours).",
+      "parcel_area_unknown": "La surface de la parcelle est inconnue : on ne peut pas vérifier si les zones la couvrent.",
+      "zones_do_not_cover_parcel": "Les zones ne couvrent pas toute la parcelle : il reste {{rest_ha}} ha sur {{parcel_ha}} ha, à la dose indiquée.",
+      "zones_exceed_parcel": "Les zones totalisent {{zones_ha}} ha, plus que la parcelle ({{parcel_ha}} ha).",
+      "total_above_planned": "Le total réparti dépasse celui que donnerait la dose uniforme."
+    }
   }
 }

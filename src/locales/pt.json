@@ -484,5 +484,83 @@
     "useCode": "Usar o código {{code}}",
     "typeToSearch": "Escreva para procurar entre {{count}} culturas.",
     "listFailed": "Não foi possível carregar a lista de culturas: escreva o código EPPO."
+  },
+  "zoneDoses": {
+    "title": "Dose por zonas",
+    "experimental": "Experimental",
+    "disclaimer": "Os valores repartem a dose desta passagem segundo o vigor de satélite de cada zona e não substituem o critério do técnico.",
+    "parcel": "Parcela",
+    "zoningLabel": "Zonamento",
+    "zoning": {
+      "vegetationIndex": "Satélite ({{variable}}) · {{date}} · {{count}} zonas",
+      "manual": "Manual · {{date}} · {{count}} zonas",
+      "other": "Outro · {{date}} · {{count}} zonas"
+    },
+    "noZoning": "Esta parcela não tem nenhum zonamento guardado. Os zonamentos fazem-se nos módulos de vegetação ou de rotas.",
+    "strategyLabel": "Repartição",
+    "strategy": {
+      "uniform": "Uniforme",
+      "potential": "Potencial",
+      "compensate": "Compensar"
+    },
+    "strategyHint": {
+      "uniform": "A mesma dose em todas as zonas.",
+      "potential": "Mais adubo onde a cultura vai melhor.",
+      "compensate": "Mais adubo onde vai pior."
+    },
+    "target": "Dose de N desta passagem (kg N/ha)",
+    "cap": "Limite de variação (%, de 0 a 30)",
+    "capRange": "= de {{min}} a {{max}} kg N/ha",
+    "sheetNeed": "Referência: a necessidade de N da ficha é {{avg}} kg N/ha em média ({{min}} a {{max}}). A dose é fixada pelo técnico.",
+    "sheetNeedMissing": "A ficha não tem a necessidade de N calculada: a dose é fixada pelo técnico.",
+    "productName": "Produto (opcional)",
+    "productRichness": "Teor de N do produto (%)",
+    "problem": {
+      "target": "Escreva uma dose maior que 0 e até 1000 kg N/ha.",
+      "cap": "O limite vai de 0 a 30.",
+      "product": "Para ver kg de produto indique o nome e um teor entre 0 e 100."
+    },
+    "calculate": "Calcular repartição",
+    "unavailableIntro": "Não é possível aplicar a repartição «{{strategy}}»: {{reason}}. Mostra-se a dose uniforme.",
+    "unavailable": {
+      "n_fixing_crop": "a cultura fixa azoto e não leva N variável",
+      "n_fixing_unknown": "não se sabe se a cultura fixa azoto",
+      "no_target_n": "não há dose de N para repartir",
+      "single_zone": "o zonamento tem uma só zona",
+      "zone_without_area": "alguma zona não tem área",
+      "zoning_without_vegetation_value": "o zonamento não traz valor de vigor por zona (os manuais não o trazem)"
+    },
+    "col": {
+      "zone": "Zona",
+      "area": "ha",
+      "vigor": "Vigor relativo",
+      "origin": "Origem do valor",
+      "n": "kg N/ha",
+      "product": "kg produto/ha"
+    },
+    "zoneN": "Zona {{n}}",
+    "rest": "Resto da parcela",
+    "capped": "Limite",
+    "basis": {
+      "vigor": "Ajuste por vigor de satélite",
+      "sheet": "Dose da parcela",
+      "zone_soil": "Análise de solo da zona"
+    },
+    "missing": {
+      "area_ha": "sem área",
+      "mean_value": "sem valor de vigor",
+      "mean_value_invalid": "valor de vigor inválido"
+    },
+    "units": "Dose em kg N/ha; produto em kg/ha.",
+    "totals": "Total {{n}} kg N · média {{mean}} kg N/ha · com dose uniforme {{uniform}} kg N",
+    "notice": {
+      "plan_calculation_stale": "O plano mudou depois do último cálculo: recalcule para ver a necessidade de N atualizada.",
+      "cap_saturated": "Todas as zonas atingem o limite de ±{{cap_pct}} %: a repartição não pode aproximar-se mais do vigor.",
+      "zoning_image_old": "A imagem do zonamento é de {{date}} ({{days}} dias).",
+      "parcel_area_unknown": "Não se conhece a área da parcela: não é possível verificar se as zonas a cobrem.",
+      "zones_do_not_cover_parcel": "As zonas não cobrem toda a parcela: restam {{rest_ha}} ha de {{parcel_ha}} ha, com a dose indicada.",
+      "zones_exceed_parcel": "As zonas somam {{zones_ha}} ha, mais do que a parcela ({{parcel_ha}} ha).",
+      "total_above_planned": "O total repartido supera o que daria a dose uniforme."
+    }
   }
 }

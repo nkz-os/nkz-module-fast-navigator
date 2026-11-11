@@ -221,3 +221,56 @@ export interface PlanSheetIn extends SheetInputs {
 }
 
 export interface PdfEnvelope { filename: string; media_type: string; content_base64: string }
+
+/** A saved zoning of a parcel (GET /plans/{id}/sheets/{key}/zonings). */
+export interface ZoningInfo {
+  run_id: string;
+  method: string | null;
+  variable: string | null;
+  date: string | null;
+  zone_count: number;
+  has_vegetation_value: boolean;
+}
+
+export type ZoneStrategy = 'uniform' | 'potential' | 'compensate';
+export type ZoneBasis = 'vigor' | 'sheet' | 'zone_soil';
+
+/** The body of POST /plans/{id}/sheets/{key}/zone-doses (a dose of N given by the technician). */
+export interface ZoneDosesRequest {
+  parcel_urn: string;
+  zoning_run_id: string;
+  strategy: ZoneStrategy;
+  cap_pct: number;
+  target: { n_kg_ha: number; product?: { name: string; n_pct: number } };
+}
+
+export interface ZoneDoseRow {
+  zone_id: string;
+  label: string | null;
+  rank: number | null;
+  area_ha: number | null;
+  basis: ZoneBasis;
+  relative_vigor: number | null;
+  factor: number | null;
+  capped: boolean;
+  n_kg_ha: number | null;
+  product_kg_ha: number | null;
+  soil_analysis: { id: string; date: string | null } | null;
+  missing: string[];
+}
+
+export interface ZoneDosesResponse {
+  plan: { id: string; state: string; campaign: number };
+  sheet: { key: string; n_kg_ha: { min: number; avg: number; max: number } | null; crop: { eppo: string | null; n_fixing: boolean | null } };
+  zoning: { run_id: string; method: string | null; variable: string | null; date: string | null; zone_count: number };
+  strategy: ZoneStrategy;
+  strategy_unavailable: string | null;
+  target: { n_kg_ha: number | null; source: 'application' | 'given'; product: { name: string; n_pct: number } | null };
+  cap: { pct: number; min_n_kg_ha: number | null; max_n_kg_ha: number | null };
+  zones: ZoneDoseRow[];
+  rest: { area_ha: number | null; n_kg_ha: number | null; product_kg_ha: number | null };
+  totals: { area_ha: number | null; n_kg: number | null; mean_n_kg_ha: number | null; uniform_n_kg: number | null };
+  notices: { code: string; params?: Record<string, string | number | null> }[];
+  units: { n: string; product: string };
+  versions: Record<string, string>;
+}

@@ -484,5 +484,83 @@
     "useCode": "Use code {{code}}",
     "typeToSearch": "Type to search among {{count}} crops.",
     "listFailed": "The crop list could not be loaded: type the EPPO code."
+  },
+  "zoneDoses": {
+    "title": "Dose by zones",
+    "experimental": "Experimental",
+    "disclaimer": "The figures share the dose of this pass by the satellite vigor of each zone and do not replace the technician's judgement.",
+    "parcel": "Parcel",
+    "zoningLabel": "Zoning",
+    "zoning": {
+      "vegetationIndex": "Satellite ({{variable}}) · {{date}} · {{count}} zones",
+      "manual": "Manual · {{date}} · {{count}} zones",
+      "other": "Other · {{date}} · {{count}} zones"
+    },
+    "noZoning": "This parcel has no saved zoning. Zonings are made in the vegetation or routing modules.",
+    "strategyLabel": "Split",
+    "strategy": {
+      "uniform": "Uniform",
+      "potential": "Potential",
+      "compensate": "Compensate"
+    },
+    "strategyHint": {
+      "uniform": "The same dose in every zone.",
+      "potential": "More fertilizer where the crop does better.",
+      "compensate": "More fertilizer where it does worse."
+    },
+    "target": "N dose of this pass (kg N/ha)",
+    "cap": "Variation cap (%, 0 to 30)",
+    "capRange": "= {{min}} to {{max}} kg N/ha",
+    "sheetNeed": "For reference: the sheet's N need is {{avg}} kg N/ha on average ({{min}} to {{max}}). The technician sets the dose.",
+    "sheetNeedMissing": "The sheet has no N need calculated: the technician sets the dose.",
+    "productName": "Product (optional)",
+    "productRichness": "N content of the product (%)",
+    "problem": {
+      "target": "Enter a dose above 0 and up to 1000 kg N/ha.",
+      "cap": "The cap goes from 0 to 30.",
+      "product": "To see kg of product, give the name and a content between 0 and 100."
+    },
+    "calculate": "Calculate split",
+    "unavailableIntro": "The \"{{strategy}}\" split cannot be applied: {{reason}}. The uniform dose is shown.",
+    "unavailable": {
+      "n_fixing_crop": "the crop fixes nitrogen and takes no variable N",
+      "n_fixing_unknown": "it is not known whether the crop fixes nitrogen",
+      "no_target_n": "there is no N dose to share",
+      "single_zone": "the zoning has a single zone",
+      "zone_without_area": "a zone has no area",
+      "zoning_without_vegetation_value": "the zoning carries no vigor value per zone (manual ones do not)"
+    },
+    "col": {
+      "zone": "Zone",
+      "area": "ha",
+      "vigor": "Relative vigor",
+      "origin": "Origin of the figure",
+      "n": "kg N/ha",
+      "product": "kg product/ha"
+    },
+    "zoneN": "Zone {{n}}",
+    "rest": "Rest of the parcel",
+    "capped": "Cap",
+    "basis": {
+      "vigor": "Satellite vigor adjustment",
+      "sheet": "Parcel dose",
+      "zone_soil": "Soil analysis of the zone"
+    },
+    "missing": {
+      "area_ha": "no area",
+      "mean_value": "no vigor value",
+      "mean_value_invalid": "invalid vigor value"
+    },
+    "units": "Dose in kg N/ha; product in kg/ha.",
+    "totals": "Total {{n}} kg N · mean {{mean}} kg N/ha · with a uniform dose {{uniform}} kg N",
+    "notice": {
+      "plan_calculation_stale": "The plan changed after the last calculation: recalculate to see an up-to-date N need.",
+      "cap_saturated": "Every zone reaches the ±{{cap_pct}} % cap: the split cannot follow vigor any closer.",
+      "zoning_image_old": "The zoning image is from {{date}} ({{days}} days).",
+      "parcel_area_unknown": "The parcel area is unknown: it cannot be checked whether the zones cover it.",
+      "zones_do_not_cover_parcel": "The zones do not cover the whole parcel: {{rest_ha}} ha of {{parcel_ha}} ha are left, at the stated dose.",
+      "zones_exceed_parcel": "The zones add up to {{zones_ha}} ha, more than the parcel ({{parcel_ha}} ha).",
+      "total_above_planned": "The shared total is above what the uniform dose would give."
+    }
   }
 }

@@ -133,7 +133,7 @@ export function PlanWorkspace({ planId, campaign, initial }: { planId: string; c
               <Tabs.Content value="data">
                 <DataTab plan={plan} sheet={sheet} parcels={parcels} editable={editable} roles={roles} onSaved={saved} onReload={() => { loaded.retry(); }} />
               </Tabs.Content>
-              <Tabs.Content value="needs"><NeedsTab result={sheet.result} /></Tabs.Content>
+              <Tabs.Content value="needs"><NeedsTab result={sheet.result} zoneDoses={{ planId: plan.id, sheet, parcels }} /></Tabs.Content>
             </Tabs>
           </div>
         </div>

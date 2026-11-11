@@ -178,6 +178,7 @@ export interface RainNormal {
   monthly_mm: number[];
   sources: string[];
   notices: Notice[];
+  attribution?: string;
 }
 
 export interface Signature {

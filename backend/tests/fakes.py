@@ -71,6 +71,11 @@ class FakeSources:
         self._hit("water_quality", entity_id)
         return self.data.get("water", {}).get(entity_id)
 
+    async def history_precip(self, urn, first_year, last_year):
+        self._hit("history_precip", first_year, last_year)
+        from app.sources.weather import HistoryPrecip
+        return self.data.get("history") or HistoryPrecip(False, "unavailable", (), None)
+
     async def daily(self, urn, start, end):
         self._hit("daily", start.year)
         return self.data.get("days", {}).get(start.year, [])

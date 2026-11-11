@@ -22,11 +22,15 @@ class RainNormal:
     monthly_mm: tuple[float, ...]
     sources: tuple[str, ...]
     notices: tuple[Notice, ...]
+    attribution: str | None = None
 
     def to_dict(self) -> dict:
-        return {"years": list(self.years), "annual_mm": self.annual_mm,
-                "monthly_mm": list(self.monthly_mm), "sources": list(self.sources),
-                "notices": [n.to_dict() for n in self.notices]}
+        out = {"years": list(self.years), "annual_mm": self.annual_mm,
+               "monthly_mm": list(self.monthly_mm), "sources": list(self.sources),
+               "notices": [n.to_dict() for n in self.notices]}
+        if self.attribution:
+            out["attribution"] = self.attribution
+        return out
 
 
 def rain_normal(days_by_year: dict[int, list[dict]]) -> RainNormal:

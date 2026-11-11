@@ -126,6 +126,12 @@ class Sources:
     async def timeline(self, urn: str, at: date) -> dict | None:
         return await cycles.fetch_timeline(self._orion, urn, at)
 
+    async def history_precip(self, urn: str, first_year: int, last_year: int
+                             ) -> weather.HistoryPrecip:
+        return await weather.fetch_history_precip(self._client, self._s.weather_api_url,
+                                                  self._tenant, self._s.hmac_secret, urn,
+                                                  first_year, last_year)
+
     async def daily(self, urn: str, start: date, end: date) -> list[dict]:
         return await weather.fetch_daily(self._client, self._s.weather_api_url, self._tenant,
                                          self._s.hmac_secret, urn, start, end)
@@ -280,9 +286,28 @@ async def assemble(req: SheetRequest, sources, today: date) -> AssembledInputs:
         region=region, parcels=parcels, notices=tuple(notices))
 
 
+HISTORY_SOURCE = "weather-history (ERA5)"
+HISTORY_ATTRIBUTION = ("Contains modified Copernicus Climate Change Service information; "
+                       "Open-Meteo (CC BY 4.0)")
+
+
 async def fetch_rain_normal(sources, parcel_urn: str, campaign: int) -> RainNormal:
-    """Ten calendar years, one request each, one after the other (weather-api fill budget)."""
+    """The normal from the parcel weather history (one call); only if it is not ready, the
+    ten per-year /daily calls (weather-api fill budget), flagged with a notice. Years of the two
+    sources are never mixed."""
+    years = rain_years(campaign)
+    history = await sources.history_precip(parcel_urn, years[0], years[-1])
+    if history.ready:
+        days: dict[int, list[dict]] = {y: [] for y in years}
+        for d in history.days:
+            day = d.get("date")
+            if isinstance(day, str) and day[:4].isdigit() and int(day[:4]) in days:
+                days[int(day[:4])].append({**d, "source": HISTORY_SOURCE})
+        normal = rain_normal(days)
+        return replace(normal, attribution=history.attribution or HISTORY_ATTRIBUTION)
     days = {}
-    for year in rain_years(campaign):
+    for year in years:
         days[year] = await sources.daily(parcel_urn, date(year, 1, 1), date(year, 12, 31))
-    return rain_normal(days)
+    normal = rain_normal(days)
+    notice = Notice("rain_normal_history_fallback", {"reason": history.reason})
+    return replace(normal, notices=(notice, *normal.notices))

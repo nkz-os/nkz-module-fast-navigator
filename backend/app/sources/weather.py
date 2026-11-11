@@ -26,8 +26,9 @@ async def fetch_daily(client: httpx.AsyncClient, base_url: str, tenant_id: str, 
     return list((data or {}).get("days") or [])
 
 
-# weather-api answers /history within 20 s by design (its own deadline, under the gateway's 30 s).
-HISTORY_TIMEOUT_S = 20.0
+# weather-api answers /history within ~20 s cold; we give it 10 s: if it is still warming up,
+# the /daily fallback runs and the next recalculation finds the cache warm (keeps the 90 s budget).
+HISTORY_TIMEOUT_S = 10.0
 
 
 @dataclass(frozen=True)

@@ -68,4 +68,4 @@ async def test_connection_error_and_bad_body_are_unavailable():
 
 
 async def test_history_timeout_is_the_weather_api_deadline():
-    assert weather.HISTORY_TIMEOUT_S == 20.0
+    assert weather.HISTORY_TIMEOUT_S == 10.0

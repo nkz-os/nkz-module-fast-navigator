@@ -11,7 +11,14 @@ from fastapi import APIRouter, Depends, Path, Query, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, model_validator
 
-from app.api import EDITOR_ROLES, PLAN_ROLES, SheetIn, _urn, get_sources_factory
+from app.api import (
+    EDITOR_ROLES,
+    PARCEL_ID_PATTERN,
+    PLAN_ROLES,
+    SheetIn,
+    _urn,
+    get_sources_factory,
+)
 from app.db.pool import get_db
 from app.inputs.organic import OrganicApplication
 from app.inputs.parcel import is_parcel_identifier
@@ -22,6 +29,7 @@ from app.plans.clock import legal_today
 from app.plans.document import plan_document
 from app.plans.states import Action
 from app.report import render
+from app.zones import service as zone_service
 
 router = APIRouter(prefix="/plans", tags=["FaST plans"])
 
@@ -201,6 +209,55 @@ async def plan_compliance(plan_id: uuid.UUID, auth: AuthContext = require_auth(P
     async with sources_factory(auth.tenant_id) as sources:
         return await compliance_service.compliance(pool, sources, _actor(auth), plan_id,
                                                    legal_today())
+
+
+class ProductIn(BaseModel):
+    model_config = {"extra": "forbid"}
+    name: str = Field(min_length=1, max_length=200)
+    n_pct: float = Field(gt=0, le=100)
+
+
+class ZoneTargetIn(BaseModel):
+    """What is shared among the zones: a dose of N (with its product, optionally) or a planned
+    application of the sheet (0-based position in its list of applications)."""
+    model_config = {"extra": "forbid"}
+    n_kg_ha: float | None = Field(default=None, gt=0, le=1000)
+    product: ProductIn | None = None
+    application_seq: int | None = Field(default=None, ge=0, le=49)
+
+    @model_validator(mode="after")
+    def _one_kind(self) -> ZoneTargetIn:
+        if (self.n_kg_ha is None) == (self.application_seq is None):
+            raise ValueError("give either n_kg_ha or application_seq")
+        if self.product is not None and self.n_kg_ha is None:
+            raise ValueError("product goes with n_kg_ha; an application brings its own")
+        return self
+
+
+class ZoneDosesIn(BaseModel):
+    model_config = {"extra": "forbid"}
+    parcel_urn: str = Field(pattern=PARCEL_ID_PATTERN, max_length=200)
+    zoning_run_id: str = Field(min_length=1, max_length=200)
+    strategy: Literal["uniform", "potential", "compensate"] = "uniform"
+    cap_pct: float = Field(default=20, ge=0, le=30)
+    target: ZoneTargetIn
+
+
+@router.post("/{plan_id}/sheets/{key}/zone-doses")
+async def zone_doses(plan_id: uuid.UUID, body: ZoneDosesIn,
+                     key: str = Path(pattern=KEY_PATTERN),
+                     auth: AuthContext = require_auth(PLAN_ROLES), pool=Depends(get_db),
+                     sources_factory=Depends(get_sources_factory)) -> dict:
+    """N dose per management zone for one parcel of a sheet. Read-only: nothing is stored."""
+    t = body.target
+    target = zone_service.Target(
+        n_kg_ha=t.n_kg_ha, application_seq=t.application_seq,
+        product=zone_service.Product(t.product.name, t.product.n_pct) if t.product else None)
+    async with sources_factory(auth.tenant_id) as sources:
+        return await zone_service.zone_doses(
+            pool, sources, _actor(auth), plan_id, key, parcel_urn=_urn(body.parcel_urn),
+            zoning_run_id=body.zoning_run_id, strategy=body.strategy, cap_pct=body.cap_pct,
+            target=target, today=legal_today())
 
 
 _PDF_LIMIT = asyncio.Semaphore(1)

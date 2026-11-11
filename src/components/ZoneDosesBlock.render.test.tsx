@@ -19,7 +19,7 @@ vi.mock('../hooks/useLoad', () => ({
   },
 }));
 
-import { ZoneDosesBlock, ZoneDosesResult } from './ZoneDosesBlock';
+import { PrescriptionButton, ZoneDosesBlock, ZoneDosesResult } from './ZoneDosesBlock';
 
 const NDVI: ZoningInfo = { run_id: 'run-1', method: 'vegetationIndex', variable: 'NDVI', date: '2026-10-14', zone_count: 4, has_vegetation_value: true };
 const MANUAL: ZoningInfo = { run_id: 'run-2', method: 'manual', variable: null, date: '2026-09-01', zone_count: 3, has_vegetation_value: false };
@@ -139,5 +139,24 @@ describe('ZoneDosesResult (es)', () => {
   it('a missing figure is a dash, never 0', () => {
     const out = renderToStaticMarkup(<ZoneDosesResult res={{ ...RES, strategy_unavailable: 'no_target_n', zones: [{ ...RES.zones[1], n_kg_ha: null, product_kg_ha: null }], rest: { area_ha: 0, n_kg_ha: null, product_kg_ha: null }, totals: { area_ha: 2.5, n_kg: null, mean_n_kg_ha: null, uniform_n_kg: null }, notices: [] }} />);
     expect(out).toContain('Total — kg N · media — kg N/ha');
+  });
+});
+
+describe('PrescriptionButton (es)', () => {
+  const U = 'urn:ngsi-ld:AgriParcel:parcel-1';
+  it('is enabled with the hint when the answer is current and has product rates', () => {
+    const out = renderToStaticMarkup(<PrescriptionButton res={RES} parcelUrn={U} current />);
+    expect(out).toMatch(/<button[^>]*>[^<]*Llevar a receta/);
+    expect(out).not.toMatch(/<button[^>]*disabled=""[^>]*>[^<]*Llevar a receta/);
+    expect(out).toContain('elige la máquina y el patrón y genera la pasada');
+  });
+  it('is disabled and says why: no product, a missing rate, stale, too many zones', () => {
+    const dis = (res: ZoneDosesResponse, current = true) => renderToStaticMarkup(<PrescriptionButton res={res} parcelUrn={U} current={current} />);
+    const noProd = dis({ ...RES, target: { ...RES.target, product: null }, zones: RES.zones.map((z) => ({ ...z, product_kg_ha: null })), rest: { ...RES.rest, product_kg_ha: null } });
+    expect(noProd).toMatch(/<button[^>]*disabled=""[^>]*>[^<]*Llevar a receta/);
+    expect(noProd).toContain('Indica un producto');
+    expect(dis({ ...RES, rest: { ...RES.rest, product_kg_ha: null } })).toContain('no tiene dosis de producto');
+    expect(dis(RES, false)).toContain('han cambiado');
+    expect(dis({ ...RES, zones: Array.from({ length: 51 }, (_, i) => ({ ...RES.zones[0], zone_id: `z${i}` })) })).toContain('como mucho 50 zonas');
   });
 });

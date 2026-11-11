@@ -57,6 +57,7 @@ const FAMILIES = [
   ...['uniform', 'potential', 'compensate'].map((s) => `zoneDoses.strategyHint.${s}`),
   ...['vigor', 'sheet', 'zone_soil'].map((b) => `zoneDoses.basis.${b}`),
   ...['vegetationIndex', 'manual', 'other'].map((m) => `zoneDoses.zoning.${m}`),
+  ...['stale', 'noProduct', 'missingRate', 'tooManyZones'].map((r) => `zoneDoses.prescriptionBlocked.${r}`),
   ...['n_fixing_crop', 'n_fixing_unknown', 'no_target_n', 'single_zone', 'zone_without_area', 'zoning_without_vegetation_value'].map((r) => `zoneDoses.unavailable.${r}`),
   ...['area_ha', 'mean_value', 'mean_value_invalid'].map((m) => `zoneDoses.missing.${m}`),
   ...['plan_calculation_stale', 'cap_saturated', 'zoning_image_old', 'parcel_area_unknown', 'zones_do_not_cover_parcel', 'zones_exceed_parcel', 'total_above_planned'].map((c) => `zoneDoses.notice.${c}`),

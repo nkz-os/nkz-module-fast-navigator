@@ -561,6 +561,14 @@
       "zones_do_not_cover_parcel": "As zonas não cobrem toda a parcela: restam {{rest_ha}} ha de {{parcel_ha}} ha, com a dose indicada.",
       "zones_exceed_parcel": "As zonas somam {{zones_ha}} ha, mais do que a parcela ({{parcel_ha}} ha).",
       "total_above_planned": "O total repartido supera o que daria a dose uniforme."
+    },
+    "toPrescription": "Levar para a receita",
+    "toPrescriptionHint": "O módulo de rotas abre com estas doses já preenchidas; o técnico escolhe a máquina e o padrão e gera a passagem.",
+    "prescriptionBlocked": {
+      "stale": "O formulário mudou: recalcule a repartição.",
+      "noProduct": "Indique um produto e o seu teor para obter doses em kg de produto/ha.",
+      "missingRate": "Alguma zona ou o resto não tem dose de produto.",
+      "tooManyZones": "Uma receita admite no máximo 50 zonas."
     }
   }
 }

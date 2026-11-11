@@ -17,7 +17,7 @@ from app.plans import repo
 from app.plans.applications import ApplicationIn, nutrients
 from app.plans.service import Actor, Invalid, NotFound, _area, _load
 from app.zones.doses import ZoneInput, distribute
-from app.zones.read import ZoneRead, ZoningRead, select_zoning
+from app.zones.read import ZoneRead, ZoningRead, select_zoning, zonings_of
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +98,25 @@ def _age_notice(zoning: ZoningRead, today: date) -> dict | None:
 
 def _ordered(zones: tuple[ZoneRead, ...]) -> list[ZoneRead]:
     return sorted(zones, key=lambda z: (z.rank is None, z.rank or 0, z.id))
+
+
+async def list_zonings(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UUID,
+                       sheet_key: str, *, parcel_urn: str) -> dict:
+    """The zonings the parcel has in the broker, most recent first (needs no calculation)."""
+    async with pool.acquire() as conn:
+        plan = await _load(conn, actor, plan_id)
+        sheets = await repo.get_sheets(conn, plan.id)
+    sheet = next((s for s in sheets if s.key == sheet_key), None)
+    if sheet is None:
+        raise NotFound(f"sheet {sheet_key}")
+    if parcel_urn not in {p["urn"] for p in sheet.parcels}:
+        raise Invalid(f"parcel {parcel_urn} is not in sheet {sheet_key}")
+    found = zonings_of(await sources.zone_entities(parcel_urn), parcel_urn)
+    return {"zonings": [
+        {"run_id": z.run_id, "method": z.method, "variable": z.variable, "date": z.date,
+         "zone_count": len(z.zones),
+         "has_vegetation_value": sum(1 for q in z.zones if q.mean_value is not None) >= 2}
+        for z in found]}
 
 
 async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UUID,

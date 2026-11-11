@@ -260,6 +260,17 @@ async def zone_doses(plan_id: uuid.UUID, body: ZoneDosesIn,
             target=target, today=legal_today())
 
 
+@router.get("/{plan_id}/sheets/{key}/zonings")
+async def sheet_zonings(plan_id: uuid.UUID, key: str = Path(pattern=KEY_PATTERN),
+                        parcel_urn: str = Query(pattern=PARCEL_ID_PATTERN, max_length=200),
+                        auth: AuthContext = require_auth(PLAN_ROLES), pool=Depends(get_db),
+                        sources_factory=Depends(get_sources_factory)) -> dict:
+    """Zonings saved for one parcel of a sheet (read-only), to pick one for zone-doses."""
+    async with sources_factory(auth.tenant_id) as sources:
+        return await zone_service.list_zonings(pool, sources, _actor(auth), plan_id, key,
+                                               parcel_urn=_urn(parcel_urn))
+
+
 _PDF_LIMIT = asyncio.Semaphore(1)
 
 

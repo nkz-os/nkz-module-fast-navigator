@@ -297,3 +297,76 @@ def test_the_broker_failing_is_a_503_naming_it(client, monkeypatch):
 def test_invalid_bodies_are_422(client, body):
     plan = calculated_plan(client)
     assert ask(client, plan, **body).status_code == 422
+
+
+def zonings(client, plan, *, headers=HOLDER, key="wheat", parcel=URN):
+    return client.get(f"{BASE}/{plan['id']}/sheets/{key}/zonings", headers=headers,
+                      params={"parcel_urn": parcel})
+
+
+def test_the_zonings_of_a_parcel_are_listed_most_recent_first(client, data):
+    old = zone_set([0.4, 0.6], run="old", area=5.0)
+    for e in old:
+        e["dateZoned"] = "2026-01-05T05:00:00Z"
+    manual = zone_set([None] * 3, run="man", zoningMethod="manual", area=3.0)
+    for e in manual:
+        e.pop("variableAttribute")
+        e["dateZoned"] = "2026-03-01T05:00:00Z"
+    for group in (old, manual):
+        for e in group:
+            e["id"] = e["id"].replace(":p1:", f":{e['zoningRunId']}:")
+    data["zones"][URN] = old + manual + zone_set([0.4, 0.6, 0.5, 0.5])
+    r = zonings(client, calculated_plan(client))
+    assert r.status_code == 200, r.text
+    got = r.json()["zonings"]
+    assert [z["run_id"] for z in got] == [RUN, "man", "old"]
+    assert got[0] == {"run_id": RUN, "method": "vegetationIndex", "variable": "NDVI",
+                      "date": legal_today().isoformat(), "zone_count": 4,
+                      "has_vegetation_value": True}
+    assert got[1]["method"] == "manual" and got[1]["variable"] is None
+    assert got[1]["has_vegetation_value"] is False and got[1]["zone_count"] == 3
+    assert got[2]["date"] == "2026-01-05"
+
+
+def test_a_parcel_without_zonings_gets_an_empty_list(client, data):
+    data["zones"][URN] = []
+    r = zonings(client, calculated_plan(client))
+    assert r.status_code == 200 and r.json() == {"zonings": []}
+
+
+def test_zonings_need_no_calculation(client):
+    r = zonings(client, calculated_plan(client, calculate=False))
+    assert r.status_code == 200 and len(r.json()["zonings"]) == 1
+
+
+def test_zonings_of_another_tenant_are_a_404(client):
+    plan = calculated_plan(client)
+    assert zonings(client, plan, headers=OTHER).status_code == 404
+
+
+def test_zonings_roles_follow_zone_doses(client):
+    plan = calculated_plan(client)
+    assert zonings(client, plan, headers=FIELD).status_code == 200
+    assert zonings(client, plan, headers={"X-Tenant-ID": "tenant-a"}).status_code == 401
+    assert zonings(client, plan, headers={**HOLDER, "X-User-Roles": "Other"}).status_code == 403
+
+
+def test_zonings_parcel_must_be_in_the_sheet_and_the_sheet_must_exist(client):
+    plan = calculated_plan(client)
+    r = zonings(client, plan, parcel="urn:ngsi-ld:AgriParcel:parcel-9")
+    assert r.status_code == 422 and "not in sheet" in r.json()["detail"]
+    assert zonings(client, plan, key="barley").status_code == 404
+    assert zonings(client, plan, parcel="p1").status_code == 200
+    r = client.get(f"{BASE}/{plan['id']}/sheets/wheat/zonings", headers=HOLDER)
+    assert r.status_code == 422
+
+
+def test_zonings_broker_failing_is_a_503_naming_it(client, monkeypatch):
+    plan = calculated_plan(client)
+
+    async def boom(self, urn):
+        raise SourceUnavailable("broker", "unreachable (ConnectError)")
+
+    monkeypatch.setattr(FakeSources, "zone_entities", boom)
+    r = zonings(client, plan)
+    assert r.status_code == 503 and r.json()["source"] == "broker"

@@ -115,14 +115,73 @@ def test_a_single_zone_is_neutral():
     assert r.zones[0].factor == pytest.approx(1.0) and r.zones[0].n_kg_ha == pytest.approx(60.0)
 
 
-def test_every_zone_capped_keeps_the_bounds_and_says_so():
-    # 3 zones at the same low... forced: raw 1.5, 1.5, 0 -> impossible with mean value > 0, so use
-    # a strongly skewed case where the free zone runs out of room: 1.9, 1.9, 0.2 (cap 5 %).
+def test_zones_on_both_bounds_still_keep_the_mean():
+    # relative vigors 1.9, 1.9, 0.2 (cap 5 %): clipping first would give 1.05, 1.05, 0.95, mean
+    # 1.0167. The mean is always reachable with a cap > 0: the low zone stays on 0.95 and the two
+    # high zones share the rest, 1.025 each.
     inputs = zones((1, 0.95), (1, 0.95), (1, 0.1))
     r = distribute(inputs, "potential", 5, 100.0)
-    assert [z.factor for z in r.zones] == pytest.approx([1.05, 1.05, 0.95])
-    assert all(z.capped for z in r.zones)
-    assert r.saturated    # the weighted mean is 1.0166..., not 1: bounds kept, reported
+    assert [z.factor for z in r.zones] == pytest.approx([1.025, 1.025, 0.95])
+    assert [z.capped for z in r.zones] == [False, False, True]
+    assert weighted_mean_factor(r, inputs) == pytest.approx(1.0, abs=TOL)
+    assert not r.saturated
+
+
+def test_a_zone_pinned_high_and_two_released_from_the_low_bound():
+    # relative vigors 1.4, 0.8, 0.8 (cap 10 %): the outlier stays on 1.1 and the other two take
+    # 0.95 each, not 0.9 (which would under-dose the parcel by 3.3 %).
+    inputs = zones((1, 0.7), (1, 0.4), (1, 0.4))
+    r = distribute(inputs, "potential", 10, 100.0)
+    assert [z.factor for z in r.zones] == pytest.approx([1.1, 0.95, 0.95])
+    assert [z.capped for z in r.zones] == [True, False, False]
+    assert weighted_mean_factor(r, inputs) == pytest.approx(1.0, abs=TOL)
+    assert not r.saturated
+
+
+def test_compensate_keeps_the_mean_on_the_same_skewed_zones():
+    inputs = zones((1, 0.7), (1, 0.4), (1, 0.4))
+    r = distribute(inputs, "compensate", 10, 100.0)
+    assert [z.factor for z in r.zones] == pytest.approx([0.9, 1.05, 1.05])
+    assert [z.capped for z in r.zones] == [True, False, False]
+    assert weighted_mean_factor(r, inputs) == pytest.approx(1.0, abs=TOL)
+
+
+def test_compensate_with_a_relative_vigor_of_two_or_more():
+    # area 1 at vigor 3 and area 9 at vigor 7/9 (weighted mean 1): the mirror of the first is
+    # negative; it stays on the low bound and the rest is shared by the other zone.
+    inputs = zones((1, 0.9), (9, 0.7 / 3))
+    r = distribute(inputs, "compensate", 20, 100.0)
+    a, b = r.zones
+    assert a.relative_vigor == pytest.approx(3.0) and b.relative_vigor == pytest.approx(7 / 9)
+    assert a.factor == pytest.approx(0.8) and a.capped
+    assert b.factor == pytest.approx((10 - 0.8) / 9)
+    assert all(z.n_kg_ha >= 0 for z in r.zones)
+    assert weighted_mean_factor(r, inputs) == pytest.approx(1.0, abs=TOL)
+
+
+def test_compensate_with_a_zone_without_value():
+    inputs = zones((1, 0.4), (1, 0.6), (2, None))
+    r = distribute(inputs, "compensate", 30, 100.0)
+    a, b, c = r.zones
+    assert a.factor == pytest.approx(1.2) and b.factor == pytest.approx(0.8)
+    assert c.factor is None and c.n_kg_ha == 100.0
+    assert weighted_mean_factor(r, inputs) == pytest.approx(1.0, abs=TOL)
+
+
+@pytest.mark.parametrize("cap", [1, 5, 10, 20, 30])
+@pytest.mark.parametrize("strategy", ["potential", "compensate"])
+def test_the_mean_is_kept_on_many_skewed_cases(cap, strategy):
+    import random
+
+    rng = random.Random(20261111 + cap)
+    for _ in range(200):
+        n = rng.randint(2, 12)
+        inputs = zones(*[(rng.uniform(0.1, 20), rng.uniform(0.01, 1.0)) for _ in range(n)])
+        r = distribute(inputs, strategy, cap, 80.0)
+        assert weighted_mean_factor(r, inputs) == pytest.approx(1.0, abs=1e-9)
+        assert not r.saturated
+        lo, hi = 1 - cap / 100, 1 + cap / 100
+        assert all(lo - 1e-12 <= z.factor <= hi + 1e-12 for z in r.zones)
 
 
 def test_non_positive_or_invalid_inputs_are_rejected():

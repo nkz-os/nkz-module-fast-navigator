@@ -1,8 +1,8 @@
 """Nitrogen dose per zone by relative vigor (pure arithmetic, no I/O; contract §5).
 
 The factor of a zone is its relative vigor (`potential`) or the mirror 2 - vigor (`compensate`),
-clipped to [1 - cap, 1 + cap] and rescaled so that the area-weighted mean factor is 1: the dose
-of the parcel is shared, not changed. Zones without a vegetation value take the target dose and
+scaled by the one number that keeps the area-weighted mean factor at 1 once every factor is
+clipped to [1 - cap, 1 + cap]: the dose of the parcel is shared, not changed. Zones without a vegetation value take the target dose and
 stay out of the share.
 """
 from __future__ import annotations
@@ -60,40 +60,48 @@ def _validate(zones: list[ZoneInput], strategy: str, cap_pct: float, target_n: f
             raise ValueError(f"zone {z.key}: mean value must be a finite number > 0")
 
 
+def _clip(x: float, lo: float, hi: float) -> float:
+    return max(lo, min(x, hi))
+
+
 def _share(raw: list[float], area: list[float], lo: float, hi: float
            ) -> tuple[list[float], list[bool], bool]:
-    """Clip `raw` (area-weighted mean 1) to [lo, hi] and rescale the free zones to mean 1.
+    """Factors clip(raw * s, lo, hi) with the one scale s that makes the area-weighted mean 1.
 
-    Zones outside the bounds are pinned on them and stay pinned; the free zones are multiplied by
-    the one factor s that makes the weighted mean 1. Zones that s pushes outside the bounds are
-    pinned in the next pass. Stops when stable. When no zone is free and the mean is not 1 the
-    bounds are kept and the third value is True.
+    The weighted mean of clip(raw * s) grows monotonically with s, from lo (s = 0) to at least 1
+    (every zone with raw > 0 on hi): with lo < 1 < hi it always crosses 1, so the mean is always
+    kept. A bisection finds s; the zones it leaves strictly inside the bounds then get s solved
+    exactly, so the returned mean is 1 to rounding. A zone is capped when raw * s passes a bound.
+    The third value is True only if the mean could not be reached (never expected; reported).
     """
-    n = len(raw)
     total = sum(area)
-    pinned: dict[int, float] = {}
-    for i, f in enumerate(raw):
-        if f > hi + _EPS:
-            pinned[i] = hi
-        elif f < lo - _EPS:
-            pinned[i] = lo
-    while True:
-        free = [i for i in range(n) if i not in pinned]
-        if not free:
-            mean = sum(area[i] * pinned[i] for i in range(n)) / total
-            return [pinned[i] for i in range(n)], [True] * n, abs(mean - 1.0) > 1e-9
-        rest = total - sum(area[i] * pinned[i] for i in pinned)
-        scale = rest / sum(area[i] * raw[i] for i in free)
-        grew = False
-        for i in free:
-            f = raw[i] * scale
-            if f > hi + _EPS:
-                pinned[i], grew = hi, True
-            elif f < lo - _EPS:
-                pinned[i], grew = lo, True
-        if not grew:
-            out = [pinned[i] if i in pinned else raw[i] * scale for i in range(n)]
-            return out, [i in pinned for i in range(n)], False
+
+    def mean(scale: float) -> float:
+        return sum(a * _clip(r * scale, lo, hi) for a, r in zip(area, raw)) / total
+
+    positive = [r for r in raw if r > 0]
+    s_lo, s_hi = 0.0, hi / min(positive)        # at s_hi every positive raw is on hi
+    if mean(s_hi) < 1.0 - 1e-12:
+        out = [_clip(r * s_hi, lo, hi) for r in raw]
+        return out, [r * s_hi > hi + _EPS or r * s_hi < lo - _EPS for r in raw], True
+    for _ in range(200):
+        mid = (s_lo + s_hi) / 2
+        if mean(mid) < 1.0:
+            s_lo = mid
+        else:
+            s_hi = mid
+    scale = (s_lo + s_hi) / 2
+    free = [i for i, r in enumerate(raw) if lo + _EPS < r * scale < hi - _EPS]
+    if free:
+        pinned_part = sum(area[i] * _clip(raw[i] * scale, lo, hi)
+                          for i in range(len(raw)) if i not in free)
+        exact = (total - pinned_part) / sum(area[i] * raw[i] for i in free)
+        if all(lo <= raw[i] * exact <= hi for i in free):
+            scale = exact
+    out = [_clip(r * scale, lo, hi) for r in raw]
+    capped = [r * scale > hi + 1e-9 or r * scale < lo - 1e-9 for r in raw]
+    reached = abs(sum(a * f for a, f in zip(area, out)) / total - 1.0) <= 1e-9
+    return out, capped, not reached
 
 
 def distribute(zones: list[ZoneInput], strategy: str, cap_pct: float, target_n_kg_ha: float

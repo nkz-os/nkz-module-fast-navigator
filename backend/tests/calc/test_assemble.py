@@ -229,3 +229,56 @@ async def test_assemble_merges_plan_declared_over_cycle_declared():
     assert a.yield_target.yield_kg_ha.source == "field-operations:declared-crops+plan:declared-yields"
     assert a.yield_target.yield_kg_ha.value == 4400.0  # median of [4400, 4200, 5000]
     assert not any(c[0] == "regional_yields" for c in src.calls)
+
+
+def _history(years, *, skip=0, attribution="Contains modified Copernicus Climate Change Service information 2026; Open-Meteo (CC BY 4.0)"):
+    from datetime import timedelta
+
+    from app.sources.weather import HistoryPrecip
+    days = []
+    for y in years:
+        d = date(y, 1, 1)
+        while d.year == y:
+            days.append({"date": d.isoformat(), "precip_mm": 1.0})
+            d += timedelta(days=1)
+    return HistoryPrecip(True, None, tuple(days[skip:]), attribution)
+
+
+async def test_ready_history_is_one_call_and_no_daily_calls():
+    src = FakeSources(**complete_data(), history=_history(range(2016, 2026)))
+    normal = await fetch_rain_normal(src, URN, 2027)
+    assert [c for c in src.calls if c[0] in ("history_precip", "daily")] == [
+        ("history_precip", 2016, 2025)]
+    assert len(normal.years) == 10 and normal.sources == ("weather-history (ERA5)",)
+    assert not normal.notices
+    assert normal.attribution.startswith("Contains modified Copernicus Climate Change Service")
+    assert normal.to_dict()["attribution"] == normal.attribution
+
+
+async def test_history_without_backend_attribution_uses_the_standard_one():
+    src = FakeSources(**complete_data(), history=_history(range(2016, 2026), attribution=None))
+    normal = await fetch_rain_normal(src, URN, 2027)
+    assert normal.attribution == ("Contains modified Copernicus Climate Change Service information; "
+                                  "Open-Meteo (CC BY 4.0)")
+
+
+async def test_history_keeps_the_complete_year_rule():
+    src = FakeSources(**complete_data(), history=_history(range(2016, 2026), skip=5))
+    normal = await fetch_rain_normal(src, URN, 2027)
+    assert 2016 not in normal.years and len(normal.years) == 9
+    assert Notice("rain_years_incomplete", {"years": [2016]}) in normal.notices
+
+
+@pytest.mark.parametrize("reason", ["not_ready", "unavailable"])
+async def test_history_not_ready_falls_back_to_daily_with_a_notice(reason):
+    from app.sources.weather import HistoryPrecip
+    data = complete_data()
+    data["days"] = {y: [{"date": f"{y}-01-01", "precip_mm": 1.0, "source": "open_meteo"}]
+                    for y in range(2016, 2026)}
+    src = FakeSources(**data, history=HistoryPrecip(False, reason, (), None))
+    normal = await fetch_rain_normal(src, URN, 2027)
+    assert [c[1] for c in src.calls if c[0] == "daily"] == list(range(2016, 2026))
+    assert Notice("rain_normal_history_fallback", {"reason": reason}) in normal.notices
+    assert normal.attribution is None
+    assert "weather-history (ERA5)" not in normal.sources
+    assert "attribution" not in normal.to_dict()

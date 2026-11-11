@@ -249,3 +249,14 @@ def test_unselected_enclosures_are_left_out_of_the_record():
         {"reference": "31:97:0:0:4:9001:1", "overlap_pct": 10.0, "selected": False}]}
     html = plan_html(doc)
     assert "31:97:0:0:4:228:1 (90.0 %)" in html and "31:97:0:0:4:9001:1" not in html
+
+
+def test_rain_attribution_and_the_history_fallback_notice_are_printed():
+    doc = _organic_doc()
+    doc["rain"].update({
+        "attribution": "Contains modified Copernicus Climate Change Service information 2026; "
+                       "Open-Meteo (CC BY 4.0)",
+        "notices": [{"code": "rain_normal_history_fallback", "params": {"reason": "not_ready"}}]})
+    html = plan_html(doc)
+    assert "Copernicus Climate Change Service information 2026" in html
+    assert "rain_normal_history_fallback" not in html and "histórico meteorológico" in html

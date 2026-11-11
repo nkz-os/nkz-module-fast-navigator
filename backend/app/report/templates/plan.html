@@ -41,6 +41,7 @@
 {% set rn = d.rain or {} %}{% set months = t.month_names.split(",") %}
 <table><tr><th>{{ t.rain }}</th><td>{{ fmt(rn.annual_mm) }}</td><th>{{ t.years }}</th><td>{{ (rn.years or []) | join(", ") }}</td></tr>
 <tr><th>{{ t.rain_sources }}</th><td colspan="3">{{ (rn.sources or []) | join(", ") }}</td></tr>
+{% if rn.attribution %}<tr><th>{{ t.rain_attribution }}</th><td colspan="3">{{ rn.attribution }}</td></tr>{% endif %}
 {% if rn.notices %}<tr><th>{{ t.rain_notices }}</th><td colspan="3">{% for n in rn.notices %}{{ label("notice", n.code) }}{% if n.params %} ({% for k, v in n.params.items() %}{{ k }}: {{ v if v is not iterable or v is string else v | join(", ") }}{% if not loop.last %}; {% endif %}{% endfor %}){% endif %}<br>{% endfor %}</td></tr>{% endif %}
 </table>
 {% if rn.monthly_mm %}<table><tr><th>{{ t.monthly_rain }}</th>{% for m in months %}<th>{{ m }}</th>{% endfor %}</tr>

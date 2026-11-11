@@ -128,6 +128,7 @@
     "nmin_bulk_density_unknown": "Sense densitat aparent no es pot passar el N mineral a kg/ha ({{analysis}}).",
     "rain_years_incomplete": "Anys de pluja incomplets descartats: {{years}}.",
     "rain_normal_short_series": "La pluja normal només usa {{years}} anys complets.",
+    "rain_normal_history_fallback": "L'històric meteorològic no està disponible ara: la pluja normal ve d'una altra font.",
     "parcels_in_several_regions": "Les parcel·les són a diverses regions ({{regions}}): indica la regió.",
     "region_not_found": "No s'ha trobat la regió de les parcel·les: indica la regió (NUTS).",
     "water_quality_not_found": "No es troba la qualitat d'aigua triada ({{id}}).",

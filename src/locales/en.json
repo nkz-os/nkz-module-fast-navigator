@@ -128,6 +128,7 @@
     "nmin_bulk_density_unknown": "Without bulk density the mineral N cannot be converted to kg/ha ({{analysis}}).",
     "rain_years_incomplete": "Incomplete rainfall years discarded: {{years}}.",
     "rain_normal_short_series": "The normal rainfall uses only {{years}} complete years.",
+    "rain_normal_history_fallback": "The weather history is not available now: the normal rainfall comes from another source.",
     "parcels_in_several_regions": "The parcels are in several regions ({{regions}}): set the region.",
     "region_not_found": "The parcels' region was not found: set the region (NUTS).",
     "water_quality_not_found": "The chosen water quality ({{id}}) was not found.",

@@ -117,6 +117,16 @@ describe('Wizard (es)', () => {
     expect(isDisabled(html, 'Guardar y calcular')).toBe(false);
   });
 
+  it('step 3 shows the rainfall attribution and why the weather history was not used', () => {
+    const rain = { years: [2016], annual_mm: 400, monthly_mm: Array(12).fill(33), sources: [], attribution: 'Contains modified Copernicus Climate Change Service information; Open-Meteo (CC BY 4.0)',
+      notices: [{ code: 'rain_normal_history_fallback', params: { reason: 'not_ready' } }] };
+    const html = renderToStaticMarkup(
+      <Wizard plan={{ ...PLAN, rain_normal: rain } as unknown as Plan} parcels={PARCELS} onSaved={noop}
+        initial={{ step: 3, management: chosenWheat(PARCELS) }} />);
+    expect(html).toContain('Open-Meteo (CC BY 4.0)');
+    expect(html).toContain('El histórico meteorológico no está disponible ahora');
+  });
+
   it('keeps existing sheets and lists them for removal', () => {
     const withSheet = { ...PLAN, sheets: [{ key: 'old', parcels: [{ urn: 'urn:ngsi-ld:AgriParcel:zz', sigpac: null }], overrides: [{ param: 'soil.ph' }] }] } as unknown as Plan;
     const html = renderToStaticMarkup(<Wizard plan={withSheet} parcels={PARCELS} onSaved={noop} />);

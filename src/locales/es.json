@@ -128,6 +128,7 @@
     "nmin_bulk_density_unknown": "Sin densidad aparente no se puede pasar el N mineral a kg/ha ({{analysis}}).",
     "rain_years_incomplete": "Años de lluvia incompletos descartados: {{years}}.",
     "rain_normal_short_series": "La lluvia normal usa solo {{years}} años completos.",
+    "rain_normal_history_fallback": "El histórico meteorológico no está disponible ahora: la lluvia normal sale de otra fuente.",
     "parcels_in_several_regions": "Las parcelas están en varias regiones ({{regions}}): indica la región.",
     "region_not_found": "No se encontró la región de las parcelas: indica la región (NUTS).",
     "water_quality_not_found": "No se encuentra la calidad de agua elegida ({{id}}).",

@@ -100,6 +100,12 @@ function RainBars({ plan }: { plan: Plan }) {
           <span className="w-16 text-right text-nkz-xs text-nkz-text-secondary">{Math.round(mm)} mm</span>
         </div>
       ))}
+      {rain.notices?.map((n, i) => (
+        <p key={`${n.code}-${i}`} className="text-nkz-sm text-nkz-warning">
+          ⚠ {t(`notice.${n.code}`, { ...(n.params as Record<string, string>), defaultValue: n.code })}
+        </p>
+      ))}
+      {rain.attribution && <p className="text-nkz-xs text-nkz-text-muted">{rain.attribution}</p>}
     </Stack>
   );
 }

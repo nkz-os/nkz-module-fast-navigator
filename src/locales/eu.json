@@ -128,6 +128,7 @@
     "nmin_bulk_density_unknown": "Dentsitate aparenterik gabe ezin da N minerala kg/ha-ra bihurtu ({{analysis}}).",
     "rain_years_incomplete": "Euri urte osatugabeak baztertu dira: {{years}}.",
     "rain_normal_short_series": "Euri normalak {{years}} urte osoak soilik erabiltzen ditu.",
+    "rain_normal_history_fallback": "Eguraldi-historikoa ez dago eskuragarri orain: euri normala beste iturri batetik dator.",
     "parcels_in_several_regions": "Lursailak eskualde batzuetan daude ({{regions}}): adierazi eskualdea.",
     "region_not_found": "Lursailen eskualdea ez da aurkitu: adierazi eskualdea (NUTS).",
     "water_quality_not_found": "Aukeratutako uraren kalitatea ez da aurkitu ({{id}}).",

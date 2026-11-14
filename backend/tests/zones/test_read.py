@@ -143,3 +143,54 @@ def test_a_zoning_without_dateZoned_has_no_date():
     del e["dateZoned"]
     e["modifiedAt"] = "2026-11-10T08:00:00Z"
     assert select_zoning([e], PARCEL, "run-a").date is None
+
+
+@pytest.mark.parametrize("prefix", ["", "nkz:", "https://nkz-os.org/ns/"])
+@pytest.mark.parametrize("form", ["kv", "normalized"])
+def test_level_and_image_date_in_every_spelling(prefix, form):
+    dates = ["2026-04-02", "2026-06-10", "2026-05-01"]
+    if form == "kv":
+        zones = [kv(i, zoningMethod="vegetationIndexMultiDate") for i in range(2)]
+        for z, lvl in zip(zones, ("high", "critical")):
+            z[prefix + "zoneLevel"] = lvl
+            z[prefix + "sourceDates"] = dates
+    else:
+        zones = [normalized(i, prefix=prefix) for i in range(2)]
+        for z, lvl in zip(zones, ("high", "critical")):
+            z[prefix + "zoneLevel"] = {"type": "Property", "value": lvl}
+            z[prefix + "sourceDates"] = {"type": "Property", "value": dates}
+    zoning = select_zoning(zones, PARCEL, "run-a")
+    assert [z.level for z in zoning.zones] == ["high", "critical"]
+    assert zoning.image_date == "2026-06-10" and zoning.date == "2026-10-01"
+
+
+def test_without_source_dates_the_image_date_is_the_zoning_date():
+    zoning = select_zoning([kv(0), kv(1)], PARCEL, "run-a")
+    assert zoning.image_date == "2026-10-01" and zoning.date == "2026-10-01"
+    assert [z.level for z in zoning.zones] == [None, None]
+
+
+def test_a_single_source_date_may_arrive_compacted_as_a_string():
+    zoning = select_zoning([kv(0, sourceDates="2026-05-20")], PARCEL, "run-a")
+    assert zoning.image_date == "2026-05-20"
+    norm = normalized(0)
+    norm["sourceDates"] = {"type": "Property", "value": "2026-05-21"}
+    assert select_zoning([norm], PARCEL, "run-a").image_date == "2026-05-21"
+
+
+def test_unparseable_source_dates_are_ignored_and_none_left_falls_back():
+    zoning = select_zoning([kv(0, sourceDates=["soon", 5, None, "2026-05-20T00:00:00Z"])],
+                           PARCEL, "run-a")
+    assert zoning.image_date == "2026-05-20"
+    zoning = select_zoning([kv(0, sourceDates=["soon", ""])], PARCEL, "run-a")
+    assert zoning.image_date == "2026-10-01"
+
+
+@pytest.mark.parametrize("raw", ["HIGH", "Vigor alto", "", 3, None, ["high"], "extreme"])
+def test_an_unknown_level_is_none(raw):
+    assert select_zoning([kv(0, zoneLevel=raw)], PARCEL, "run-a").zones[0].level is None
+
+
+@pytest.mark.parametrize("level", ["high", "medium", "low", "critical"])
+def test_the_four_levels_are_kept(level):
+    assert select_zoning([kv(0, zoneLevel=level)], PARCEL, "run-a").zones[0].level == level

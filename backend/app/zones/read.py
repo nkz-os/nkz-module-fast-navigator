@@ -8,12 +8,14 @@ same tolerance: a term arrives plain, as `nkz:name` or as a full IRI, and a valu
 from __future__ import annotations
 
 import math
+from datetime import date as _date
 from dataclasses import dataclass
 from typing import Any
 
 from nkz_platform_sdk.gis.zones import group_zonings
 
 _PREFIXES = ("", "nkz:", "https://nkz-os.org/ns/", "https://uri.etsi.org/ngsi-ld/default-context/")
+LEVELS = ("high", "medium", "low", "critical")
 _LINKS = ("hasAgriParcel", "refAgriParcel")
 
 
@@ -26,6 +28,7 @@ class ZoneRead:
     area_ha: float | None          # None: the entity carries no usable area
     mean_value: float | None       # None: no usable vegetation value (manual zonings never have)
     problems: tuple[str, ...]      # data defects: "area_ha", "mean_value_invalid"
+    level: str | None = None       # zoneLevel: one of LEVELS, else None
 
 
 @dataclass(frozen=True)
@@ -35,6 +38,7 @@ class ZoningRead:
     variable: str | None
     date: str | None               # YYYY-MM-DD
     zones: tuple[ZoneRead, ...]
+    image_date: str | None = None  # newest of sourceDates, else `date`
 
 
 def _unwrap(attr: Any) -> Any:
@@ -72,7 +76,26 @@ def _zone(entity: dict, label: str | None, rank: int | None, geometry: dict) -> 
     if raw is not None and (mean is None or mean <= 0):
         mean = None
         problems.append("mean_value_invalid")
-    return ZoneRead(str(entity.get("id", "")), label, rank, geometry, area, mean, tuple(problems))
+    level = attr(entity, "zoneLevel")
+    level = level if isinstance(level, str) and level in LEVELS else None
+    return ZoneRead(str(entity.get("id", "")), label, rank, geometry, area, mean, tuple(problems),
+                    level)
+
+
+def _source_dates(entity: dict) -> list[str]:
+    """ISO dates of `sourceDates`; a one-item list may arrive compacted as a plain value."""
+    raw = attr(entity, "sourceDates")
+    items = raw if isinstance(raw, list) else [] if raw is None else [raw]
+    out = []
+    for item in items:
+        item = _unwrap(item)
+        if not isinstance(item, str):
+            continue
+        try:
+            out.append(_date.fromisoformat(item[:10]).isoformat())
+        except ValueError:
+            continue
+    return out
 
 
 def _linked_elsewhere(entity: dict, parcel_urn: str) -> bool:
@@ -97,9 +120,11 @@ def zonings_of(entities: list[dict], parcel_urn: str) -> list[ZoningRead]:
         # falls back to `modifiedAt`, which a later re-save moves forward.
         zoned = sorted(str(d)[:10] for e in entity_list if (d := attr(e, "dateZoned")))
         date = zoned[0] if zoned else None
+        sources = [d for e in entity_list for d in _source_dates(e)]
         out.append(ZoningRead(z.run_id, z.method, variable, date,
                               tuple(_zone(by_id[ref.id], ref.label, ref.rank, ref.geometry)
-                                    for ref in z.zones if ref.id in by_id)))
+                                    for ref in z.zones if ref.id in by_id),
+                              max(sources) if sources else date))
     return out
 
 

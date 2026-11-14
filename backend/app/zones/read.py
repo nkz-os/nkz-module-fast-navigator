@@ -8,8 +8,8 @@ same tolerance: a term arrives plain, as `nkz:name` or as a full IRI, and a valu
 from __future__ import annotations
 
 import math
-from datetime import date as _date
 from dataclasses import dataclass
+from datetime import date as _date
 from typing import Any
 
 from nkz_platform_sdk.gis.zones import group_zonings
@@ -106,6 +106,14 @@ def _linked_elsewhere(entity: dict, parcel_urn: str) -> bool:
     return False
 
 
+MULTI_DATE = "vegetationIndexMultiDate"
+
+
+def _label(method: str | None, label: str | None) -> str | None:
+    """A multi-date zone's name is its level code: never a label (the screen translates the level)."""
+    return None if method == MULTI_DATE else label
+
+
 def zonings_of(entities: list[dict], parcel_urn: str) -> list[ZoningRead]:
     """Every zoning of the parcel, most recent first (an entity linked to another parcel is
     ignored, whatever the broker returned)."""
@@ -122,7 +130,7 @@ def zonings_of(entities: list[dict], parcel_urn: str) -> list[ZoningRead]:
         date = zoned[0] if zoned else None
         sources = [d for e in entity_list for d in _source_dates(e)]
         out.append(ZoningRead(z.run_id, z.method, variable, date,
-                              tuple(_zone(by_id[ref.id], ref.label, ref.rank, ref.geometry)
+                              tuple(_zone(by_id[ref.id], _label(z.method, ref.label), ref.rank, ref.geometry)
                                     for ref in z.zones if ref.id in by_id),
                               max(sources) if sources else date))
     return out

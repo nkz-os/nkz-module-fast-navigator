@@ -194,3 +194,16 @@ def test_an_unknown_level_is_none(raw):
 @pytest.mark.parametrize("level", ["high", "medium", "low", "critical"])
 def test_the_four_levels_are_kept(level):
     assert select_zoning([kv(0, zoneLevel=level)], PARCEL, "run-a").zones[0].level == level
+
+
+def test_a_multi_date_zone_never_carries_its_raw_code_as_label():
+    """Levels are codes: with a known level the screen translates it; with an unknown one the
+    zone gets no label (the screen then shows the generic one), never the raw code."""
+    known = kv(0, zoningMethod="vegetationIndexMultiDate", zoneName="high", zoneLevel="high")
+    unknown = kv(1, zoningMethod="vegetationIndexMultiDate", zoneName="superb", zoneLevel="superb")
+    zoning = select_zoning([known, unknown], PARCEL, "run-a")
+    by_level = {z.id[-2:]: (z.level, z.label) for z in zoning.zones}
+    assert by_level["Z0"] == ("high", None)
+    assert by_level["Z1"] == (None, None)
+    # other methods keep their own label
+    assert select_zoning([kv(2)], PARCEL, "run-a").zones[0].label == "Zone 3"

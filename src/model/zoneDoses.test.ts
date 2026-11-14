@@ -58,6 +58,20 @@ describe('labels', () => {
     expect(zoneLabel({ label: null, rank: 3 }, 0)).toEqual({ key: 'zoneDoses.zoneN', params: { n: 3 } });
     expect(zoneLabel({ label: null, rank: null }, 1)).toEqual({ key: 'zoneDoses.zoneN', params: { n: 2 } });
   });
+  it('a zone with a vigor level is named from the level, whatever its stored label', () => {
+    expect(zoneLabel({ label: 'high', rank: 1, level: 'high' }, 0)).toEqual({ key: 'zoneDoses.level.high', params: { n: 1 } });
+    expect(zoneLabel({ label: 'x', rank: 4, level: 'critical' }, 3)).toMatchObject({ key: 'zoneDoses.level.critical' });
+    expect(zoneLabel({ label: 'Alta', rank: 1, level: null }, 0)).toEqual({ text: 'Alta' });
+  });
+  it('an unknown level is never shown: it falls back to "Zone n"', () => {
+    expect(zoneLabel({ label: 'extreme', rank: 2, level: 'extreme' }, 0)).toEqual({ key: 'zoneDoses.zoneN', params: { n: 2 } });
+    expect(zoneLabel({ label: 'x', rank: null, level: '' }, 4)).toEqual({ key: 'zoneDoses.zoneN', params: { n: 5 } });
+  });
+  it('a multi-date zoning is named with its variable, image date and zone count', () => {
+    const z = { run_id: 'm', method: 'vegetationIndexMultiDate', variable: 'NDVI', date: '2026-10-14', image_date: '2026-05-20', zone_count: 4, has_vegetation_value: true };
+    expect(zoningLabel(z, 'es')).toEqual({ key: 'zoneDoses.zoning.vegetationIndexMultiDate', params: { variable: 'NDVI', date: '20/05/2026', count: 4 } });
+    expect(zoningLabel({ ...z, image_date: undefined }, 'es').params.date).toBe('14/10/2026');
+  });
   it('maps the origin of a figure and the unavailable reason to keys', () => {
     expect(basisKey('vigor')).toBe('zoneDoses.basis.vigor');
     expect(basisKey('sheet')).toBe('zoneDoses.basis.sheet');

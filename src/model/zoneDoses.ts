@@ -44,12 +44,23 @@ export interface LabelView { key: string; params: Record<string, string | number
 export function zoningLabel(z: ZoningInfo, lang: string): LabelView {
   const date = formatDate(z.date, lang);
   if (z.method === 'vegetationIndex') return { key: 'zoneDoses.zoning.vegetationIndex', params: { variable: z.variable ?? DASH, date, count: z.zone_count } };
+  if (z.method === 'vegetationIndexMultiDate') return { key: 'zoneDoses.zoning.vegetationIndexMultiDate', params: { variable: z.variable ?? DASH, date: formatDate(z.image_date ?? z.date, lang), count: z.zone_count } };
   if (z.method === 'manual') return { key: 'zoneDoses.zoning.manual', params: { date, count: z.zone_count } };
   return { key: 'zoneDoses.zoning.other', params: { date, count: z.zone_count } };
 }
 
-/** The zone's own label, else "Zone n" from its rank (or its position). */
-export function zoneLabel(z: Pick<ZoneDoseRow, 'label' | 'rank'>, index: number): { text: string } | { key: string; params: { n: number } } {
+export const ZONE_LEVELS = ['high', 'medium', 'low', 'critical'] as const;
+
+/**
+ * A zone with a vigor level is named in the user's language from the level (never from the stored
+ * label); a level this screen does not know is not shown, it falls back to "Zone n". Without a level:
+ * the zone's own label, else "Zone n" from its rank (or its position).
+ */
+export function zoneLabel(z: Pick<ZoneDoseRow, 'label' | 'rank' | 'level'>, index: number): { text: string } | { key: string; params: { n: number } } {
+  const n = z.rank ?? index + 1;
+  if (z.level != null) {
+    return (ZONE_LEVELS as readonly string[]).includes(z.level) ? { key: `zoneDoses.level.${z.level}`, params: { n } } : { key: 'zoneDoses.zoneN', params: { n } };
+  }
   if (z.label) return { text: z.label };
   return { key: 'zoneDoses.zoneN', params: { n: z.rank ?? index + 1 } };
 }

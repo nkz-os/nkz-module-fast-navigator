@@ -494,6 +494,7 @@
     "zoningLabel": "Zonificació",
     "zoning": {
       "vegetationIndex": "Satèl·lit ({{variable}}) · {{date}} · {{count}} zones",
+      "vegetationIndexMultiDate": "Satèl·lit multidata ({{variable}}) · imatge {{date}} · {{count}} zones",
       "manual": "Manual · {{date}} · {{count}} zones",
       "other": "Altra · {{date}} · {{count}} zones"
     },
@@ -538,6 +539,12 @@
       "origin": "Origen de la xifra",
       "n": "kg N/ha",
       "product": "kg producte/ha"
+    },
+    "level": {
+      "high": "Vigor alt",
+      "medium": "Vigor mitjà",
+      "low": "Vigor baix",
+      "critical": "Vigor crític"
     },
     "zoneN": "Zona {{n}}",
     "rest": "Resta de la parcel·la",

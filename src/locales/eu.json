@@ -494,6 +494,7 @@
     "zoningLabel": "Zonakatzea",
     "zoning": {
       "vegetationIndex": "Satelitea ({{variable}}) · {{date}} · {{count}} zona",
+      "vegetationIndexMultiDate": "Satelite datanitza ({{variable}}) · irudia {{date}} · {{count}} zona",
       "manual": "Eskuzkoa · {{date}} · {{count}} zona",
       "other": "Bestelakoa · {{date}} · {{count}} zona"
     },
@@ -538,6 +539,12 @@
       "origin": "Zifraren jatorria",
       "n": "kg N/ha",
       "product": "kg produktu/ha"
+    },
+    "level": {
+      "high": "Bigor handia",
+      "medium": "Bigor ertaina",
+      "low": "Bigor txikia",
+      "critical": "Bigor kritikoa"
     },
     "zoneN": "{{n}}. zona",
     "rest": "Partzelaren gainerakoa",

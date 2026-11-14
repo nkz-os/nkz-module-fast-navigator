@@ -494,6 +494,7 @@
     "zoningLabel": "Zoning",
     "zoning": {
       "vegetationIndex": "Satellite ({{variable}}) · {{date}} · {{count}} zones",
+      "vegetationIndexMultiDate": "Multi-date satellite ({{variable}}) · image {{date}} · {{count}} zones",
       "manual": "Manual · {{date}} · {{count}} zones",
       "other": "Other · {{date}} · {{count}} zones"
     },
@@ -538,6 +539,12 @@
       "origin": "Origin of the figure",
       "n": "kg N/ha",
       "product": "kg product/ha"
+    },
+    "level": {
+      "high": "High vigor",
+      "medium": "Medium vigor",
+      "low": "Low vigor",
+      "critical": "Critical vigor"
     },
     "zoneN": "Zone {{n}}",
     "rest": "Rest of the parcel",

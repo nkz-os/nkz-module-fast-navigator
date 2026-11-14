@@ -229,6 +229,8 @@ export interface ZoningInfo {
   method: string | null;
   variable: string | null;
   date: string | null;
+  /** Newest source image of the zoning (older backends omit it). */
+  image_date?: string | null;
   zone_count: number;
   has_vegetation_value: boolean;
 }
@@ -249,6 +251,8 @@ export interface ZoneDoseRow {
   zone_id: string;
   label: string | null;
   rank: number | null;
+  /** Vigor level code of a multi-date zone; null when the zone has none or it is unknown. */
+  level?: string | null;
   area_ha: number | null;
   basis: ZoneBasis;
   relative_vigor: number | null;
@@ -263,7 +267,7 @@ export interface ZoneDoseRow {
 export interface ZoneDosesResponse {
   plan: { id: string; state: string; campaign: number };
   sheet: { key: string; n_kg_ha: { min: number; avg: number; max: number } | null; crop: { eppo: string | null; n_fixing: boolean | null } };
-  zoning: { run_id: string; method: string | null; variable: string | null; date: string | null; zone_count: number };
+  zoning: { run_id: string; method: string | null; variable: string | null; date: string | null; image_date?: string | null; zone_count: number };
   strategy: ZoneStrategy;
   strategy_unavailable: string | null;
   target: { n_kg_ha: number | null; source: 'application' | 'given'; product: { name: string; n_pct: number } | null };

@@ -494,6 +494,7 @@
     "zoningLabel": "Zonificación",
     "zoning": {
       "vegetationIndex": "Satélite ({{variable}}) · {{date}} · {{count}} zonas",
+      "vegetationIndexMultiDate": "Satélite multifecha ({{variable}}) · imagen {{date}} · {{count}} zonas",
       "manual": "Manual · {{date}} · {{count}} zonas",
       "other": "Otra · {{date}} · {{count}} zonas"
     },
@@ -538,6 +539,12 @@
       "origin": "Origen de la cifra",
       "n": "kg N/ha",
       "product": "kg producto/ha"
+    },
+    "level": {
+      "high": "Vigor alto",
+      "medium": "Vigor medio",
+      "low": "Vigor bajo",
+      "critical": "Vigor crítico"
     },
     "zoneN": "Zona {{n}}",
     "rest": "Resto de la parcela",

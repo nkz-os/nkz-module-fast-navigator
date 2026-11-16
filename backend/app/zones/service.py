@@ -86,13 +86,19 @@ def _unavailable(strategy: str, n_fixing: bool | None, target_n: float | None,
 
 
 def _age_notice(zoning: ZoningRead, today: date) -> dict | None:
-    if zoning.method != "vegetationIndex" or not zoning.date:
+    if zoning.method == "vegetationIndex":
+        image = zoning.date
+    elif zoning.method == "vegetationIndexMultiDate":
+        image = zoning.image_date
+    else:
+        return None
+    if not image:
         return None
     try:
-        days = (today - date.fromisoformat(zoning.date)).days
+        days = (today - date.fromisoformat(image)).days
     except ValueError:
         return None
-    return _notice("zoning_image_old", date=zoning.date, days=days) \
+    return _notice("zoning_image_old", date=image, days=days) \
         if days > IMAGE_MAX_AGE_DAYS else None
 
 
@@ -114,7 +120,7 @@ async def list_zonings(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.
     found = zonings_of(await sources.zone_entities(parcel_urn), parcel_urn)
     return {"zonings": [
         {"run_id": z.run_id, "method": z.method, "variable": z.variable, "date": z.date,
-         "zone_count": len(z.zones),
+         "image_date": z.image_date, "zone_count": len(z.zones),
          "has_vegetation_value": sum(1 for q in z.zones if q.mean_value is not None) >= 2}
         for z in found]}
 
@@ -180,7 +186,7 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
             missing.append("mean_value")
         shared = effective != "uniform" and factor is not None
         rows.append({
-            "zone_id": z.id, "label": z.label, "rank": z.rank, "area_ha": _round(z.area_ha, 4),
+            "zone_id": z.id, "label": z.label, "rank": z.rank, "level": z.level, "area_ha": _round(z.area_ha, 4),
             "basis": "vigor" if shared else "sheet",
             "relative_vigor": _round(vigor, 4), "factor": _round(factor, 4), "capped": capped,
             "n_kg_ha": _round(n, 2), "product_kg_ha": _round(product_rate(n), 2),
@@ -231,7 +237,8 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
                   "crop": {"eppo": (inputs.get("crop.eppo") or {}).get("value"),
                            "n_fixing": n_fixing}},
         "zoning": {"run_id": zoning.run_id, "method": zoning.method,
-                   "variable": zoning.variable, "date": zoning.date, "zone_count": len(zones)},
+                   "variable": zoning.variable, "date": zoning.date,
+                   "image_date": zoning.image_date, "zone_count": len(zones)},
         "strategy": strategy, "strategy_unavailable": reason,
         "target": {"n_kg_ha": _round(target_n, 2), "source": target_source,
                    "product": ({"name": product.name, "n_pct": product.n_pct}

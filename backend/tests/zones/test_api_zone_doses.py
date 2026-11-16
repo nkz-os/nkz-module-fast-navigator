@@ -97,7 +97,8 @@ def test_uniform_is_the_default_and_carries_the_whole_response(client):
     assert res["sheet"]["key"] == "wheat" and set(res["sheet"]["n_kg_ha"]) == {"min", "avg", "max"}
     assert res["sheet"]["crop"] == {"eppo": "TRZAX", "n_fixing": False}
     assert res["zoning"] == {"run_id": RUN, "method": "vegetationIndex", "variable": "NDVI",
-                             "date": legal_today().isoformat(), "zone_count": 4}
+                             "date": legal_today().isoformat(),
+                             "image_date": legal_today().isoformat(), "zone_count": 4}
     assert res["target"] == {"n_kg_ha": 60.0, "source": "given",
                              "product": {"name": "Nitrate 27", "n_pct": 27.0}}
     assert res["cap"] == {"pct": 20.0, "min_n_kg_ha": 48.0, "max_n_kg_ha": 72.0}
@@ -321,11 +322,13 @@ def test_the_zonings_of_a_parcel_are_listed_most_recent_first(client, data):
     got = r.json()["zonings"]
     assert [z["run_id"] for z in got] == [RUN, "man", "old"]
     assert got[0] == {"run_id": RUN, "method": "vegetationIndex", "variable": "NDVI",
-                      "date": legal_today().isoformat(), "zone_count": 4,
+                      "date": legal_today().isoformat(),
+                      "image_date": legal_today().isoformat(), "zone_count": 4,
                       "has_vegetation_value": True}
     assert got[1]["method"] == "manual" and got[1]["variable"] is None
     assert got[1]["has_vegetation_value"] is False and got[1]["zone_count"] == 3
-    assert got[2]["date"] == "2026-01-05"
+    assert got[2]["date"] == "2026-01-05" and got[2]["image_date"] == "2026-01-05"
+    assert got[1]["image_date"] == "2026-03-01"
 
 
 def test_a_parcel_without_zonings_gets_an_empty_list(client, data):
@@ -370,3 +373,43 @@ def test_zonings_broker_failing_is_a_503_naming_it(client, monkeypatch):
     monkeypatch.setattr(FakeSources, "zone_entities", boom)
     r = zonings(client, plan)
     assert r.status_code == 503 and r.json()["source"] == "broker"
+
+
+def multidate_set(run="md", image_dates=("2026-04-02", "2026-05-20"), **extra):
+    """A multi-date zoning: one zone per level, levels as in the frozen entity format."""
+    out = zone_set([0.7, 0.5, 0.3, 0.1], run=run, zoningMethod="vegetationIndexMultiDate", **extra)
+    for e, lvl in zip(out, ("high", "medium", "low", "critical")):
+        e["zoneName"] = lvl
+        e["zoneLevel"] = lvl
+        if image_dates is not None:
+            e["sourceDates"] = list(image_dates)
+    return out
+
+
+def test_a_multidate_zoning_carries_levels_and_the_newest_image_date(client, data):
+    data["zones"][URN] = multidate_set(run="md")
+    plan = calculated_plan(client)
+    res = ask(client, plan, strategy="potential", zoning_run_id="md").json()
+    assert [z["level"] for z in res["zones"]] == ["high", "medium", "low", "critical"]
+    assert res["zoning"]["method"] == "vegetationIndexMultiDate"
+    assert res["zoning"]["image_date"] == "2026-05-20"
+    assert [n["code"] for n in res["notices"]] == ["zoning_image_old"]
+    assert res["notices"][0]["params"]["date"] == "2026-05-20"
+    got = zonings(client, plan).json()["zonings"]
+    assert got[0]["image_date"] == "2026-05-20"
+
+
+def test_the_multidate_notice_follows_the_image_date_not_the_zoning_date(client, data):
+    data["zones"][URN] = multidate_set(run="md", image_dates=(legal_today().isoformat(),))
+    for e in data["zones"][URN]:
+        e["dateZoned"] = "2020-01-01T05:00:00Z"
+    res = ask(client, calculated_plan(client), strategy="potential", zoning_run_id="md").json()
+    assert res["zoning"]["date"] == "2020-01-01"
+    assert res["zoning"]["image_date"] == legal_today().isoformat()
+    assert res["notices"] == []
+
+
+def test_vegetation_index_and_manual_keep_their_behaviour(client, data):
+    res = ask(client, calculated_plan(client), strategy="potential").json()
+    assert {z["level"] for z in res["zones"]} == {None}
+    assert res["zoning"]["image_date"] == res["zoning"]["date"]

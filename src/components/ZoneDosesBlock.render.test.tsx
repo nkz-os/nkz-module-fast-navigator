@@ -9,6 +9,8 @@ vi.mock('@nekazari/sdk', async () => {
 
 import type { ZoneDosesResponse, ZoningInfo } from '../api/types';
 import { makeSheet } from '../test/builders';
+import { esT } from '../test/esT';
+import { zoningLabel } from '../model/zoneDoses';
 
 let zonings: { data: ZoningInfo[] | null; error: unknown; loading: boolean } = { data: [], error: null, loading: false };
 const loads: unknown[][] = [];
@@ -23,6 +25,7 @@ import { PrescriptionButton, ZoneDosesBlock, ZoneDosesResult } from './ZoneDoses
 
 const NDVI: ZoningInfo = { run_id: 'run-1', method: 'vegetationIndex', variable: 'NDVI', date: '2026-10-14', zone_count: 4, has_vegetation_value: true };
 const MANUAL: ZoningInfo = { run_id: 'run-2', method: 'manual', variable: null, date: '2026-09-01', zone_count: 3, has_vegetation_value: false };
+const MULTI: ZoningInfo = { run_id: 'run-3', method: 'vegetationIndexMultiDate', variable: 'NDVI', date: '2026-10-14', image_date: '2026-05-20', zone_count: 4, has_vegetation_value: true };
 const block = (sheet = makeSheet()) => renderToStaticMarkup(<ZoneDosesBlock planId="plan-1" sheet={sheet} parcels={[]} />);
 
 const RES: ZoneDosesResponse = {
@@ -92,6 +95,17 @@ describe('ZoneDosesBlock (es)', () => {
     const html = block();
     expect(html).toContain('role="alert"');
     expect(html).not.toContain('no tiene ninguna zonificación');
+  });
+});
+
+describe('multi-date zonings (es)', () => {
+  it('lists the zoning with its image date and shows zones by level, never the raw code', () => {
+    const l = zoningLabel(MULTI, 'es');   // the closed select renders no option text
+    expect(esT(l.key, l.params)).toBe('Satélite multifecha (NDVI) · imagen 20/05/2026 · 4 zonas');
+    const zones = ['high', 'medium', 'low', 'critical', 'bogus'].map((level, i) => ({ ...RES.zones[0], zone_id: `m${i}`, label: level, rank: i + 1, level }));
+    const html = renderToStaticMarkup(<ZoneDosesResult res={{ ...RES, zones }} />);
+    for (const t of ['Vigor alto', 'Vigor medio', 'Vigor bajo', 'Vigor crítico', 'Zona 5']) expect(html).toContain(t);
+    expect(html).not.toMatch(/>(high|medium|low|critical|bogus)</);
   });
 });
 

@@ -144,7 +144,9 @@
     "double_crop_campaign": "La campanya {{campaign}} té {{count}} cicles: aquesta fitxa en fa servir un.",
     "crop_differs_from_cycle": "El cultiu declarat ({{declared}}) difereix del cicle ({{cycle}}); mana el declarat.",
     "double_crop_first_cycle_unknown": "No es coneix el primer cicle de la campanya {{campaign}}.",
-    "soil_om_estimated": "Matèria orgànica estimada ({{om_pct}} %) a partir del carboni orgànic del mòdul Sòl ({{oc_pct}} % × 1,724). No és una anàlisi: puja’n una per substituir-la."
+    "soil_om_estimated": "Matèria orgànica estimada ({{om_pct}} %) a partir del carboni orgànic del mòdul Sòl ({{oc_pct}} % × 1,724). No és una anàlisi: puja’n una per substituir-la.",
+    "parcel_soil_from_zones": "El sòl de la parcel·la és la mitjana de les mostres de zona ({{zones_sampled}} de {{zones_total}} zones, {{area_pct}} % de la superfície). Tria una anàlisi per fer-ne servir una altra.",
+    "parcel_soil_zones_unavailable": "No s'han pogut llegir les zones: el sòl de la parcel·la és l'anàlisi més recent."
   },
   "list": {
     "title": "Plans d'adobat",
@@ -307,6 +309,7 @@
     "declaredYield": "Rendiment declarat {{year}}",
     "addYear": "+ Declara un any",
     "analysis": "Anàlisi {{id}} · {{date}}",
+    "analysisZoneMean": "Mitjana de les zones · {{date}}",
     "soilAnalysis": "Anàlisi de sòl",
     "nminAnalysis": "Anàlisi de N mineral",
     "rainfed": "Secà: no hi ha aigua de reg per comptar.",

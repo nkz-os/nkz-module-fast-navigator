@@ -144,7 +144,9 @@
     "double_crop_campaign": "{{campaign}} kanpainak {{count}} ziklo ditu: orri honek bat erabiltzen du.",
     "crop_differs_from_cycle": "Adierazitako laborantza ({{declared}}) zikloarena ({{cycle}}) ez bezalakoa da; adierazitakoak nagusitzen da.",
     "double_crop_first_cycle_unknown": "{{campaign}} kanpainako lehen zikloa ezezaguna da.",
-    "soil_om_estimated": "Materia organikoa estimatua ({{om_pct}} %) Lurzoru moduluko karbono organikotik ({{oc_pct}} % × 1,724). Ez da analisia: igo bat ordezkatzeko."
+    "soil_om_estimated": "Materia organikoa estimatua ({{om_pct}} %) Lurzoru moduluko karbono organikotik ({{oc_pct}} % × 1,724). Ez da analisia: igo bat ordezkatzeko.",
+    "parcel_soil_from_zones": "Partzelaren lurzorua zona-laginen batez bestekoa da ({{zones_total}} zonatik {{zones_sampled}}, azaleraren % {{area_pct}}). Aukeratu analisi bat beste bat erabiltzeko.",
+    "parcel_soil_zones_unavailable": "Ezin izan dira zonak irakurri: partzelaren lurzorua analisi berriena da."
   },
   "list": {
     "title": "Ongarritze-planak",
@@ -307,6 +309,7 @@
     "declaredYield": "{{year}}ko errendimendu adierazia",
     "addYear": "+ Adierazi urte bat",
     "analysis": "{{id}} analisia · {{date}}",
+    "analysisZoneMean": "Zonen batez bestekoa · {{date}}",
     "soilAnalysis": "Lurzoru analisia",
     "nminAnalysis": "N mineral analisia",
     "rainfed": "Ureztatu gabea: ez dago kontatzeko ureztatze urik.",

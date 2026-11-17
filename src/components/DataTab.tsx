@@ -336,12 +336,18 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
       <Surface variant="raised" padding="stack">
         <Stack gap="inline">
           <h3 id="field-soil" className="font-semibold text-nkz-text-primary">{t('data.section.soil')}</h3>
-          {inputs['soil.analysis_id'] && (
-            <p className="text-nkz-sm text-nkz-text-secondary">
-              {t('data.analysis', { id: String((inputs['soil.analysis_id'] as { value?: unknown }).value ?? '—'),
-                date: formatDate((inputs['soil.analysis_id'] as { sampling_date?: string | null }).sampling_date, lang) })}
-            </p>
-          )}
+          {inputs['soil.analysis_id'] && (() => {
+            const a = inputs['soil.analysis_id'] as { value?: unknown; sampling_date?: string | null };
+            const date = formatDate(a.sampling_date, lang);
+            // The mean of a zone campaign is not an analysis of the soil service: no raw id.
+            return (
+              <p className="text-nkz-sm text-nkz-text-secondary">
+                {String(a.value ?? '').startsWith('zone-mean:')
+                  ? t('data.analysisZoneMean', { date })
+                  : t('data.analysis', { id: String(a.value ?? '—'), date })}
+              </p>
+            );
+          })()}
           {SOIL_PARAMS.map(row)}
           {editable && (
             <FormGrid columns={2}>

@@ -144,7 +144,9 @@
     "double_crop_campaign": "A campanha {{campaign}} tem {{count}} ciclos: esta ficha usa um.",
     "crop_differs_from_cycle": "A cultura declarada ({{declared}}) difere do ciclo ({{cycle}}); prevalece a declarada.",
     "double_crop_first_cycle_unknown": "O primeiro ciclo da campanha {{campaign}} é desconhecido.",
-    "soil_om_estimated": "Matéria orgânica estimada ({{om_pct}} %) a partir do carbono orgânico do módulo Solo ({{oc_pct}} % × 1,724). Não é uma análise: carregue uma para a substituir."
+    "soil_om_estimated": "Matéria orgânica estimada ({{om_pct}} %) a partir do carbono orgânico do módulo Solo ({{oc_pct}} % × 1,724). Não é uma análise: carregue uma para a substituir.",
+    "parcel_soil_from_zones": "O solo da parcela é a média das amostras de zona ({{zones_sampled}} de {{zones_total}} zonas, {{area_pct}} % da área). Escolha uma análise para usar outra.",
+    "parcel_soil_zones_unavailable": "Não foi possível ler as zonas: o solo da parcela é a análise mais recente."
   },
   "list": {
     "title": "Planos de fertilização",
@@ -307,6 +309,7 @@
     "declaredYield": "Produtividade declarada {{year}}",
     "addYear": "+ Declarar um ano",
     "analysis": "Análise {{id}} · {{date}}",
+    "analysisZoneMean": "Média das zonas · {{date}}",
     "soilAnalysis": "Análise de solo",
     "nminAnalysis": "Análise de N mineral",
     "rainfed": "Sequeiro: não há água de rega a contar.",

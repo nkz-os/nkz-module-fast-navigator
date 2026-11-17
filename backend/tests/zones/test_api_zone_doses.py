@@ -543,3 +543,74 @@ def test_unlocated_parcel_analyses_are_not_reported_as_outside(client, data):
     with_analyses(data)
     res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
     assert res["notices"] == []
+
+
+def _unavailable_checks(res, plain):
+    assert doses(res) == doses(plain) and res["zones"] == plain["zones"]
+    assert res["rest"] == plain["rest"] and res["totals"] == plain["totals"]
+    assert {z["soil_analysis"] for z in res["zones"]} == {None}
+    assert [n["code"] for n in res["notices"]] == ["zone_soil_unavailable"]
+
+
+def _soil_data(data):
+    with_analyses(data, pk_analysis("zp0", 4.0, 90.0, hasAgriManagementZone=zone_id(0)),
+                  nmin_analysis("zn1", 8.0, 3.0, hasAgriManagementZone=zone_id(1)))
+
+
+def test_lab_analyses_failing_keeps_the_parcel_doses(client, data, monkeypatch):
+    plan = calculated_plan(client, SOIL_SHEET)
+    plain = ask(client, plan, strategy="potential").json()
+    _soil_data(data)
+
+    async def boom(self, urn):
+        raise SourceUnavailable("soil", "unreachable (ConnectError)")
+
+    monkeypatch.setattr(FakeSources, "lab_analyses", boom)
+    _unavailable_checks(ask(client, plan, strategy="potential").json(), plain)
+
+
+def test_lab_analyses_timing_out_keeps_the_parcel_doses(client, data, monkeypatch):
+    plan = calculated_plan(client, SOIL_SHEET)
+    plain = ask(client, plan, strategy="potential").json()
+
+    async def slow(self, urn):
+        raise TimeoutError
+
+    monkeypatch.setattr(FakeSources, "lab_analyses", slow)
+    _unavailable_checks(ask(client, plan, strategy="potential").json(), plain)
+
+
+def test_the_assembly_failing_keeps_the_parcel_doses(client, data, monkeypatch):
+    plan = calculated_plan(client, SOIL_SHEET)
+    plain = ask(client, plan, strategy="potential").json()
+    _soil_data(data)
+
+    async def boom(self, eppo):
+        raise SourceUnavailable("bioorch", "unreachable (ConnectError)")
+
+    monkeypatch.setattr(FakeSources, "coefficients", boom)
+    _unavailable_checks(ask(client, plan, strategy="potential").json(), plain)
+
+
+def test_a_zone_calculation_failing_only_affects_that_zone(client, data, monkeypatch):
+    with_analyses(data, pk_analysis("zp0", 4.0, 90.0, hasAgriManagementZone=zone_id(0)),
+                  pk_analysis("zp1", 4.0, 90.0, hasAgriManagementZone=zone_id(1)))
+    plan = calculated_plan(client, SOIL_SHEET)
+    import app.zones.service as svc
+    real = svc.calculate
+    seen = []
+
+    def flaky(a):
+        seen.append(1)
+        if len(seen) == 1:
+            raise ValueError("boom")
+        return real(a)
+
+    monkeypatch.setattr(svc, "calculate", flaky)
+    res = ask(client, plan, strategy="potential").json()
+    z = res["zones"]
+    parcel = res["rest"]["p2o5_kg_ha"]
+    assert z[0]["p2o5_kg_ha"] == parcel and z[0]["soil_analysis"] is not None
+    assert z[1]["p2o5_kg_ha"] > parcel
+    failed = [n for n in res["notices"] if n["code"] == "zone_soil_calc_failed"]
+    assert failed == [{"code": "zone_soil_calc_failed", "params": {"zone": zone_id(0)}}]

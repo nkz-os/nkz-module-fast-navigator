@@ -151,8 +151,8 @@ def _soil_view(zs: ZoneSoil, analyses: list[dict]) -> dict:
             "p_date": zs.p_date, "k_date": zs.k_date}
 
 
-def _zone_oxides(assembled, zone_soils: dict[str, ZoneSoil], protected: set[str]
-                 ) -> dict[str, tuple[float | None, float | None]]:
+def _zone_oxides(assembled, zone_soils: dict[str, ZoneSoil], protected: set[str],
+                 failed: list[str], where: str) -> dict[str, tuple[float | None, float | None]]:
     """P2O5 and K2O kg/ha per zone with its own P or K: the sheet's calculation rerun over the
     sheet's own assembled inputs with only the Olsen P and/or the K replaced by the zone's.
 
@@ -172,7 +172,12 @@ def _zone_oxides(assembled, zone_soils: dict[str, ZoneSoil], protected: set[str]
             values["p_olsen_mg_kg"] = Sourced(zs.p_olsen_mg_kg, MEASURED, source)
         if own_k:
             values["k_mg_kg"] = Sourced(zs.k_mg_kg, MEASURED, source)
-        res = calculate(replace(assembled, soil=replace(assembled.soil, values=values)))
+        try:
+            res = calculate(replace(assembled, soil=replace(assembled.soil, values=values)))
+        except Exception:
+            logger.exception("zone soil calculation failed zone=%s %s", zid, where)
+            failed.append(zid)
+            continue
         out[zid] = (res.p2o5["rate_kg_ha"] if own_p and res.p2o5 else None,
                     res.k2o["rate_kg_ha"] if own_k and res.k2o else None)
     return out
@@ -231,9 +236,20 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
     if not plan.calc_fresh:
         notices.append(_notice("plan_calculation_stale"))
 
-    # Zone soil: the parcel's analyses, read once, assigned to this zoning's zones.
-    analyses = await sources.lab_analyses(parcel_urn)
-    by_zone, outside = assign_analyses(analyses, zoning)
+    # Zone soil: the parcel's analyses, read once, assigned to this zoning's zones. Zone soil only
+    # refines the doses: if it cannot be had, the answer is the parcel's (today's), flagged.
+    where = f"tenant={actor.tenant_id} plan={plan.id} sheet={sheet_key} parcel={parcel_urn}"
+    soil_notices: list[dict] = []
+    analyses: list[dict] = []
+    by_zone: dict[str, list[dict]] = {}
+    outside: list[dict] = []
+    soil_ok = True
+    try:
+        analyses = await sources.lab_analyses(parcel_urn)
+        by_zone, outside = assign_analyses(analyses, zoning)
+    except Exception:
+        logger.exception("zone soil unavailable (lab analyses) %s", where)
+        soil_ok = False
     nmin_input = inputs.get("soil.nmin_analysis")
     nmin_date = (nmin_input or {}).get("sampling_date") if isinstance(nmin_input, dict) else None
     class_bd = _num((inputs.get("soil.bulk_density_g_cm3") or {}).get("value"))
@@ -241,19 +257,41 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
                                                        class_bd=class_bd)
                                        for z in zones if z.id in by_zone}
     for zs in zone_soils.values():
-        notices.extend(zs.notices)
+        soil_notices.extend(zs.notices)
     own = {zid: zs for zid, zs in zone_soils.items()
            if zs.p_olsen_mg_kg is not None or zs.k_mg_kg is not None or zs.nmin_kg_ha is not None}
     if nmin_input is None and any(_has_n_values(a) for rows_ in by_zone.values() for a in rows_):
         # A result stored before the date of its mineral-N analysis was recorded.
-        notices.append(_notice("zone_nmin_needs_recalculation"))
+        soil_notices.append(_notice("zone_nmin_needs_recalculation"))
     if own:
         gone = [z.label or z.id for z in zones if z.id not in own]
         if gone:
-            notices.append(_notice("zone_soil_missing", zones=gone))
+            soil_notices.append(_notice("zone_soil_missing", zones=gone))
     n_outside = sum(1 for a in outside if a.get("location") or attr_link(a))
     if n_outside:
-        notices.append(_notice("zone_soil_outside", n=n_outside))
+        soil_notices.append(_notice("zone_soil_outside", n=n_outside))
+
+    # P2O5 and K2O: the parcel's from the stored result, the zones' with their own sample
+    # from the sheet rerun once over a single assembly.
+    parcel_p = _num((result.get("p2o5") or {}).get("rate_kg_ha"))
+    parcel_k = _num((result.get("k2o") or {}).get("rate_kg_ha"))
+    oxides: dict[str, tuple[float | None, float | None]] = {}
+    if soil_ok and any(zs.p_olsen_mg_kg is not None or zs.k_mg_kg is not None
+                       for zs in own.values()):
+        try:
+            assembled = await assemble(_request(plan.campaign, sheet),
+                                       _AnalysesOnce(sources, parcel_urn, analyses), today)
+        except Exception:
+            logger.exception("zone soil unavailable (assembly) %s", where)
+            soil_ok = False
+        else:
+            failed: list[str] = []
+            oxides = _zone_oxides(assembled, own, {o.get("param") for o in sheet.overrides},
+                                  failed, where)
+            soil_notices.extend(_notice("zone_soil_calc_failed", zone=zid) for zid in failed)
+    if not soil_ok:
+        zone_soils, own, soil_notices, outside = {}, {}, [_notice("zone_soil_unavailable")], []
+    notices.extend(soil_notices)
 
     # Nitrogen. The sheet's N already nets the parcel's mineral N (Nmin_p) off. With a zone that
     # has its own Nmin the gross need (N + Nmin_p) is shared by vigor, then each zone credits ITS
@@ -283,15 +321,6 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
             credit = zone_nmin.get(zid, nmin_p)
             doses[zid] = (vigor, factor, capped, max(n - credit, 0.0))
 
-    # P2O5 and K2O: the parcel's from the stored result, the zones' with their own sample
-    # from the sheet rerun once over a single assembly.
-    parcel_p = _num((result.get("p2o5") or {}).get("rate_kg_ha"))
-    parcel_k = _num((result.get("k2o") or {}).get("rate_kg_ha"))
-    oxides: dict[str, tuple[float | None, float | None]] = {}
-    if any(zs.p_olsen_mg_kg is not None or zs.k_mg_kg is not None for zs in own.values()):
-        assembled = await assemble(_request(plan.campaign, sheet),
-                                   _AnalysesOnce(sources, parcel_urn, analyses), today)
-        oxides = _zone_oxides(assembled, own, {o.get("param") for o in sheet.overrides})
     if saturated:
         notices.append(_notice("cap_saturated", cap_pct=cap_pct))
 

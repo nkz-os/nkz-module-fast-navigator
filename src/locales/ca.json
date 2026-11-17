@@ -538,7 +538,9 @@
       "vigor": "Vigor relatiu",
       "origin": "Origen de la xifra",
       "n": "kg N/ha",
-      "product": "kg producte/ha"
+      "product": "kg producte/ha",
+      "p2o5": "kg P₂O₅/ha",
+      "k2o": "kg K₂O/ha"
     },
     "level": {
       "high": "Vigor alt",
@@ -549,6 +551,14 @@
     "zoneN": "Zona {{n}}",
     "rest": "Resta de la parcel·la",
     "capped": "Límit",
+    "outsideCap": "fora dels límits pel seu Nmin",
+    "mark": {
+      "parcel": "Mitjana de la parcel·la",
+      "zoneSoil_one": "Anàlisi de la zona ({{date}}, {{count}} mostra)",
+      "zoneSoil_other": "Anàlisi de la zona ({{date}}, {{count}} mostres)",
+      "zoneSoilPK_one": "Anàlisi de la zona (P {{p}} · K {{k}}, {{count}} mostra)",
+      "zoneSoilPK_other": "Anàlisi de la zona (P {{p}} · K {{k}}, {{count}} mostres)"
+    },
     "basis": {
       "vigor": "Ajust per vigor de satèl·lit",
       "sheet": "Dosi de parcel·la",
@@ -559,7 +569,7 @@
       "mean_value": "sense valor de vigor",
       "mean_value_invalid": "valor de vigor no vàlid"
     },
-    "units": "Dosi en kg N/ha; producte en kg/ha.",
+    "units": "Dosi en kg N/ha; producte, P₂O₅ i K₂O en kg/ha.",
     "totals": "Total {{n}} kg N · mitjana {{mean}} kg N/ha · amb dosi uniforme {{uniform}} kg N",
     "notice": {
       "plan_calculation_stale": "El pla ha canviat després de l'últim càlcul: recalcula per veure la necessitat de N al dia.",
@@ -568,7 +578,20 @@
       "parcel_area_unknown": "No es coneix la superfície de la parcel·la: no es pot comprovar si les zones la cobreixen.",
       "zones_do_not_cover_parcel": "Les zones no cobreixen tota la parcel·la: queden {{rest_ha}} ha de {{parcel_ha}} ha, amb la dosi indicada.",
       "zones_exceed_parcel": "Les zones sumen {{zones_ha}} ha, més que la parcel·la ({{parcel_ha}} ha).",
-      "total_above_planned": "El total repartit supera el que donaria la dosi uniforme."
+      "total_above_planned": "El total repartit supera el que donaria la dosi uniforme.",
+      "zone_soil_missing": "Aquestes zones no tenen anàlisi pròpia i fan servir la mitjana de la parcel·la: {{zones}}.",
+      "zone_soil_outside": "Anàlisis de sòl situades fora de les zones, que no s'usen: {{n}}.",
+      "zone_soil_aggregated": "{{zone}}: s'ha fet la mitjana de {{n}} anàlisis.",
+      "zone_soil_mixed_dates": "{{zone}}: el fòsfor és del {{p_date}} i el potassi del {{k_date}}.",
+      "zone_nmin_other_date": "{{zone}}: la seva anàlisi de Nmin és del {{date}}, no de la data del pla, i no s'usa.",
+      "zone_nmin_incomplete": "{{zone}}: la seva anàlisi de Nmin és incompleta i no s'usa.",
+      "zone_nmin_needs_recalculation": "El pla es va calcular abans de desar la data de l'anàlisi de Nmin: recalcula per usar la de cada zona.",
+      "zone_nmin_first_pass_only_applied": "El Nmin de cada zona es descompta només a la primera passada de N; aquesta dosi es tracta com la primera.",
+      "zone_nmin_first_pass_only_not_applied": "Aquesta no és la primera passada de N: no es descompta el Nmin de cada zona.",
+      "zone_soil_unavailable": "No s'han pogut llegir les anàlisis de les zones: s'usa la mitjana de la parcel·la.",
+      "zone_soil_calc_failed": "{{zone}}: no s'ha pogut calcular amb la seva anàlisi; s'usa la mitjana de la parcel·la.",
+      "zone_soil_inputs_changed": "Les dades de sòl han canviat des de l'últim càlcul del pla: recalcula.",
+      "zone_dose_floored": "{{zone}}: el seu Nmin supera la dosi i la dosi queda en 0."
     },
     "toPrescription": "Porta a recepta",
     "toPrescriptionHint": "El mòdul de rutes s'obre amb aquestes dosis ja omplertes; el tècnic tria la màquina i el patró i genera la passada.",

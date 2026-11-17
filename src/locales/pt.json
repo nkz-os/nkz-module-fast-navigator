@@ -538,7 +538,9 @@
       "vigor": "Vigor relativo",
       "origin": "Origem do valor",
       "n": "kg N/ha",
-      "product": "kg produto/ha"
+      "product": "kg produto/ha",
+      "p2o5": "kg P₂O₅/ha",
+      "k2o": "kg K₂O/ha"
     },
     "level": {
       "high": "Vigor alto",
@@ -549,6 +551,14 @@
     "zoneN": "Zona {{n}}",
     "rest": "Resto da parcela",
     "capped": "Limite",
+    "outsideCap": "fora dos limites pelo seu Nmin",
+    "mark": {
+      "parcel": "Média da parcela",
+      "zoneSoil_one": "Análise da zona ({{date}}, {{count}} amostra)",
+      "zoneSoil_other": "Análise da zona ({{date}}, {{count}} amostras)",
+      "zoneSoilPK_one": "Análise da zona (P {{p}} · K {{k}}, {{count}} amostra)",
+      "zoneSoilPK_other": "Análise da zona (P {{p}} · K {{k}}, {{count}} amostras)"
+    },
     "basis": {
       "vigor": "Ajuste por vigor de satélite",
       "sheet": "Dose da parcela",
@@ -559,7 +569,7 @@
       "mean_value": "sem valor de vigor",
       "mean_value_invalid": "valor de vigor inválido"
     },
-    "units": "Dose em kg N/ha; produto em kg/ha.",
+    "units": "Dose em kg N/ha; produto, P₂O₅ e K₂O em kg/ha.",
     "totals": "Total {{n}} kg N · média {{mean}} kg N/ha · com dose uniforme {{uniform}} kg N",
     "notice": {
       "plan_calculation_stale": "O plano mudou depois do último cálculo: recalcule para ver a necessidade de N atualizada.",
@@ -568,7 +578,20 @@
       "parcel_area_unknown": "Não se conhece a área da parcela: não é possível verificar se as zonas a cobrem.",
       "zones_do_not_cover_parcel": "As zonas não cobrem toda a parcela: restam {{rest_ha}} ha de {{parcel_ha}} ha, com a dose indicada.",
       "zones_exceed_parcel": "As zonas somam {{zones_ha}} ha, mais do que a parcela ({{parcel_ha}} ha).",
-      "total_above_planned": "O total repartido supera o que daria a dose uniforme."
+      "total_above_planned": "O total repartido supera o que daria a dose uniforme.",
+      "zone_soil_missing": "Estas zonas não têm análise própria e usam a média da parcela: {{zones}}.",
+      "zone_soil_outside": "Análises de solo situadas fora das zonas, que não são usadas: {{n}}.",
+      "zone_soil_aggregated": "{{zone}}: usou-se a média de {{n}} análises.",
+      "zone_soil_mixed_dates": "{{zone}}: o fósforo é de {{p_date}} e o potássio de {{k_date}}.",
+      "zone_nmin_other_date": "{{zone}}: a sua análise de Nmin é de {{date}}, não da data do plano, e não é usada.",
+      "zone_nmin_incomplete": "{{zone}}: a sua análise de Nmin está incompleta e não é usada.",
+      "zone_nmin_needs_recalculation": "O plano foi calculado antes de guardar a data da análise de Nmin: recalcule para usar a de cada zona.",
+      "zone_nmin_first_pass_only_applied": "O Nmin de cada zona só é descontado na primeira passagem de N; esta dose é tratada como a primeira.",
+      "zone_nmin_first_pass_only_not_applied": "Esta não é a primeira passagem de N: o Nmin de cada zona não é descontado.",
+      "zone_soil_unavailable": "Não foi possível ler as análises das zonas: usa-se a média da parcela.",
+      "zone_soil_calc_failed": "{{zone}}: não foi possível calcular com a sua análise; usa-se a média da parcela.",
+      "zone_soil_inputs_changed": "Os dados de solo mudaram desde o último cálculo do plano: recalcule.",
+      "zone_dose_floored": "{{zone}}: o seu Nmin supera a dose e a dose fica em 0."
     },
     "toPrescription": "Levar para a receita",
     "toPrescriptionHint": "O módulo de rotas abre com estas doses já preenchidas; o técnico escolhe a máquina e o padrão e gera a passagem.",

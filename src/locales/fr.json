@@ -538,7 +538,9 @@
       "vigor": "Vigueur relative",
       "origin": "Origine du chiffre",
       "n": "kg N/ha",
-      "product": "kg produit/ha"
+      "product": "kg produit/ha",
+      "p2o5": "kg P₂O₅/ha",
+      "k2o": "kg K₂O/ha"
     },
     "level": {
       "high": "Vigueur élevée",
@@ -549,6 +551,14 @@
     "zoneN": "Zone {{n}}",
     "rest": "Reste de la parcelle",
     "capped": "Plafond",
+    "outsideCap": "hors des limites à cause de son Nmin",
+    "mark": {
+      "parcel": "Moyenne de la parcelle",
+      "zoneSoil_one": "Analyse de la zone ({{date}}, {{count}} échantillon)",
+      "zoneSoil_other": "Analyse de la zone ({{date}}, {{count}} échantillons)",
+      "zoneSoilPK_one": "Analyse de la zone (P {{p}} · K {{k}}, {{count}} échantillon)",
+      "zoneSoilPK_other": "Analyse de la zone (P {{p}} · K {{k}}, {{count}} échantillons)"
+    },
     "basis": {
       "vigor": "Ajustement par vigueur satellite",
       "sheet": "Dose de la parcelle",
@@ -559,7 +569,7 @@
       "mean_value": "sans valeur de vigueur",
       "mean_value_invalid": "valeur de vigueur non valide"
     },
-    "units": "Dose en kg N/ha ; produit en kg/ha.",
+    "units": "Dose en kg N/ha ; produit, P₂O₅ et K₂O en kg/ha.",
     "totals": "Total {{n}} kg N · moyenne {{mean}} kg N/ha · avec dose uniforme {{uniform}} kg N",
     "notice": {
       "plan_calculation_stale": "Le plan a changé après le dernier calcul : recalculez pour voir le besoin en N à jour.",
@@ -568,7 +578,20 @@
       "parcel_area_unknown": "La surface de la parcelle est inconnue : on ne peut pas vérifier si les zones la couvrent.",
       "zones_do_not_cover_parcel": "Les zones ne couvrent pas toute la parcelle : il reste {{rest_ha}} ha sur {{parcel_ha}} ha, à la dose indiquée.",
       "zones_exceed_parcel": "Les zones totalisent {{zones_ha}} ha, plus que la parcelle ({{parcel_ha}} ha).",
-      "total_above_planned": "Le total réparti dépasse celui que donnerait la dose uniforme."
+      "total_above_planned": "Le total réparti dépasse celui que donnerait la dose uniforme.",
+      "zone_soil_missing": "Ces zones n'ont pas d'analyse propre et utilisent la moyenne de la parcelle : {{zones}}.",
+      "zone_soil_outside": "Analyses de sol situées hors des zones, non utilisées : {{n}}.",
+      "zone_soil_aggregated": "{{zone}} : la moyenne de {{n}} analyses a été utilisée.",
+      "zone_soil_mixed_dates": "{{zone}} : le phosphore date du {{p_date}} et le potassium du {{k_date}}.",
+      "zone_nmin_other_date": "{{zone}} : son analyse de Nmin date du {{date}}, pas de la date du plan, et n'est pas utilisée.",
+      "zone_nmin_incomplete": "{{zone}} : son analyse de Nmin est incomplète et n'est pas utilisée.",
+      "zone_nmin_needs_recalculation": "Le plan a été calculé avant l'enregistrement de la date de l'analyse de Nmin : recalculez pour utiliser celle de chaque zone.",
+      "zone_nmin_first_pass_only_applied": "Le Nmin de chaque zone n'est déduit qu'au premier passage d'N ; cette dose est traitée comme le premier.",
+      "zone_nmin_first_pass_only_not_applied": "Ce n'est pas le premier passage d'N : le Nmin de chaque zone n'est pas déduit.",
+      "zone_soil_unavailable": "Les analyses des zones n'ont pas pu être lues : la moyenne de la parcelle est utilisée.",
+      "zone_soil_calc_failed": "{{zone}} : calcul impossible avec son analyse ; la moyenne de la parcelle est utilisée.",
+      "zone_soil_inputs_changed": "Les données de sol ont changé depuis le dernier calcul du plan : recalculez.",
+      "zone_dose_floored": "{{zone}} : son Nmin dépasse la dose, la dose est donc de 0."
     },
     "toPrescription": "Envoyer vers l'ordonnance",
     "toPrescriptionHint": "Le module d'itinéraires s'ouvre avec ces doses déjà remplies ; le technicien choisit la machine et le motif et génère le passage.",

@@ -269,10 +269,6 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
             and any(_has_n_values(a) for rows_ in by_zone.values() for a in rows_)):
         # A result stored (with an Nmin analysis chosen) before that analysis' date was recorded.
         soil_notices.append(_notice("zone_nmin_needs_recalculation"))
-    if own:
-        gone = [z.label or z.id for z in zones if z.id not in own]
-        if gone:
-            soil_notices.append(_notice("zone_soil_missing", zones=gone))
     n_outside = sum(1 for a in outside if a.get("location") or attr(a, "hasAgriManagementZone"))
     if n_outside:
         soil_notices.append(_notice("zone_soil_outside", n=n_outside))
@@ -291,12 +287,19 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
             logger.exception("zone soil unavailable (assembly) %s", where)
             soil_ok = False
         else:
-            parcel_run = calculate(assembled)
-            fresh = (_num((parcel_run.p2o5 or {}).get("rate_kg_ha")),
-                     _num((parcel_run.k2o or {}).get("rate_kg_ha")))
-            if any((a is None) != (b is None) or (a is not None and abs(a - b) > INPUTS_TOLERANCE)
-                   for a, b in zip(fresh, (parcel_p, parcel_k))):
-                soil_notices.append(_notice("zone_soil_inputs_changed"))
+            try:
+                parcel_run = calculate(assembled)
+            except Exception:
+                logger.exception("zone soil unavailable (parcel rerun) %s", where)
+                soil_ok = False
+                parcel_run = None
+            if parcel_run is not None:
+                fresh = (_num((parcel_run.p2o5 or {}).get("rate_kg_ha")),
+                         _num((parcel_run.k2o or {}).get("rate_kg_ha")))
+                if any((a is None) != (b is None)
+                       or (a is not None and abs(a - b) > INPUTS_TOLERANCE)
+                       for a, b in zip(fresh, (parcel_p, parcel_k))):
+                    soil_notices.append(_notice("zone_soil_inputs_changed"))
             failed: list[str] = []
             oxides = _zone_oxides(assembled, own, {o.get("param") for o in sheet.overrides},
                                   failed, where)
@@ -320,12 +323,12 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
         if target.application_seq != first_n:
             notices.append(_notice("zone_nmin_first_pass_only", applied=False))
             zone_nmin = {}
-    elif zone_nmin and target.application_seq is None:
-        # ASSUMPTION: a free dose given by the technician is treated as the first N pass.
-        notices.append(_notice("zone_nmin_first_pass_only", applied=True))
     n_credit = bool(zone_nmin) and target_n is not None and nmin_p is not None
     if not n_credit:
         zone_nmin = {}
+    elif target.application_seq is None:
+        # ASSUMPTION: a free dose given by the technician is treated as the first N pass.
+        notices.append(_notice("zone_nmin_first_pass_only", applied=True))
 
     doses: dict[str, tuple[float | None, float | None, bool, float | None]] = {}
     saturated = False
@@ -341,6 +344,7 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
         age = _age_notice(zoning, today)
         if age:
             notices.append(age)
+    outside_cap: set[str] = set()
     if n_credit:
         lo, hi = target_n * (1 - cap_pct / 100.0), target_n * (1 + cap_pct / 100.0)
         for zid, nmin_z in zone_nmin.items():
@@ -349,8 +353,9 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
             if net < 0:
                 notices.append(_notice("zone_dose_floored", zone=zid))
                 net = 0.0
-            outside_cap = net < lo - 1e-9 or net > hi + 1e-9
-            doses[zid] = (vigor, factor, capped or outside_cap, net)
+            if net < lo - 1e-9 or net > hi + 1e-9:
+                outside_cap.add(zid)
+            doses[zid] = (vigor, factor, capped, net)
 
     if saturated:
         notices.append(_notice("cap_saturated", cap_pct=cap_pct))
@@ -372,6 +377,7 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
             "zone_id": z.id, "label": z.label, "rank": z.rank, "level": z.level, "area_ha": _round(z.area_ha, 4),
             "basis": "zone_soil" if uses else ("vigor" if shared else "sheet"),
             "relative_vigor": _round(vigor, 4), "factor": _round(factor, 4), "capped": capped,
+            "outside_cap": z.id in outside_cap,
             "n_kg_ha": _round(n, 2), "product_kg_ha": _round(product_rate(n), 2),
             "nmin_kg_ha": _round(zone_nmin.get(z.id), 2),
             "p2o5_kg_ha": _round(parcel_p if z_p is None else z_p, 2),
@@ -379,6 +385,11 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
             "soil_analysis": (_soil_view(zs, by_zone.get(z.id, []), z.id in zone_nmin)
                               if uses else None),
             "missing": missing})
+
+    if any(r["basis"] == "zone_soil" for r in rows):
+        bare = [r["label"] or r["zone_id"] for r in rows if r["basis"] != "zone_soil"]
+        if bare:
+            notices.append(_notice("zone_soil_missing", zones=bare))
 
     areas = [z.area_ha for z in zones]
     parcel_area = _area(result, parcel_urn)

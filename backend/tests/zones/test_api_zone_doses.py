@@ -465,7 +465,8 @@ def test_a_zone_nmin_replaces_the_parcel_one_in_that_zone_only(client, data):
     res = ask(client, plan, strategy="potential").json()
     # parcel Nmin 27, zone 0 Nmin 29.7: share by vigor (48, 72, 60, 60), zone 0 credits 2.7 more
     assert doses(res) == [45.3, 72.0, 60.0, 60.0]
-    assert [z["capped"] for z in res["zones"]] == [True, False, False, False]
+    assert [z["capped"] for z in res["zones"]] == [False] * 4      # clipped by the cap: none
+    assert [z["outside_cap"] for z in res["zones"]] == [True, False, False, False]
     z0 = res["zones"][0]
     assert z0["nmin_kg_ha"] == 29.7 and z0["basis"] == "zone_soil"
     assert z0["soil_analysis"] == {"id": "zn0", "date": NMIN_DATE, "n_samples": 1,
@@ -669,6 +670,7 @@ def test_zone_nmin_applies_to_the_first_application_only(client, data):
     later = ask(client, plan, strategy="potential", target={"application_seq": 1}).json()
     assert doses(later) == [48.0, 72.0, 60.0, 60.0]
     assert later["zones"][0]["basis"] == "vigor" and later["zones"][0]["soil_analysis"] is None
+    assert "zone_soil_missing" not in codes(later)          # no zone uses its own soil
     note = next(n for n in later["notices"] if n["code"] == "zone_nmin_first_pass_only")
     assert note["params"] == {"applied": False}
 
@@ -750,3 +752,32 @@ def test_a_zone_nmin_alone_counts_one_sample(client, data):
     res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
     assert res["zones"][0]["soil_analysis"] == {"id": "zn0", "date": NMIN_DATE, "n_samples": 1,
                                                 "p_date": None, "k_date": None}
+
+
+def test_capped_keeps_its_meaning_of_clipped_by_the_cap(client, data):
+    data["zones"][URN] = zone_set([0.75, 0.45, 0.4, 0.4])
+    with_analyses(data, nmin_analysis("zn1", 10.0, 5.0, hasAgriManagementZone=zone_id(1)))
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential",
+              cap_pct=20).json()
+    assert [z["capped"] for z in res["zones"]] == [True, False, False, False]
+    assert [z["outside_cap"] for z in res["zones"]] == [False, True, False, False]
+
+
+def test_the_parcel_rerun_failing_falls_back_to_the_parcel_values(client, data, monkeypatch):
+    plan = calculated_plan(client, SOIL_SHEET)
+    plain = ask(client, plan, strategy="potential").json()
+    _soil_data(data)
+    import app.zones.service as svc
+
+    def boom(a):
+        raise ValueError("boom")
+
+    monkeypatch.setattr(svc, "calculate", boom)
+    _unavailable_checks(ask(client, plan, strategy="potential").json(), plain)
+
+
+def test_the_free_dose_notice_is_only_given_when_the_correction_was_applied(client, data):
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, date="2026-08-01",
+                                      hasAgriManagementZone=zone_id(0)))
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    assert "zone_nmin_first_pass_only" not in codes(res)

@@ -598,8 +598,10 @@
       "zone_soil_inputs_changed": "The soil data changed since the plan was last calculated: recalculate.",
       "zone_dose_floored": "{{zone}}: its Nmin exceeds the dose, so the dose is 0.",
       "zone_nmin_depth_differs": "{{zone}}: its Nmin was measured at a different depth than the parcel's and is not used.",
-      "zone_soil_unusable": "{{zone}}: its analyses cannot be used (unsupported method, missing data or date): {{analyses}}.",
-      "zone_soil_no_zoning_date": "The zoning has no date: it cannot be told which analyses are newer, so none is used by zone."
+      "zone_soil_unusable": "{{zone}}: its analyses cannot be used (unsupported method, missing data or date).",
+      "zone_soil_no_zoning_date": "The zoning has no date: it cannot be told which analyses are newer, so none is used by zone.",
+      "zone_nmin_parcel_unusable_no_nmin_analysis": "The zones have Nmin analyses but the plan has no Nmin analysis chosen: each zone's Nmin is not deducted.",
+      "zone_nmin_parcel_unusable_depth_unknown": "The zones have Nmin analyses but the depth of the parcel's Nmin is unknown: each zone's Nmin is not deducted."
     },
     "toPrescription": "Take to prescription",
     "toPrescriptionHint": "The routing module opens with these doses filled in; the technician still chooses the machine and pattern and generates the pass.",

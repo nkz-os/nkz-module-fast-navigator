@@ -14,6 +14,13 @@ describe('parseNumber', () => {
   });
 });
 
+describe('noticeView of the parcel Nmin', () => {
+  it('has one text per reason', () => {
+    expect(noticeView({ code: 'zone_nmin_parcel_unusable', params: { reason: 'depth_unknown' } }, 'es').key).toBe('zoneDoses.notice.zone_nmin_parcel_unusable_depth_unknown');
+    expect(noticeView({ code: 'zone_nmin_parcel_unusable', params: { reason: 'no_nmin_analysis' } }, 'es').key).toBe('zoneDoses.notice.zone_nmin_parcel_unusable_no_nmin_analysis');
+  });
+});
+
 describe('buildZoneDosesRequest', () => {
   it('builds the body the API takes, with the technician dose and no product', () => {
     expect(buildZoneDosesRequest(BASE)).toEqual({

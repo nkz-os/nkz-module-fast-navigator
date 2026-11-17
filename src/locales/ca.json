@@ -598,8 +598,10 @@
       "zone_soil_inputs_changed": "Les dades de sòl han canviat des de l'últim càlcul del pla: recalcula.",
       "zone_dose_floored": "{{zone}}: el seu Nmin supera la dosi i la dosi queda en 0.",
       "zone_nmin_depth_differs": "{{zone}}: el seu Nmin està mesurat a una altra profunditat que el de la parcel·la i no s'usa.",
-      "zone_soil_unusable": "{{zone}}: les seves anàlisis no es poden usar (mètode no admès, falten dades o data): {{analyses}}.",
-      "zone_soil_no_zoning_date": "La zonificació no té data: no es pot saber quines anàlisis són posteriors i no se n'usa cap per zones."
+      "zone_soil_unusable": "{{zone}}: les seves anàlisis no es poden usar (mètode no admès, falten dades o data).",
+      "zone_soil_no_zoning_date": "La zonificació no té data: no es pot saber quines anàlisis són posteriors i no se n'usa cap per zones.",
+      "zone_nmin_parcel_unusable_no_nmin_analysis": "Les zones tenen anàlisis de Nmin però el pla no té cap anàlisi de Nmin triada: no es descompta el Nmin de cada zona.",
+      "zone_nmin_parcel_unusable_depth_unknown": "Les zones tenen anàlisis de Nmin però no es coneix la profunditat del Nmin de la parcel·la: no es descompta el Nmin de cada zona."
     },
     "toPrescription": "Porta a recepta",
     "toPrescriptionHint": "El mòdul de rutes s'obre amb aquestes dosis ja omplertes; el tècnic tria la màquina i el patró i genera la passada.",

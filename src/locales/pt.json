@@ -598,8 +598,10 @@
       "zone_soil_inputs_changed": "Os dados de solo mudaram desde o último cálculo do plano: recalcule.",
       "zone_dose_floored": "{{zone}}: o seu Nmin supera a dose e a dose fica em 0.",
       "zone_nmin_depth_differs": "{{zone}}: o seu Nmin foi medido a outra profundidade que o da parcela e não é usado.",
-      "zone_soil_unusable": "{{zone}}: as suas análises não podem ser usadas (método não admitido, faltam dados ou data): {{analyses}}.",
-      "zone_soil_no_zoning_date": "A zonagem não tem data: não se sabe quais análises são posteriores, por isso nenhuma é usada por zona."
+      "zone_soil_unusable": "{{zone}}: as suas análises não podem ser usadas (método não admitido, faltam dados ou data).",
+      "zone_soil_no_zoning_date": "A zonagem não tem data: não se sabe quais análises são posteriores, por isso nenhuma é usada por zona.",
+      "zone_nmin_parcel_unusable_no_nmin_analysis": "As zonas têm análises de Nmin mas o plano não tem análise de Nmin escolhida: o Nmin de cada zona não é descontado.",
+      "zone_nmin_parcel_unusable_depth_unknown": "As zonas têm análises de Nmin mas a profundidade do Nmin da parcela é desconhecida: o Nmin de cada zona não é descontado."
     },
     "toPrescription": "Levar para a receita",
     "toPrescriptionHint": "O módulo de rotas abre com estas doses já preenchidas; o técnico escolhe a máquina e o padrão e gera a passagem.",

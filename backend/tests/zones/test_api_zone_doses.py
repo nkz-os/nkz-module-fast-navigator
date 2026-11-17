@@ -795,8 +795,7 @@ def test_a_zone_nmin_of_another_depth_is_not_credited(client, data):
     res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
     assert doses(res) == [48.0, 72.0, 60.0, 60.0] and res["zones"][0]["nmin_kg_ha"] is None
     assert {"code": "zone_nmin_depth_differs", "params": {"zone": zone_id(0)}} in res["notices"]
-    assert {"code": "zone_soil_unusable", "params": {"zone": zone_id(0), "analyses": ["zn0"]}
-            } in res["notices"]
+    assert "zone_soil_unusable" not in codes(res)          # the specific notice is enough
 
 
 def test_bad_zone_data_is_unusable_not_a_500(client, data):
@@ -892,3 +891,41 @@ def test_the_first_pass_warning_needs_a_correction_that_could_apply(client, data
     plan = calculated_plan(client, sheet)             # no zone samples at all
     res = ask(client, plan, strategy="potential", target={"application_seq": 1}).json()
     assert "zone_nmin_first_pass_only" not in codes(res)
+
+
+def test_zone_n_with_no_nmin_analysis_on_the_plan_is_explained(client, data):
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, hasAgriManagementZone=zone_id(0)))
+    res = ask(client, calculated_plan(client, SHEET), strategy="potential").json()   # no Nmin id
+    note = [n for n in res["notices"] if n["code"] == "zone_nmin_parcel_unusable"]
+    assert note == [{"code": "zone_nmin_parcel_unusable", "params": {"reason": "no_nmin_analysis"}}]
+    assert "zone_soil_unusable" not in codes(res)       # an N-only sample is not "unusable"
+    assert doses(res) == [48.0, 72.0, 60.0, 60.0]
+
+
+def test_zone_n_with_an_unknown_parcel_nmin_depth_is_explained(client, data):
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, hasAgriManagementZone=zone_id(0)))
+    n1 = next(a for a in data["analyses"][URN] if a["id"] == "n1")
+    n1["horizons"].append({**n1["horizons"][0], "depthFrom": 60, "depthTo": 90})   # a gap
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    note = [n for n in res["notices"] if n["code"] == "zone_nmin_parcel_unusable"]
+    assert note[0]["params"] == {"reason": "depth_unknown"}
+    assert "zone_soil_unusable" not in codes(res)
+
+
+def test_no_nmin_notice_without_zone_n_data(client, data):
+    with_analyses(data, pk_analysis("zp0", 4.0, 90.0, hasAgriManagementZone=zone_id(0)))
+    res = ask(client, calculated_plan(client, SHEET), strategy="potential").json()
+    assert "zone_nmin_parcel_unusable" not in codes(res)
+
+
+def test_the_depth_lookup_is_skipped_when_the_soil_is_unavailable(client, data, monkeypatch,
+                                                                  caplog):
+    plan = calculated_plan(client, SOIL_SHEET)
+
+    async def boom(self, urn):
+        raise SourceUnavailable("soil", "unreachable (ConnectError)")
+
+    monkeypatch.setattr(FakeSources, "lab_analyses", boom)
+    res = ask(client, plan, strategy="potential").json()
+    assert codes(res) == ["zone_soil_unavailable"]
+    assert "depth of the parcel" not in caplog.text

@@ -87,7 +87,7 @@ export function noticeView(n: ZoneDosesResponse['notices'][number], lang: string
     else params[k] = String(v);
   }
   // A notice that reads differently by a flag has one text per value.
-  const suffix = ZONE_NOTICES_WITH_APPLIED.has(n.code) ? (n.params?.applied === true ? '_applied' : '_not_applied') : '';
+  const suffix = ZONE_NOTICES_WITH_APPLIED.has(n.code) ? (n.params?.applied === true ? '_applied' : '_not_applied') : n.code === 'zone_nmin_parcel_unusable' ? `_${String(n.params?.reason)}` : '';
   return { key: `zoneDoses.notice.${n.code}${suffix}`, params };
 }
 

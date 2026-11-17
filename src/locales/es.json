@@ -598,8 +598,10 @@
       "zone_soil_inputs_changed": "Los datos de suelo han cambiado desde el último cálculo del plan: recalcula.",
       "zone_dose_floored": "{{zone}}: su Nmin supera la dosis y la dosis queda en 0.",
       "zone_nmin_depth_differs": "{{zone}}: su Nmin está medido a otra profundidad que el de la parcela y no se usa.",
-      "zone_soil_unusable": "{{zone}}: sus análisis no se pueden usar (método no admitido, faltan datos o fecha): {{analyses}}.",
-      "zone_soil_no_zoning_date": "La zonificación no tiene fecha: no se puede saber qué análisis son posteriores y no se usa ninguno por zonas."
+      "zone_soil_unusable": "{{zone}}: sus análisis no se pueden usar (método no admitido, faltan datos o fecha).",
+      "zone_soil_no_zoning_date": "La zonificación no tiene fecha: no se puede saber qué análisis son posteriores y no se usa ninguno por zonas.",
+      "zone_nmin_parcel_unusable_no_nmin_analysis": "Las zonas tienen análisis de Nmin pero el plan no tiene un análisis de Nmin elegido: no se descuenta el Nmin de cada zona.",
+      "zone_nmin_parcel_unusable_depth_unknown": "Las zonas tienen análisis de Nmin pero no se conoce la profundidad del Nmin de la parcela: no se descuenta el Nmin de cada zona."
     },
     "toPrescription": "Llevar a receta",
     "toPrescriptionHint": "El módulo de rutas se abre con estas dosis ya rellenas; el técnico elige la máquina y el patrón y genera la pasada.",

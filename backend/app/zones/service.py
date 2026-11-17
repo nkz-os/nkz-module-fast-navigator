@@ -277,20 +277,25 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
     nmin_date = (nmin_input or {}).get("sampling_date") if isinstance(nmin_input, dict) else None
     class_bd = _num((inputs.get("soil.bulk_density_g_cm3") or {}).get("value"))
     nmin_depth = None
-    if nmin_date:
+    nmin_reason = None
+    if nmin_date and soil_ok:
         chosen_nmin = next((a for a in analyses if a.get("id") == nmin_input.get("value")), None)
         nmin_depth = analysis_n_depth(chosen_nmin) if chosen_nmin else None
         if nmin_depth is None:
             logger.warning("zone Nmin skipped: depth of the parcel's Nmin analysis unknown %s",
                            where)
-            nmin_date = None
+            nmin_date, nmin_reason = None, "depth_unknown"
+    elif not nmin_date:
+        nmin_reason = ("depth_unknown" if isinstance(nmin_input, dict) and nmin_input.get("value")
+                       else "no_nmin_analysis")
     zone_soils: dict[str, ZoneSoil] = {}
     for z in zones:
         if z.id not in by_zone:
             continue
         try:
             zone_soils[z.id] = zone_soil(z.id, by_zone[z.id], nmin_date=nmin_date,
-                                         class_bd=class_bd, nmin_depth=nmin_depth)
+                                         class_bd=class_bd, nmin_depth=nmin_depth,
+                                         nmin_considered=nmin_date is not None)
         except Exception:
             logger.exception("zone soil calculation failed zone=%s %s", z.id, where)
             soil_notices.append(_notice("zone_soil_calc_failed", zone=z.id))
@@ -303,6 +308,10 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
             and any(has_n_values(a) for rows_ in by_zone.values() for a in rows_)):
         # A result stored (with an Nmin analysis chosen) before that analysis' date was recorded.
         soil_notices.append(_notice("zone_nmin_needs_recalculation"))
+    if (nmin_reason and soil_ok and not (nmin_input is None and mineral_source.startswith(
+            "soil:lab-analysis:")) and any(has_n_values(a) for rows_ in by_zone.values()
+                                           for a in rows_)):
+        soil_notices.append(_notice("zone_nmin_parcel_unusable", reason=nmin_reason))
     n_outside = sum(1 for a in outside if a.get("location") or attr(a, "hasAgriManagementZone"))
     if n_outside:
         soil_notices.append(_notice("zone_soil_outside", n=n_outside))

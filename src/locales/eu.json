@@ -598,8 +598,10 @@
       "zone_soil_inputs_changed": "Lur-datuak aldatu dira planaren azken kalkulutik: birkalkulatu.",
       "zone_dose_floored": "{{zone}}: bere Nmin dosia baino handiagoa da eta dosia 0 da.",
       "zone_nmin_depth_differs": "{{zone}}: bere Nmin partzelarenaren sakonera desberdinean neurtu da eta ez da erabiltzen.",
-      "zone_soil_unusable": "{{zone}}: bere analisiak ezin dira erabili (metodo onartugabea, daturik edo datarik ez): {{analyses}}.",
-      "zone_soil_no_zoning_date": "Zonifikazioak ez du datarik: ezin da jakin zein analisi diren berriagoak, beraz, ez da bat ere erabiltzen zonaka."
+      "zone_soil_unusable": "{{zone}}: bere analisiak ezin dira erabili (metodo onartugabea, daturik edo datarik ez).",
+      "zone_soil_no_zoning_date": "Zonifikazioak ez du datarik: ezin da jakin zein analisi diren berriagoak, beraz, ez da bat ere erabiltzen zonaka.",
+      "zone_nmin_parcel_unusable_no_nmin_analysis": "Zonek Nmin analisiak dituzte, baina planak ez du Nmin analisirik aukeratuta: ez da zona bakoitzaren Nmin kentzen.",
+      "zone_nmin_parcel_unusable_depth_unknown": "Zonek Nmin analisiak dituzte, baina ez da ezagutzen partzelaren Nminaren sakonera: ez da zona bakoitzaren Nmin kentzen."
     },
     "toPrescription": "Errezetara eraman",
     "toPrescriptionHint": "Bideratze modulua dosi hauek beteta irekitzen da; teknikariak makina eta eredua aukeratzen ditu eta pasaldia sortzen du.",

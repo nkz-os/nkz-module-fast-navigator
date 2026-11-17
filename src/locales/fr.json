@@ -598,8 +598,10 @@
       "zone_soil_inputs_changed": "Les données de sol ont changé depuis le dernier calcul du plan : recalculez.",
       "zone_dose_floored": "{{zone}} : son Nmin dépasse la dose, la dose est donc de 0.",
       "zone_nmin_depth_differs": "{{zone}} : son Nmin a été mesuré à une autre profondeur que celui de la parcelle et n'est pas utilisé.",
-      "zone_soil_unusable": "{{zone}} : ses analyses sont inutilisables (méthode non admise, données ou date manquantes) : {{analyses}}.",
-      "zone_soil_no_zoning_date": "Le zonage n'a pas de date : on ne peut savoir quelles analyses sont postérieures, aucune n'est donc utilisée par zone."
+      "zone_soil_unusable": "{{zone}} : ses analyses sont inutilisables (méthode non admise, données ou date manquantes).",
+      "zone_soil_no_zoning_date": "Le zonage n'a pas de date : on ne peut savoir quelles analyses sont postérieures, aucune n'est donc utilisée par zone.",
+      "zone_nmin_parcel_unusable_no_nmin_analysis": "Les zones ont des analyses de Nmin mais le plan n'a pas d'analyse de Nmin choisie : le Nmin de chaque zone n'est pas déduit.",
+      "zone_nmin_parcel_unusable_depth_unknown": "Les zones ont des analyses de Nmin mais la profondeur du Nmin de la parcelle est inconnue : le Nmin de chaque zone n'est pas déduit."
     },
     "toPrescription": "Envoyer vers l'ordonnance",
     "toPrescriptionHint": "Le module d'itinéraires s'ouvre avec ces doses déjà remplies ; le technicien choisit la machine et le motif et génère le passage.",

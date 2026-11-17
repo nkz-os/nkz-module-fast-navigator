@@ -217,3 +217,19 @@ def test_analysis_depth_of_non_contiguous_layers_is_none():
     a = n_an(1, [30])
     a["horizons"].append({"depthFrom": 60, "depthTo": 90, "nitrateN": 1.0})
     assert analysis_n_depth(a) is None and analysis_n_depth(n_an(2, [30, 90])) == (0, 90)
+
+
+def test_an_n_only_sample_is_not_unusable_when_nmin_was_not_evaluated():
+    a = n_an(1, [30])
+    zs = zone_soil(ZA, [a], nmin_date=None, class_bd=1.3, nmin_considered=False)
+    assert not any(n["code"] == "zone_soil_unusable" for n in zs.notices)
+    p_only = an(2, lon=0.5, phosphorusAvailable=5.0, phosphorusMethod="unknown")
+    zs = zone_soil(ZA, [a, p_only], nmin_date=None, class_bd=1.3, nmin_considered=False)
+    assert [n for n in zs.notices if n["code"] == "zone_soil_unusable"] == [
+        {"code": "zone_soil_unusable", "params": {"zone": ZA, "analyses": ["urn:lab:2"]}}]
+
+
+def test_unusable_is_not_added_to_a_specific_nmin_notice():
+    zs = zone_soil(ZA, [n_an(1, [30, 90])], nmin_date="2026-03-01", class_bd=1.3,
+                   nmin_depth=(0, 30))
+    assert [n["code"] for n in zs.notices] == ["zone_nmin_depth_differs"]

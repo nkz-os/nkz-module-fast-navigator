@@ -95,10 +95,12 @@ def _newest_mean(analyses: list[dict], read) -> tuple[float | None, list[dict], 
 
 
 def zone_soil(zone_id: str, analyses: list[dict], *, nmin_date: str | None,
-              class_bd: float | None, nmin_depth: tuple[float, float] | None = None) -> ZoneSoil:
+              class_bd: float | None, nmin_depth: tuple[float, float] | None = None,
+              nmin_considered: bool = True) -> ZoneSoil:
     """`nmin_depth`: the depth range of the parcel's mineral-N analysis. A zone's mineral N is
     only credited over that same range (a 0-90 cm N is not comparable with a 0-30 cm one);
-    None = not checked."""
+    None = not checked. `nmin_considered` False: the mineral N was not evaluated at all (the
+    plan has no usable Nmin analysis), so an N-only analysis is not an unusable one."""
     notices: list[dict] = []
     p, p_used, p_date = _newest_mean(analyses, analysis_p_olsen)
     k, k_used, k_date = _newest_mean(analyses, analysis_k)
@@ -136,9 +138,15 @@ def zone_soil(zone_id: str, analyses: list[dict], *, nmin_date: str | None,
             if other:
                 notices.append(_notice("zone_nmin_other_date", zone=zone_id, date=other[-1]))
 
-    if analyses and p is None and k is None and nmin_value is None:
+    specific = {"zone_nmin_depth_differs", "zone_nmin_incomplete", "zone_nmin_other_date"}
+    judged = analyses if nmin_considered else [
+        a for a in analyses if any(h.get("phosphorusAvailable") is not None
+                                   or h.get("potassiumExchangeable") is not None
+                                   for h in a.get("horizons") or [])]
+    if (judged and p is None and k is None and nmin_value is None
+            and not any(n["code"] in specific for n in notices)):
         notices.append(_notice("zone_soil_unusable", zone=zone_id,
-                               analyses=[str(a.get("id")) for a in analyses]))
+                               analyses=[str(a.get("id")) for a in judged]))
     return ZoneSoil(zone_id, tuple(used), date, n_samples, p_date, k_date,
                     nmin_value, used_nmin_date, p, k, tuple(notices),
                     tuple(str(a.get("id")) for a in p_used),

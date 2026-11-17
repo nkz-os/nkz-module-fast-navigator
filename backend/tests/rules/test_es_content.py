@@ -342,3 +342,14 @@ def test_every_finding_carries_its_citation():
     bad = sheet(applications=({**GOOD_APP, "kind": "ammonium_carbonate"},))
     for f in evaluate(all_rules(), ctx(bad)):
         assert f.citation.startswith(("RD 1051/2022", "FaST", "Navarra"))
+
+
+def test_a_zone_mean_leaning_on_an_old_analysis_is_judged_by_the_oldest_date(soil_mandatory):
+    def zone_mean_sheet(fields):
+        item = {"value": "zone-mean:r", "sampling_date": "2026-10-05",
+                "parcel_fallback": {"id": "a0", "sampling_date": "2015-03-01", "fields": fields}}
+        return sheet(inputs={"irrigated": False, "strategy": 2}, result=result(
+            inputs=inputs_with(**{"soil.analysis_id": item})))
+    (old,) = soil_findings(ctx(zone_mean_sheet(["soil.ph", "soil.organic_matter_pct"])))
+    assert old.params["reasons"] == ["too_old"] and old.params["sampling_date"] == "2015-03-01"
+    assert soil_findings(ctx(zone_mean_sheet(["soil.sand_pct"]))) == []    # not a checked value

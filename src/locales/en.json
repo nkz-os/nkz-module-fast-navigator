@@ -147,7 +147,8 @@
     "soil_om_estimated": "Organic matter estimated ({{om_pct}} %) from the organic carbon of the Soil module ({{oc_pct}} % × 1.724). It is not a lab analysis: upload one to replace it.",
     "parcel_soil_from_zones": "The parcel soil is the mean of the zone samples ({{zones_sampled}} of {{zones_total}} zones, {{area_pct}} % of the area). Choose an analysis to use another.",
     "parcel_soil_zones_unavailable": "The zones could not be read: the parcel soil is the newest analysis.",
-    "parcel_soil_fields_from_parcel": "Not measured in any zone, taken from the parcel analysis or estimated: {{fields}}."
+    "parcel_soil_fields_from_parcel": "Taken from the parcel analysis because no zone sample gave them: {{fields}}.",
+    "zone_soil_no_zoning_date": "The zoning has no date: the zones' own samples were not used for the parcel soil."
   },
   "list": {
     "title": "Fertilisation plans",

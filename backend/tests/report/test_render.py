@@ -260,3 +260,14 @@ def test_rain_attribution_and_the_history_fallback_notice_are_printed():
     html = plan_html(doc)
     assert "Copernicus Climate Change Service information 2026" in html
     assert "rain_normal_history_fallback" not in html and "histórico meteorológico" in html
+
+
+def test_a_zone_mean_soil_is_labelled_and_names_its_fallback_analysis():
+    doc = document()
+    doc["sheets"][0]["result"]["inputs"]["soil.analysis_id"] = {
+        "value": "zone-mean:run-1", "sampling_date": "2026-10-05",
+        "parcel_fallback": {"id": "a0", "sampling_date": "2015-03-01", "fields": ["soil.ph"]}}
+    html = plan_html(doc)
+    assert "Media de las zonas" in html and "zone-mean:" not in html
+    assert "a0" in html and "2015-03-01" in html
+    assert "Mean of the zones" in plan_html(doc, "en")

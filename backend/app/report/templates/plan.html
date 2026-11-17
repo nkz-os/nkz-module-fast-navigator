@@ -65,7 +65,7 @@
 <h3>{{ t.soil }}</h3>
 {% set a = item(s, "soil.analysis_id") %}
 <table>
-<tr><th>{{ t.analysis }}</th><td>{{ a.value or "—" }}</td><th>{{ t.sampled }}</th><td>{{ a.sampling_date or "—" }}</td></tr>
+<tr><th>{{ t.analysis }}</th><td>{% if (a.value or "").startswith("zone-mean:") %}{{ t.zone_mean }}{% else %}{{ a.value or "—" }}{% endif %}{% if a.parcel_fallback %}<br><span class="muted">{{ t.parcel_fallback }}: {{ a.parcel_fallback.id or "—" }} ({{ a.parcel_fallback.sampling_date or "—" }})</span>{% endif %}</td><th>{{ t.sampled }}</th><td>{{ a.sampling_date or "—" }}</td></tr>
 <tr><th>{{ t.ph }}</th><td>{{ value(s, "soil.ph") }} <span class="muted">{{ label("provenance", item(s, "soil.ph").provenance) }}</span></td>
     <th>{{ t.om }}</th><td>{{ value(s, "soil.organic_matter_pct") }} <span class="muted">{{ label("provenance", item(s, "soil.organic_matter_pct").provenance) }}</span></td></tr>
 <tr><th>{{ t.p }}</th><td>{{ value(s, "soil.p_olsen_mg_kg") }} <span class="muted">{{ label("provenance", item(s, "soil.p_olsen_mg_kg").provenance) }}</span></td>

@@ -240,11 +240,14 @@ describe('DataTab (es)', () => {
   it('a zone-mean parcel soil shows a label, not the raw id, and its notice', () => {
     const result = clone(COMPLETE);
     result.inputs['soil.analysis_id'] = { value: 'zone-mean:run-1', sampling_date: '2026-10-05' };
-    result.notices = [{ code: 'parcel_soil_from_zones', params: { zones_sampled: 2, zones_total: 3, area_pct: 80 } }];
+    result.notices = [{ code: 'parcel_soil_from_zones', params: { zones_sampled: 2, zones_total: 3, area_pct: 80 } },
+      { code: 'parcel_soil_fields_from_parcel', params: { fields: ['soil.ph', 'soil.organic_matter_pct'] } }];
     const html = plain(render(makeSheet({ result })));
     expect(html).toContain('Media de las zonas');
     expect(html).not.toContain('zone-mean:');
     expect(html).toContain('2 de 3 zonas, 80 % de la superficie');
+    expect(html).toContain('pH, Materia orgánica');
+    expect(html).not.toContain('soil.ph');
   });
 
   it('adding a declared year starts as a button and puts no zero row in the sheet', () => {

@@ -39,7 +39,7 @@ from app.inputs.yield_target import (
 )
 from app.sources import bioorch, broker, cycles, soil, weather
 from app.zones.read import zonings_of
-from app.zones.soil import parcel_zone_mean
+from app.zones.soil import located_without_zoning_date, parcel_zone_mean
 
 from .sheet import AssembledInputs
 
@@ -174,14 +174,19 @@ def _merge_analyses(lists: list[list[dict]]) -> list[dict]:
 
 async def _zone_mean(sources, urn: str, analyses: list[dict], notices: list[Notice]):
     """The zone-campaign mean of the parcel's newest zoning, or None (no campaign, or the zones
-    could not be read: the parcel then keeps its newest analysis, flagged)."""
+    could not be read or used: the parcel then keeps today's choice, flagged)."""
     try:
         zonings = zonings_of(await sources.zone_entities(urn), urn)
+        if not zonings:
+            return None
+        mean = parcel_zone_mean(analyses, zonings[0])
+        if mean is None and located_without_zoning_date(analyses, zonings[0]):
+            notices.append(Notice("zone_soil_no_zoning_date", {}))
+        return mean
     except Exception:
         logger.exception("zone campaign check failed parcel=%s", urn)
         notices.append(Notice("parcel_soil_zones_unavailable", {}))
         return None
-    return parcel_zone_mean(analyses, zonings[0]) if zonings else None
 
 
 def _no3(req: SheetRequest, water: dict | None, notices: list[Notice]) -> Sourced:
@@ -292,9 +297,11 @@ async def assemble(req: SheetRequest, sources, today: date) -> AssembledInputs:
         notices.append(Notice("parcel_soil_from_zones", {
             "zones_sampled": zone_mean.zones_sampled, "zones_total": zone_mean.zones_total,
             "area_pct": zone_mean.area_pct}))
-        if soil_inputs.parcel_fallback_fields:
-            notices.append(Notice("parcel_soil_fields_from_parcel", {
-                "fields": ", ".join(soil_inputs.parcel_fallback_fields)}))
+        notices.extend(zone_mean.notices)
+        # A reading the zone samples carry but cannot be used has its own notice above.
+        taken = [f for f in soil_inputs.parcel_fallback_fields if f not in zone_mean.unusable]
+        if taken:
+            notices.append(Notice("parcel_soil_fields_from_parcel", {"fields": taken}))
     water = await sources.water_quality(req.water_quality_id) if req.water_quality_id else None
     irrigation = irrigation_credit(req.irrigated, req.water_m3_ha, _no3(req, water, notices),
                                    overrides)

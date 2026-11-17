@@ -59,40 +59,76 @@ def test_the_mean_is_weighted_by_the_zone_area_not_the_outer_ring():
 
 def test_a_field_present_in_only_some_zones_is_the_mean_over_those():
     m = parcel_zone_mean([
-        sample("a", *IN_A, sand=40.0, phosphorusAvailable=10.0, phosphorusMethod="olsen"),
-        sample("b", *IN_B, sand=60.0)], nested())
+        sample("a", *IN_A, sand=40.0, clay=20.0, phosphorusAvailable=10.0, phosphorusMethod="olsen"),
+        sample("b", *IN_B, sand=60.0, clay=30.0)], nested())
     h = horizon(m)
     assert h["sand"] == pytest.approx(44.0)
     assert h["phosphorusAvailable"] == pytest.approx(10.0)   # only zone A has P
-    assert "potassiumExchangeable" not in h and "clay" not in h
+    assert "potassiumExchangeable" not in h and "ph" not in h
+
+
+def test_sand_and_clay_are_one_reading_taken_only_where_both_are_present():
+    m = parcel_zone_mean([sample("a", *IN_A, sand=40.0, clay=20.0, ph=7.0),
+                          sample("b", *IN_B, sand=60.0, ph=8.0)], nested())
+    h = horizon(m)
+    assert h["sand"] == pytest.approx(40.0) and h["clay"] == pytest.approx(20.0)   # zone A only
+    assert h["ph"] == pytest.approx(7.2)
+    none = parcel_zone_mean([sample("a", *IN_A, sand=40.0, ph=7.0),
+                             sample("b", *IN_B, clay=30.0, ph=8.0)], nested())
+    assert "sand" not in horizon(none) and "clay" not in horizon(none)
 
 
 def test_samples_before_the_zoning_date_are_ignored():
-    old = sample("old", *IN_B, day="2026-09-01", sand=99.0)
-    m = parcel_zone_mean([sample("a", *IN_A, sand=40.0), old], nested())
-    assert horizon(m)["sand"] == pytest.approx(40.0)
-    assert (m.zones_sampled, m.area_pct) == (1, 80.0)
-    assert parcel_zone_mean([old], nested()) is None
+    old = sample("old", *IN_B, day="2026-09-01", sand=99.0, clay=1.0)
+    m = parcel_zone_mean([sample("a", *IN_A, sand=40.0, clay=20.0),
+                          sample("b", *IN_B, sand=60.0, clay=30.0), old], nested())
+    assert horizon(m)["sand"] == pytest.approx(44.0)
+    assert parcel_zone_mean([sample("a", *IN_A, sand=40.0), old], nested()) is None
 
 
 def test_a_zone_uses_the_mean_of_its_newest_date_only():
-    m = parcel_zone_mean([sample("a1", *IN_A, day="2026-10-02", sand=10.0),
-                          sample("a2", *IN_A, day="2026-10-06", sand=40.0),
-                          sample("a3", *IN_A, day="2026-10-06", sand=50.0)], nested())
+    m = parcel_zone_mean([sample("a1", *IN_A, day="2026-10-02", sand=10.0, clay=10.0),
+                          sample("a2", *IN_A, day="2026-10-06", sand=40.0, clay=20.0),
+                          sample("a3", *IN_A, day="2026-10-06", sand=50.0, clay=20.0),
+                          sample("b", *IN_B, day="2026-10-06", sand=45.0, clay=20.0)], nested(area_a=1.0, area_b=1.0))
     assert horizon(m)["sand"] == pytest.approx(45.0) and m.analysis["samplingDate"] == "2026-10-06"
 
 
-def test_a_zone_without_a_usable_area_is_left_out_of_mean_and_coverage():
-    m = parcel_zone_mean([sample("a", *IN_A, sand=40.0), sample("b", *IN_B, sand=60.0)],
-                         nested(area_b=None))
-    assert horizon(m)["sand"] == pytest.approx(40.0) and m.area_pct == 100.0
-    assert m.zones_total == 2
+def test_a_zone_without_a_usable_area_cannot_make_a_campaign_and_is_not_counted():
+    two = [sample("a", *IN_A, sand=40.0, clay=20.0), sample("b", *IN_B, sand=60.0, clay=30.0)]
+    assert parcel_zone_mean(two, nested(area_b=None)) is None      # one weighted zone only
+    z = nested()
+    bare = ZoneRead("urn:ngsi-ld:AgriManagementZone:p:C", "C", 2,
+                    {"type": "Polygon", "coordinates": [[[20, 20], [21, 20], [21, 21], [20, 21], [20, 20]]]},
+                    None, None, ())
+    m = parcel_zone_mean([*two, sample("c", 20.5, 20.5, sand=1.0, clay=1.0)],
+                         replace(z, zones=(*z.zones, bare)))
+    assert horizon(m)["sand"] == pytest.approx(44.0) and (m.zones_sampled, m.zones_total) == (2, 2)
 
 
 def test_no_campaign_without_zone_samples_or_without_a_zoning_date():
     assert parcel_zone_mean([], nested()) is None
     assert parcel_zone_mean([sample("far", 50, 50, sand=1.0)], nested()) is None
-    assert parcel_zone_mean([sample("a", *IN_A, sand=40.0)], nested(date_=None)) is None
+    two = [sample("a", *IN_A, sand=40.0), sample("b", *IN_B, sand=60.0)]
+    assert parcel_zone_mean(two, nested(date_=None)) is None
+
+
+def test_a_campaign_needs_two_different_zones_with_samples_of_the_same_day():
+    one = [sample("a", *IN_A, sand=40.0, clay=20.0)]
+    assert parcel_zone_mean(one, nested()) is None                  # one located analysis
+    two_in_a = [*one, sample("a2", *IN_A, sand=50.0, clay=20.0)]
+    assert parcel_zone_mean(two_in_a, nested()) is None             # same zone twice
+    other_day = [*one, sample("b", *IN_B, day="2026-10-07", sand=60.0, clay=30.0)]
+    assert parcel_zone_mean(other_day, nested()) is None            # two zones, two days
+    same_day = [*one, sample("b", *IN_B, sand=60.0, clay=30.0)]
+    assert parcel_zone_mean(same_day, nested()) is not None
+
+
+def test_unusable_zone_readings_are_reported_not_hidden():
+    bad = sample("a", *IN_A, sand=40.0, clay=20.0, phosphorusAvailable=10.0, phosphorusMethod="x")
+    m = parcel_zone_mean([bad, sample("b", *IN_B, sand=60.0, clay=30.0)], nested())
+    assert m.unusable == ("soil.p_olsen_mg_kg",) and "phosphorusAvailable" not in horizon(m)
+    assert [n.code for n in m.notices] == ["soil_p_method_unsupported"]
 
 
 # ---- build_soil ----------------------------------------------------------------------------
@@ -202,7 +238,9 @@ def test_a_field_no_zone_has_comes_from_the_parcel_analysis():
     for name, v in (("sand_pct", 40.0), ("clay_pct", 25.0), ("ph", 7.8), ("organic_matter_pct", 1.9)):
         assert s.values[name].value == v and s.values[name].source == "soil:lab-analysis:a1"
     assert s.values["sand_pct"].provenance == "measured"
-    assert set(s.parcel_fallback_fields) == {"sand", "clay", "ph", "organicMatter"}
+    assert set(s.parcel_fallback_fields) == {"soil.sand_pct", "soil.clay_pct", "soil.ph",
+                                             "soil.organic_matter_pct"}
+    assert (s.parcel_fallback_id, s.parcel_fallback_date) == ("a1", "2026-09-01")
 
 
 def test_a_zone_mean_covering_everything_has_no_fallback():
@@ -221,6 +259,121 @@ async def test_assemble_takes_pk_from_the_zones_and_the_rest_from_the_parcel_ana
     assert v["p_olsen_mg_kg"].source == f"soil:zone-mean:{RUN}"
     assert v["sand_pct"].source == "soil:lab-analysis:a1" and v["sand_pct"].value == 40.0
     codes = {n.code: n.params for n in a.notices}
-    assert set(codes["parcel_soil_fields_from_parcel"]["fields"].split(", ")) == {
-        "sand", "clay", "ph", "organicMatter"}
+    assert set(codes["parcel_soil_fields_from_parcel"]["fields"]) == {
+        "soil.sand_pct", "soil.clay_pct", "soil.ph", "soil.organic_matter_pct"}
     assert calculate(a).status == COMPLETE
+
+
+# ---- owner rule, fallback provenance, unusable readings --------------------------------------
+
+def test_a_single_post_zoning_located_analysis_is_not_a_campaign():
+    d = complete_data()
+    d["zones"] = {URN: zone_set([0.4, 0.6])}
+    d["analyses"][URN] += [pk("z0", 4.0, 90.0, d["zones"][URN][0]["id"])]
+    import asyncio
+    a = asyncio.run(assemble(REQ, FakeSources(**d), TODAY))
+    base = complete_data()
+    b = asyncio.run(assemble(REQ, FakeSources(**base), TODAY))
+    assert a.soil.analysis_id == "z0"        # today: the newest analysis with fertility data
+    assert not [n for n in a.notices if n.code.startswith("parcel_soil")]
+    assert b.soil.analysis_id == "a1"
+
+
+async def test_two_zones_on_different_days_are_not_a_campaign():
+    from datetime import timedelta
+
+    from app.plans.clock import legal_today
+    d = campaign_data()
+    d["analyses"][URN][-1]["samplingDate"] = (legal_today() + timedelta(days=1)).isoformat()
+    a = await assemble(REQ, FakeSources(**d), TODAY)
+    assert a.soil.analysis_id != f"zone-mean:{RUN}"
+    assert not [n for n in a.notices if n.code.startswith("parcel_soil")]
+
+
+async def test_a_failing_zone_mean_keeps_the_newest_analysis_and_says_so(monkeypatch):
+    import app.calc.assemble as mod
+
+    def boom(*a, **k):
+        raise ValueError("broken zone geometry")
+    monkeypatch.setattr(mod, "parcel_zone_mean", boom)
+    a = await assemble(REQ, FakeSources(**campaign_data()), TODAY)
+    assert a.soil.analysis_id != f"zone-mean:{RUN}"
+    assert [n.code for n in a.notices if n.code.startswith("parcel_soil")] == [
+        "parcel_soil_zones_unavailable"]
+
+
+async def test_a_broken_zone_geometry_is_survived():
+    d = campaign_data()
+    d["zones"][URN][0]["location"] = {"type": "Polygon", "coordinates": "broken"}
+    d["analyses"][URN][-1].pop("hasAgriManagementZone")
+    d["analyses"][URN][-1]["location"] = {"lat": 0.5, "lon": 0.5}
+    a = await assemble(REQ, FakeSources(**d), TODAY)
+    assert a.soil.analysis_id is not None          # either today's choice or a mean, never a crash
+
+
+async def test_the_fallback_analysis_is_recorded_for_the_plan():
+    d = campaign_data()
+    for a in d["analyses"][URN]:
+        if a["id"] in ("z0", "z1"):
+            for k in ("sand", "clay", "ph", "organicMatter"):
+                del a["horizons"][0][k]
+        else:
+            a["samplingDate"] = "2015-03-01"
+    a = await assemble(REQ, FakeSources(**d), TODAY)
+    assert a.soil.parcel_fallback_id == "a1" and a.soil.parcel_fallback_date == "2015-03-01"
+    item = calculate(a).inputs["soil.analysis_id"]
+    assert item["parcel_fallback"] == {
+        "id": "a1", "sampling_date": "2015-03-01",
+        "fields": ["soil.sand_pct", "soil.clay_pct", "soil.ph", "soil.organic_matter_pct"]}
+
+
+async def test_unusable_zone_readings_keep_their_notices_and_are_not_called_unmeasured():
+    d = campaign_data()
+    for a in d["analyses"][URN]:
+        if a["id"] == "z0":
+            a["horizons"][0]["phosphorusMethod"] = "unknown-method"
+    a = await assemble(REQ, FakeSources(**d), TODAY)
+    codes = [n.code for n in a.notices]
+    assert "soil_p_method_unsupported" in codes
+    # Zone 1 still gives P, so P stays a zone value and nothing is taken from the parcel.
+    assert "parcel_soil_fields_from_parcel" not in codes
+
+
+async def test_unusable_in_every_zone_p_falls_to_the_parcel_but_is_not_listed():
+    d = campaign_data()
+    for a in d["analyses"][URN]:
+        if a["id"] in ("z0", "z1"):
+            a["horizons"][0]["phosphorusMethod"] = "unknown-method"
+    a = await assemble(REQ, FakeSources(**d), TODAY)
+    codes = {n.code: n.params for n in a.notices}
+    assert "soil_p_method_unsupported" in codes
+    assert a.soil.values["p_olsen_mg_kg"].source == "soil:lab-analysis:a1"
+    assert "soil.p_olsen_mg_kg" in a.soil.parcel_fallback_fields       # recorded for the plan
+    assert "parcel_soil_fields_from_parcel" not in codes or \
+        "soil.p_olsen_mg_kg" not in codes["parcel_soil_fields_from_parcel"]["fields"]
+
+
+def test_bulk_density_is_listed_only_when_used():
+    bd = dict(H, bulkDensity=1.3)
+    lab = {"id": "a1", "samplingDate": "2015-03-01", "horizons": [bd]}
+    only_pk = {"id": "zone-mean:r", "samplingDate": DAY, "horizons": [
+        {"depthFrom": 0, "depthTo": 30, "phosphorusAvailable": 7.0, "phosphorusMethod": "olsen"}]}
+    used = build_soil([lab], [], None, None, {}, only_pk)
+    assert "soil.bulk_density_g_cm3" in used.parcel_fallback_fields
+    from app.inputs.provenance import Override
+    ov = {"soil.bulk_density_g_cm3": Override("soil.bulk_density_g_cm3", 1.1, "x", "u",
+                                              "2026-10-13T10:00:00Z")}
+    over = build_soil([lab], [], None, None, ov, only_pk)
+    assert "soil.bulk_density_g_cm3" not in over.parcel_fallback_fields
+    out_of_range = {"id": "a1", "samplingDate": "2015-03-01", "horizons": [dict(H, bulkDensity=9.0)]}
+    assert "soil.bulk_density_g_cm3" not in build_soil(
+        [out_of_range], [], None, None, {}, only_pk).parcel_fallback_fields
+
+
+async def test_located_samples_with_an_undated_zoning_are_flagged():
+    d = campaign_data()
+    for e in d["zones"][URN]:
+        del e["dateZoned"]
+    a = await assemble(REQ, FakeSources(**d), TODAY)
+    assert "zone_soil_no_zoning_date" in [n.code for n in a.notices]
+    assert a.soil.analysis_id != f"zone-mean:{RUN}"

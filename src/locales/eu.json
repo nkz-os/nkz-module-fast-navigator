@@ -147,7 +147,8 @@
     "soil_om_estimated": "Materia organikoa estimatua ({{om_pct}} %) Lurzoru moduluko karbono organikotik ({{oc_pct}} % × 1,724). Ez da analisia: igo bat ordezkatzeko.",
     "parcel_soil_from_zones": "Partzelaren lurzorua zona-laginen batez bestekoa da ({{zones_total}} zonatik {{zones_sampled}}, azaleraren % {{area_pct}}). Aukeratu analisi bat beste bat erabiltzeko.",
     "parcel_soil_zones_unavailable": "Ezin izan dira zonak irakurri: partzelaren lurzorua analisi berriena da.",
-    "parcel_soil_fields_from_parcel": "Zonaren batean ere neurtu gabe, partzelaren analisitik hartua edo estimatua: {{fields}}."
+    "parcel_soil_fields_from_parcel": "Partzelaren analisitik hartuak, zona-laginik ez baitzuen eman: {{fields}}.",
+    "zone_soil_no_zoning_date": "Zonifikazioak ez du datarik: ez dira zona-laginak erabili partzelaren lurzorurako."
   },
   "list": {
     "title": "Ongarritze-planak",

@@ -10,6 +10,7 @@ from statistics import fmean
 
 from nkz_platform_sdk.gis.zones import zone_of
 
+from app.inputs.provenance import Notice
 from app.inputs.soil import (
     analysis_k,
     analysis_mineral_n,
@@ -17,6 +18,7 @@ from app.inputs.soil import (
     analysis_p_olsen,
     has_n_values,
     topsoil_mean,
+    unusable_readings,
     zone_mean_id,
 )
 
@@ -165,25 +167,41 @@ def post_zoning_analyses(analyses: list[dict], zoning: ZoningRead) -> list[dict]
     return [a for a in analyses if sampling_day(a) and (sampling_day(a) or "") >= zoned[:10]]
 
 
+def located_without_zoning_date(analyses: list[dict], zoning: ZoningRead) -> bool:
+    """The zoning has no date, so no analysis can be told to be a zone sample, and some analysis
+    is located (or linked to a zone): the zones' own soil is being left out for that reason."""
+    return (zoning.date or zoning.image_date) is None and any(
+        a.get("location") or attr(a, "hasAgriManagementZone") for a in analyses)
+
+
 @dataclass(frozen=True)
 class ZoneMean:
     """The parcel soil of a zone campaign: a synthetic analysis (the area-weighted mean of the
     zones) and how much of the parcel the sampled zones cover."""
     analysis: dict
     zones_sampled: int
-    zones_total: int
+    zones_total: int                       # zones with a usable area (the ones that can be weighted)
     area_pct: float
     sample_ids: frozenset = frozenset()    # the zone samples (assigned to a zone of the zoning)
+    unusable: tuple[str, ...] = ()         # soil.* readings the zone samples carry but cannot be used
+    notices: tuple[Notice, ...] = ()       # why (the usual soil_p_* / soil_k_* notices)
 
 
-def _horizon_reader(key: str):
-    return lambda a: topsoil_mean(a.get("horizons") or [], key)
+def _horizon_reader(key: str, partner: str | None = None):
+    """Reads `key` of the topsoil; with `partner`, only from analyses that carry both (sand and
+    clay are one reading: a texture must not mix two sources)."""
+    def read(a: dict) -> float | None:
+        hz = a.get("horizons") or []
+        if partner is not None and topsoil_mean(hz, partner) is None:
+            return None
+        return topsoil_mean(hz, key)
+    return read
 
 
 # Synthetic-analysis key -> how one analysis yields it (the same readers the zone soil uses).
 _MEAN_FIELDS = {
-    "sand": _horizon_reader("sand"),
-    "clay": _horizon_reader("clay"),
+    "sand": _horizon_reader("sand", "clay"),
+    "clay": _horizon_reader("clay", "sand"),
     "ph": _horizon_reader("ph"),
     "organicMatter": _horizon_reader("organicMatter"),
     "phosphorusAvailable": analysis_p_olsen,       # Olsen-equivalent mg/kg
@@ -193,15 +211,20 @@ _MEAN_FIELDS = {
 
 def parcel_zone_mean(analyses: list[dict], zoning: ZoningRead) -> ZoneMean | None:
     """Area-weighted mean over the zones of `zoning` that have their own samples, or None when
-    no zone with a usable area has any (no zone campaign).
+    there is no zone campaign: at least two DIFFERENT zones must have samples of the SAME
+    sampling day (owner decision; one located analysis is not a campaign).
 
     Each zone contributes, per field, what `_newest_mean` gives (newest sampling date, mean of
     that date), weighted by the zone entity's `area_ha` (not the outer ring: zones nest). A field
     present in only some zones is the mean over those. ASSUMPTION: a zone without a usable
-    area cannot be weighted and is left out of the mean and of the coverage.
+    area cannot be weighted and is left out of the mean, of the coverage and of the campaign test.
     """
     by_zone, _ = assign_analyses(post_zoning_analyses(analyses, zoning), zoning)
     weighted = [(z, z.area_ha) for z in zoning.zones if z.area_ha]
+    days_by_zone = {z.id: {sampling_day(a) for a in by_zone.get(z.id) or []} for z, _ in weighted}
+    if not any(sum(1 for days in days_by_zone.values() if day in days) >= 2
+               for day in set().union(*days_by_zone.values())):
+        return None
     total_area = sum(a for _, a in weighted)
     sums: dict[str, list[float]] = {k: [0.0, 0.0] for k in _MEAN_FIELDS}   # sum(v*a), sum(a)
     dates: list[str] = []
@@ -231,8 +254,15 @@ def parcel_zone_mean(analyses: list[dict], zoning: ZoningRead) -> ZoneMean | Non
         horizon["phosphorusMethod"] = "olsen"
     if "potassiumExchangeable" in horizon:
         horizon["potassiumMethod"] = "ammonium_acetate"
+    unusable: dict[str, None] = {}
+    notices: list[Notice] = []
+    for rows in by_zone.values():
+        for a in rows:
+            fields, found = unusable_readings(a)
+            unusable.update(dict.fromkeys(fields))
+            notices.extend(n for n in found if n not in notices)
+    sample_ids = frozenset(a.get("id") for rows in by_zone.values() for a in rows)
     synthetic = {"id": zone_mean_id(zoning.run_id), "samplingDate": max(dates),
                  "horizons": [horizon]}
-    sample_ids = frozenset(a.get("id") for rows in by_zone.values() for a in rows)
-    return ZoneMean(synthetic, sampled, len(zoning.zones), round(100 * covered / total_area, 1),
-                    sample_ids)
+    return ZoneMean(synthetic, sampled, len(weighted), round(100 * covered / total_area, 1),
+                    sample_ids, tuple(unusable), tuple(notices))

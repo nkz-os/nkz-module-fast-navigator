@@ -78,6 +78,15 @@ function AdjustControl({ plan, sheet, param, current, onSaved }: {
   );
 }
 
+/** Notice params as strings; a list of soil fields (`soil.ph`...) is written with the parameter names. */
+function noticeParams(params: Record<string, unknown>, t: (key: string) => string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(params ?? {})) {
+    out[k] = Array.isArray(v) ? v.map((x) => t(paramLabelKey(String(x)))).join(', ') : String(v);
+  }
+  return out;
+}
+
 export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onReload }: Props) {
   const { t, i18n } = useTranslation('fast-navigator');
   const lang = i18n.language;
@@ -218,7 +227,7 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
         <Stack gap="tight">
           {result.notices.map((n, i) => (
             <p key={`${n.code}-${i}`} className="text-nkz-sm text-nkz-warning">
-              ⚠ {t(`notice.${n.code}`, { ...(n.params as Record<string, string>), defaultValue: `${n.code} ${JSON.stringify(n.params)}` })}
+              ⚠ {t(`notice.${n.code}`, { ...noticeParams(n.params as Record<string, unknown>, t), defaultValue: `${n.code} ${JSON.stringify(n.params)}` })}
             </p>
           ))}
         </Stack>

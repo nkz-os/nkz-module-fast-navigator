@@ -169,9 +169,10 @@ def post_zoning_analyses(analyses: list[dict], zoning: ZoningRead) -> list[dict]
 
 def located_without_zoning_date(analyses: list[dict], zoning: ZoningRead) -> bool:
     """The zoning has no date, so no analysis can be told to be a zone sample, and some analysis
-    is located (or linked to a zone): the zones' own soil is being left out for that reason."""
-    return (zoning.date or zoning.image_date) is None and any(
-        a.get("location") or attr(a, "hasAgriManagementZone") for a in analyses)
+    is located inside (or linked to) a zone of it: the zones' own soil is being left out."""
+    if (zoning.date or zoning.image_date) is not None:
+        return False
+    return bool(assign_analyses(analyses, zoning)[0])
 
 
 @dataclass(frozen=True)
@@ -183,8 +184,7 @@ class ZoneMean:
     zones_total: int                       # zones with a usable area (the ones that can be weighted)
     area_pct: float
     sample_ids: frozenset = frozenset()    # the zone samples (assigned to a zone of the zoning)
-    unusable: tuple[str, ...] = ()         # soil.* readings the zone samples carry but cannot be used
-    notices: tuple[Notice, ...] = ()       # why (the usual soil_p_* / soil_k_* notices)
+    notices: tuple[Notice, ...] = ()       # unusable P/K readings of the zones' newest samples
 
 
 def _horizon_reader(key: str, partner: str | None = None):
@@ -221,7 +221,10 @@ def parcel_zone_mean(analyses: list[dict], zoning: ZoningRead) -> ZoneMean | Non
     """
     by_zone, _ = assign_analyses(post_zoning_analyses(analyses, zoning), zoning)
     weighted = [(z, z.area_ha) for z in zoning.zones if z.area_ha]
-    days_by_zone = {z.id: {sampling_day(a) for a in by_zone.get(z.id) or []} for z, _ in weighted}
+    # Only analyses that give an averaged field count: an N-only sample is not a soil campaign.
+    days_by_zone = {z.id: {sampling_day(a) for a in by_zone.get(z.id) or []
+                           if any(read(a) is not None for read in _MEAN_FIELDS.values())}
+                    for z, _ in weighted}
     if not any(sum(1 for days in days_by_zone.values() if day in days) >= 2
                for day in set().union(*days_by_zone.values())):
         return None
@@ -254,15 +257,15 @@ def parcel_zone_mean(analyses: list[dict], zoning: ZoningRead) -> ZoneMean | Non
         horizon["phosphorusMethod"] = "olsen"
     if "potassiumExchangeable" in horizon:
         horizon["potassiumMethod"] = "ammonium_acetate"
-    unusable: dict[str, None] = {}
     notices: list[Notice] = []
     for rows in by_zone.values():
-        for a in rows:
-            fields, found = unusable_readings(a)
-            unusable.update(dict.fromkeys(fields))
-            notices.extend(n for n in found if n not in notices)
+        dated = [a for a in rows if sampling_day(a)]
+        newest = max((sampling_day(a) for a in dated), default=None)
+        for a in dated:
+            if sampling_day(a) == newest:
+                notices.extend(n for n in unusable_readings(a)[1] if n not in notices)
     sample_ids = frozenset(a.get("id") for rows in by_zone.values() for a in rows)
     synthetic = {"id": zone_mean_id(zoning.run_id), "samplingDate": max(dates),
                  "horizons": [horizon]}
     return ZoneMean(synthetic, sampled, len(weighted), round(100 * covered / total_area, 1),
-                    sample_ids, tuple(unusable), tuple(notices))
+                    sample_ids, tuple(notices))

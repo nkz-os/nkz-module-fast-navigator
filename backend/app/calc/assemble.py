@@ -298,10 +298,9 @@ async def assemble(req: SheetRequest, sources, today: date) -> AssembledInputs:
             "zones_sampled": zone_mean.zones_sampled, "zones_total": zone_mean.zones_total,
             "area_pct": zone_mean.area_pct}))
         notices.extend(zone_mean.notices)
-        # A reading the zone samples carry but cannot be used has its own notice above.
-        taken = [f for f in soil_inputs.parcel_fallback_fields if f not in zone_mean.unusable]
-        if taken:
-            notices.append(Notice("parcel_soil_fields_from_parcel", {"fields": taken}))
+        if soil_inputs.parcel_fallback_fields:
+            notices.append(Notice("parcel_soil_fields_from_parcel",
+                                  {"fields": list(soil_inputs.parcel_fallback_fields)}))
     water = await sources.water_quality(req.water_quality_id) if req.water_quality_id else None
     irrigation = irrigation_credit(req.irrigated, req.water_m3_ha, _no3(req, water, notices),
                                    overrides)

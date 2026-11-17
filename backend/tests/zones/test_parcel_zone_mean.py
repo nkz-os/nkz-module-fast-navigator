@@ -127,7 +127,7 @@ def test_a_campaign_needs_two_different_zones_with_samples_of_the_same_day():
 def test_unusable_zone_readings_are_reported_not_hidden():
     bad = sample("a", *IN_A, sand=40.0, clay=20.0, phosphorusAvailable=10.0, phosphorusMethod="x")
     m = parcel_zone_mean([bad, sample("b", *IN_B, sand=60.0, clay=30.0)], nested())
-    assert m.unusable == ("soil.p_olsen_mg_kg",) and "phosphorusAvailable" not in horizon(m)
+    assert "phosphorusAvailable" not in horizon(m)
     assert [n.code for n in m.notices] == ["soil_p_method_unsupported"]
 
 
@@ -339,7 +339,7 @@ async def test_unusable_zone_readings_keep_their_notices_and_are_not_called_unme
     assert "parcel_soil_fields_from_parcel" not in codes
 
 
-async def test_unusable_in_every_zone_p_falls_to_the_parcel_but_is_not_listed():
+async def test_unusable_in_every_zone_p_falls_to_the_parcel_and_is_listed():
     d = campaign_data()
     for a in d["analyses"][URN]:
         if a["id"] in ("z0", "z1"):
@@ -349,8 +349,7 @@ async def test_unusable_in_every_zone_p_falls_to_the_parcel_but_is_not_listed():
     assert "soil_p_method_unsupported" in codes
     assert a.soil.values["p_olsen_mg_kg"].source == "soil:lab-analysis:a1"
     assert "soil.p_olsen_mg_kg" in a.soil.parcel_fallback_fields       # recorded for the plan
-    assert "parcel_soil_fields_from_parcel" not in codes or \
-        "soil.p_olsen_mg_kg" not in codes["parcel_soil_fields_from_parcel"]["fields"]
+    assert "soil.p_olsen_mg_kg" in codes["parcel_soil_fields_from_parcel"]["fields"]
 
 
 def test_bulk_density_is_listed_only_when_used():
@@ -377,3 +376,30 @@ async def test_located_samples_with_an_undated_zoning_are_flagged():
     a = await assemble(REQ, FakeSources(**d), TODAY)
     assert "zone_soil_no_zoning_date" in [n.code for n in a.notices]
     assert a.soil.analysis_id != f"zone-mean:{RUN}"
+
+
+def test_nitrogen_only_samples_do_not_make_a_soil_campaign():
+    def n_only(i, lon, lat):
+        return sample(i, lon, lat, nitrateN=5.0, ammoniumN=5.0)
+
+    assert parcel_zone_mean([n_only("a", *IN_A), n_only("b", *IN_B)], nested()) is None
+    assert parcel_zone_mean([n_only("a", *IN_A), sample("b", *IN_B, sand=60.0, clay=30.0)],
+                            nested()) is None
+    assert parcel_zone_mean([n_only("a", *IN_A), sample("a2", *IN_A, sand=1.0, clay=1.0),
+                             sample("b", *IN_B, sand=60.0, clay=30.0)], nested()) is not None
+
+
+def test_unusable_reading_notices_come_from_each_zones_newest_date_only():
+    old_bad = sample("old", *IN_A, day="2026-10-02", phosphorusAvailable=10.0, phosphorusMethod="x")
+    new_ok = sample("a", *IN_A, sand=40.0, clay=20.0, phosphorusAvailable=10.0,
+                    phosphorusMethod="olsen")
+    m = parcel_zone_mean([old_bad, new_ok, sample("b", *IN_B, sand=60.0, clay=30.0)], nested())
+    assert m.notices == ()
+
+
+def test_the_undated_zoning_notice_needs_an_analysis_inside_a_zone():
+    from app.zones.soil import located_without_zoning_date
+    undated = nested(date_=None)
+    assert located_without_zoning_date([sample("a", *IN_A, sand=1.0)], undated)
+    assert not located_without_zoning_date([sample("far", 50, 50, sand=1.0)], undated)
+    assert not located_without_zoning_date([sample("a", *IN_A, sand=1.0)], nested())

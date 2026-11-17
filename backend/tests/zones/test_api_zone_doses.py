@@ -463,15 +463,16 @@ def test_a_zone_nmin_replaces_the_parcel_one_in_that_zone_only(client, data):
     with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, hasAgriManagementZone=zone_id(0)))
     plan = calculated_plan(client, SOIL_SHEET)
     res = ask(client, plan, strategy="potential").json()
-    # parcel Nmin 27; gross 87 shared by vigor (0.8, 1.2, 1, 1); zone 0 Nmin 29.7
-    assert doses(res) == [39.9, 77.4, 60.0, 60.0]
+    # parcel Nmin 27, zone 0 Nmin 29.7: share by vigor (48, 72, 60, 60), zone 0 credits 2.7 more
+    assert doses(res) == [45.3, 72.0, 60.0, 60.0]
+    assert [z["capped"] for z in res["zones"]] == [True, False, False, False]
     z0 = res["zones"][0]
     assert z0["nmin_kg_ha"] == 29.7 and z0["basis"] == "zone_soil"
-    assert z0["soil_analysis"] == {"id": "zn0", "date": NMIN_DATE, "n_samples": 0,
+    assert z0["soil_analysis"] == {"id": "zn0", "date": NMIN_DATE, "n_samples": 1,
                                    "p_date": None, "k_date": None}
     assert res["zones"][1]["nmin_kg_ha"] is None and res["zones"][1]["basis"] == "vigor"
     assert res["zones"][1]["soil_analysis"] is None
-    assert res["cap"]["min_n_kg_ha"] == 42.6 and res["cap"]["max_n_kg_ha"] == 77.4
+    assert res["cap"]["min_n_kg_ha"] == 48.0 and res["cap"]["max_n_kg_ha"] == 72.0
     codes = [n["code"] for n in res["notices"]]
     assert "zone_soil_missing" in codes
     missing = next(n for n in res["notices"] if n["code"] == "zone_soil_missing")
@@ -482,6 +483,8 @@ def test_the_nmin_floor_is_zero(client, data):
     with_analyses(data, nmin_analysis("zn0", 80.0, 30.0, hasAgriManagementZone=zone_id(0)))
     res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
     assert res["zones"][0]["n_kg_ha"] == 0.0
+    floored = [n for n in res["notices"] if n["code"] == "zone_dose_floored"]
+    assert floored == [{"code": "zone_dose_floored", "params": {"zone": zone_id(0)}}]
 
 
 def test_uniform_subtracts_the_zone_nmin(client, data):
@@ -602,7 +605,7 @@ def test_a_zone_calculation_failing_only_affects_that_zone(client, data, monkeyp
 
     def flaky(a):
         seen.append(1)
-        if len(seen) == 1:
+        if len(seen) == 2:          # the first call is the parcel's own rerun
             raise ValueError("boom")
         return real(a)
 
@@ -610,7 +613,140 @@ def test_a_zone_calculation_failing_only_affects_that_zone(client, data, monkeyp
     res = ask(client, plan, strategy="potential").json()
     z = res["zones"]
     parcel = res["rest"]["p2o5_kg_ha"]
-    assert z[0]["p2o5_kg_ha"] == parcel and z[0]["soil_analysis"] is not None
+    assert z[0]["p2o5_kg_ha"] == parcel and z[0]["soil_analysis"] is None
+    assert z[0]["basis"] == "vigor" and z[1]["basis"] == "zone_soil"
     assert z[1]["p2o5_kg_ha"] > parcel
     failed = [n for n in res["notices"] if n["code"] == "zone_soil_calc_failed"]
     assert failed == [{"code": "zone_soil_calc_failed", "params": {"zone": zone_id(0)}}]
+
+
+def strip_soil(res):
+    """The response without the additive zone-soil keys."""
+    out = {k: v for k, v in res.items() if k not in ("units", "versions")}
+    out["zones"] = [{k: v for k, v in z.items()
+                     if k not in ("nmin_kg_ha", "p2o5_kg_ha", "k2o_kg_ha")} for z in res["zones"]]
+    out["rest"] = {k: v for k, v in res["rest"].items() if k not in ("p2o5_kg_ha", "k2o_kg_ha")}
+    return out
+
+
+def test_the_sheets_own_located_analyses_are_not_zone_samples(client, data):
+    plan = calculated_plan(client, SOIL_SHEET)
+    plain = {s: ask(client, plan, strategy=s).json() for s in ("uniform", "potential")}
+    inside = {"location": {"lat": 0.5, "lon": 0.5}}
+    data["analyses"][URN] = [{**data["analyses"][URN][0], **inside}, nmin_analysis(
+        "n1", 5.0, 5.0, **inside)]
+    for s_, before in plain.items():
+        res = ask(client, plan, strategy=s_).json()
+        assert res == before
+        assert {z["basis"] for z in res["zones"]} <= {"sheet", "vigor"}
+        assert {z["soil_analysis"] for z in res["zones"]} == {None}
+
+
+def test_the_default_analysis_of_the_sheet_is_not_a_zone_sample_either(client, data):
+    plan = calculated_plan(client)                 # no ids chosen: the newest is picked
+    before = ask(client, plan, strategy="potential").json()
+    data["analyses"][URN][0]["location"] = {"lat": 0.5, "lon": 0.5}
+    res = ask(client, plan, strategy="potential").json()
+    assert res == before and res["notices"] == []
+    assert {z["soil_analysis"] for z in res["zones"]} == {None}
+
+
+def two_applications(client, data):
+    """Two N applications: seq 0 first (60 N), seq 1 later."""
+    sheet = {**SOIL_SHEET, "applications": [FERT, {**FERT, "stage": "top_dressing"}]}
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, hasAgriManagementZone=zone_id(0)))
+    return calculated_plan(client, sheet)
+
+
+def codes(res):
+    return [n["code"] for n in res["notices"]]
+
+
+def test_zone_nmin_applies_to_the_first_application_only(client, data):
+    plan = two_applications(client, data)
+    first = ask(client, plan, strategy="potential", target={"application_seq": 0}).json()
+    assert first["zones"][0]["n_kg_ha"] == 45.3 and "zone_nmin_first_pass_only" not in codes(first)
+    later = ask(client, plan, strategy="potential", target={"application_seq": 1}).json()
+    assert doses(later) == [48.0, 72.0, 60.0, 60.0]
+    assert later["zones"][0]["basis"] == "vigor" and later["zones"][0]["soil_analysis"] is None
+    note = next(n for n in later["notices"] if n["code"] == "zone_nmin_first_pass_only")
+    assert note["params"] == {"applied": False}
+
+
+def test_a_free_dose_gets_the_zone_nmin_and_the_warning(client, data):
+    plan = two_applications(client, data)
+    res = ask(client, plan, strategy="potential").json()
+    assert res["zones"][0]["n_kg_ha"] == 45.3
+    note = next(n for n in res["notices"] if n["code"] == "zone_nmin_first_pass_only")
+    assert note["params"] == {"applied": True}
+
+
+def test_p_and_k_are_flagged_when_the_inputs_changed_since_the_calculation(client, data):
+    with_analyses(data, pk_analysis("zp0", 4.0, 90.0, hasAgriManagementZone=zone_id(0)))
+    plan = calculated_plan(client, SOIL_SHEET)
+    assert "zone_soil_inputs_changed" not in codes(ask(client, plan, strategy="potential").json())
+    data["analyses"][URN][0]["horizons"][0]["phosphorusAvailable"] = 3.0      # the parcel's a1
+    res = ask(client, plan, strategy="potential").json()
+    assert "zone_soil_inputs_changed" in codes(res)
+    assert res["rest"]["p2o5_kg_ha"] == 50.3          # the stored value is kept
+
+
+def test_recalculation_is_asked_only_when_an_old_result_had_an_nmin_analysis(client, data,
+                                                                            monkeypatch):
+    import app.calc.sheet as sheet_mod
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, hasAgriManagementZone=zone_id(0)))
+    real = sheet_mod._inputs
+
+    def old(a):
+        out = real(a)
+        out.pop("soil.nmin_analysis")
+        return out
+
+    monkeypatch.setattr(sheet_mod, "_inputs", old)
+    old_plan = calculated_plan(client, SOIL_SHEET)
+    res = ask(client, old_plan, strategy="potential").json()
+    assert "zone_nmin_needs_recalculation" in codes(res)
+    assert {z["nmin_kg_ha"] for z in res["zones"]} == {None}
+
+
+def test_no_recalculation_notice_when_the_old_result_had_no_nmin_analysis(client, data,
+                                                                         monkeypatch):
+    import app.calc.sheet as sheet_mod
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, hasAgriManagementZone=zone_id(0)))
+    real = sheet_mod._inputs
+    monkeypatch.setattr(sheet_mod, "_inputs",
+                        lambda a: {k: v for k, v in real(a).items() if k != "soil.nmin_analysis"})
+    plan = calculated_plan(client)                    # no Nmin analysis chosen
+    assert "zone_nmin_needs_recalculation" not in codes(
+        ask(client, plan, strategy="potential").json())
+
+
+def test_basis_is_zone_soil_only_for_values_actually_used(client, data, monkeypatch):
+    with_analyses(data, pk_analysis("zp0", 4.0, 90.0, hasAgriManagementZone=zone_id(0)))
+    plan = calculated_plan(client, SOIL_SHEET, calculate=False)
+    for param, value in (("soil.p_olsen_mg_kg", 20.0), ("soil.k_mg_kg", 200.0)):
+        r = client.put(f"{BASE}/{plan['id']}/sheets/wheat/overrides/{param}", headers={**HOLDER, "X-User-Roles": "TenantAdmin,TechnicalConsultant"},
+                       json={"row_version": plan["row_version"], "value": value, "reason": "lab"})
+        assert r.status_code == 200, r.text
+        plan = r.json()
+    r = client.post(f"{BASE}/{plan['id']}/calculate", headers=HOLDER,
+                    json={"row_version": plan["row_version"]})
+    assert r.status_code == 200, r.text
+    plan = r.json()
+    res = ask(client, plan, strategy="potential").json()
+    assert res["zones"][0]["basis"] == "vigor" and res["zones"][0]["soil_analysis"] is None
+
+
+def test_an_nmin_only_zone_counts_its_nmin_analyses(client, data):
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, hasAgriManagementZone=zone_id(0)),
+                  nmin_analysis("zn0b", 6.0, 3.0, hasAgriManagementZone=zone_id(0)))
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    assert res["zones"][0]["soil_analysis"]["n_samples"] == 2
+    assert res["zones"][0]["basis"] == "zone_soil"
+
+
+def test_a_zone_nmin_alone_counts_one_sample(client, data):
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, hasAgriManagementZone=zone_id(0)))
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    assert res["zones"][0]["soil_analysis"] == {"id": "zn0", "date": NMIN_DATE, "n_samples": 1,
+                                                "p_date": None, "k_date": None}

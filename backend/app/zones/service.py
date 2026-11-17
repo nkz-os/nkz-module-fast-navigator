@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 VERSION = "1.1.0"
 IMAGE_MAX_AGE_DAYS = 30
+INPUTS_TOLERANCE = 0.5          # kg/ha: P2O5/K2O drift beyond which the stored sheet is out of date
 COVER_TOLERANCE = 0.01          # share of the parcel area below which a gap is not reported
 
 
@@ -135,19 +136,15 @@ def _has_n_values(analysis: dict) -> bool:
                for h in analysis.get("horizons") or [])
 
 
-def attr_link(analysis: dict):
-    """The zone an analysis names explicitly (any spelling), or None."""
-    return attr(analysis, "hasAgriManagementZone")
-
-
-def _soil_view(zs: ZoneSoil, analyses: list[dict]) -> dict:
+def _soil_view(zs: ZoneSoil, analyses: list[dict], nmin_used: bool) -> dict:
     """Which sample backs the zone. `id` is the first analysis behind P/K (the newest of those
-    averaged), else the first one carrying the zone's mineral N on the sheet's date."""
-    first = zs.analysis_ids[0] if zs.analysis_ids else next(
-        (a.get("id") for a in analyses
-         if zs.nmin_date and str(a.get("samplingDate") or "")[:10] == zs.nmin_date
-         and _has_n_values(a)), None)
-    return {"id": first, "date": zs.date or zs.nmin_date, "n_samples": zs.n_samples,
+    averaged), else the first one carrying the zone's mineral N on the sheet's date;
+    `n_samples` also counts the mineral-N analyses when that is what the zone uses."""
+    on_date = [a for a in analyses if nmin_used and zs.nmin_date
+               and str(a.get("samplingDate") or "")[:10] == zs.nmin_date and _has_n_values(a)]
+    first = zs.analysis_ids[0] if zs.analysis_ids else (on_date[0].get("id") if on_date else None)
+    return {"id": first, "date": zs.date or (zs.nmin_date if nmin_used else None),
+            "n_samples": max(zs.n_samples, len(on_date)),
             "p_date": zs.p_date, "k_date": zs.k_date}
 
 
@@ -246,7 +243,14 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
     soil_ok = True
     try:
         analyses = await sources.lab_analyses(parcel_urn)
-        by_zone, outside = assign_analyses(analyses, zoning)
+        # The analyses the sheet itself was calculated from are the PARCEL's reading: they are
+        # not zone samples, however they were georeferenced.
+        chosen = {i for i in (
+            (inputs.get("soil.analysis_id") or {}).get("value"),
+            (inputs.get("soil.nmin_analysis") or {}).get("value"),
+            sheet.inputs.get("soil_analysis_id"), sheet.inputs.get("nmin_analysis_id")) if i}
+        by_zone, outside = assign_analyses(
+            [a for a in analyses if a.get("id") not in chosen], zoning)
     except Exception:
         logger.exception("zone soil unavailable (lab analyses) %s", where)
         soil_ok = False
@@ -260,14 +264,16 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
         soil_notices.extend(zs.notices)
     own = {zid: zs for zid, zs in zone_soils.items()
            if zs.p_olsen_mg_kg is not None or zs.k_mg_kg is not None or zs.nmin_kg_ha is not None}
-    if nmin_input is None and any(_has_n_values(a) for rows_ in by_zone.values() for a in rows_):
-        # A result stored before the date of its mineral-N analysis was recorded.
+    mineral_source = str((inputs.get("soil.mineral_n_kg_ha") or {}).get("source") or "")
+    if (nmin_input is None and mineral_source.startswith("soil:lab-analysis:")
+            and any(_has_n_values(a) for rows_ in by_zone.values() for a in rows_)):
+        # A result stored (with an Nmin analysis chosen) before that analysis' date was recorded.
         soil_notices.append(_notice("zone_nmin_needs_recalculation"))
     if own:
         gone = [z.label or z.id for z in zones if z.id not in own]
         if gone:
             soil_notices.append(_notice("zone_soil_missing", zones=gone))
-    n_outside = sum(1 for a in outside if a.get("location") or attr_link(a))
+    n_outside = sum(1 for a in outside if a.get("location") or attr(a, "hasAgriManagementZone"))
     if n_outside:
         soil_notices.append(_notice("zone_soil_outside", n=n_outside))
 
@@ -285,6 +291,12 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
             logger.exception("zone soil unavailable (assembly) %s", where)
             soil_ok = False
         else:
+            parcel_run = calculate(assembled)
+            fresh = (_num((parcel_run.p2o5 or {}).get("rate_kg_ha")),
+                     _num((parcel_run.k2o or {}).get("rate_kg_ha")))
+            if any((a is None) != (b is None) or (a is not None and abs(a - b) > INPUTS_TOLERANCE)
+                   for a, b in zip(fresh, (parcel_p, parcel_k))):
+                soil_notices.append(_notice("zone_soil_inputs_changed"))
             failed: list[str] = []
             oxides = _zone_oxides(assembled, own, {o.get("param") for o in sheet.overrides},
                                   failed, where)
@@ -293,23 +305,36 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
         zone_soils, own, soil_notices, outside = {}, {}, [_notice("zone_soil_unavailable")], []
     notices.extend(soil_notices)
 
-    # Nitrogen. The sheet's N already nets the parcel's mineral N (Nmin_p) off. With a zone that
-    # has its own Nmin the gross need (N + Nmin_p) is shared by vigor, then each zone credits ITS
-    # Nmin: dose_z = share_z(N + Nmin_p) - Nmin_z, floor 0 (Nmin_z = Nmin_p without its own).
-    # The cap acts inside the sharing, on the gross need; the measured credit is not capped.
+    # Nitrogen. The sheet's N already nets the parcel's mineral N (Nmin_p) off. A zone with its own
+    # Nmin credits only the difference: dose_z = share_z(N) - (Nmin_z - Nmin_p), floor 0. A zone
+    # without one has Nmin_z = Nmin_p: exactly the share of today. The sharing (and its cap) is
+    # the unchanged vigor distribution of the target; the measured difference is not capped.
+    # Owner decision: the correction is for the FIRST N pass only (an Nmin measured before sowing
+    # says nothing of later top-dressings).
     nmin_p = _num(((result.get("n") or {}).get("credits_kg_ha") or {}).get("soil_mineral_n"))
     zone_nmin = {zid: zs.nmin_kg_ha for zid, zs in own.items() if zs.nmin_kg_ha is not None}
+    if zone_nmin and target.application_seq is not None:
+        organic = [OrganicApplication(**o) for o in sheet.inputs.get("organic") or []]
+        first_n = next((i for i, a in enumerate(sheet.applications)
+                        if nutrients(ApplicationIn.model_validate(a), organic).n_kg_ha > 0), None)
+        if target.application_seq != first_n:
+            notices.append(_notice("zone_nmin_first_pass_only", applied=False))
+            zone_nmin = {}
+    elif zone_nmin and target.application_seq is None:
+        # ASSUMPTION: a free dose given by the technician is treated as the first N pass.
+        notices.append(_notice("zone_nmin_first_pass_only", applied=True))
     n_credit = bool(zone_nmin) and target_n is not None and nmin_p is not None
-    base_n = target_n + nmin_p if n_credit else target_n
+    if not n_credit:
+        zone_nmin = {}
 
     doses: dict[str, tuple[float | None, float | None, bool, float | None]] = {}
     saturated = False
     if effective == "uniform":
         for z in zones:
-            doses[z.id] = (None, 1.0, False, base_n)
+            doses[z.id] = (None, 1.0, False, target_n)
     else:
         dist = distribute([ZoneInput(z.id, z.area_ha, z.mean_value) for z in zones], effective,
-                          cap_pct, base_n)
+                          cap_pct, target_n)
         saturated = dist.saturated
         for d in dist.zones:
             doses[d.key] = (d.relative_vigor, d.factor, d.capped, d.n_kg_ha)
@@ -317,9 +342,15 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
         if age:
             notices.append(age)
     if n_credit:
-        for zid, (vigor, factor, capped, n) in list(doses.items()):
-            credit = zone_nmin.get(zid, nmin_p)
-            doses[zid] = (vigor, factor, capped, max(n - credit, 0.0))
+        lo, hi = target_n * (1 - cap_pct / 100.0), target_n * (1 + cap_pct / 100.0)
+        for zid, nmin_z in zone_nmin.items():
+            vigor, factor, capped, n = doses[zid]
+            net = n - (nmin_z - nmin_p)
+            if net < 0:
+                notices.append(_notice("zone_dose_floored", zone=zid))
+                net = 0.0
+            outside_cap = net < lo - 1e-9 or net > hi + 1e-9
+            doses[zid] = (vigor, factor, capped or outside_cap, net)
 
     if saturated:
         notices.append(_notice("cap_saturated", cap_pct=cap_pct))
@@ -336,15 +367,17 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
         shared = effective != "uniform" and factor is not None
         zs = own.get(z.id)
         z_p, z_k = oxides.get(z.id, (None, None))
+        uses = zs is not None and (z_p is not None or z_k is not None or z.id in zone_nmin)
         rows.append({
             "zone_id": z.id, "label": z.label, "rank": z.rank, "level": z.level, "area_ha": _round(z.area_ha, 4),
-            "basis": "zone_soil" if zs else ("vigor" if shared else "sheet"),
+            "basis": "zone_soil" if uses else ("vigor" if shared else "sheet"),
             "relative_vigor": _round(vigor, 4), "factor": _round(factor, 4), "capped": capped,
             "n_kg_ha": _round(n, 2), "product_kg_ha": _round(product_rate(n), 2),
             "nmin_kg_ha": _round(zone_nmin.get(z.id), 2),
             "p2o5_kg_ha": _round(parcel_p if z_p is None else z_p, 2),
             "k2o_kg_ha": _round(parcel_k if z_k is None else z_k, 2),
-            "soil_analysis": _soil_view(zs, by_zone.get(z.id, [])) if zs else None,
+            "soil_analysis": (_soil_view(zs, by_zone.get(z.id, []), z.id in zone_nmin)
+                              if uses else None),
             "missing": missing})
 
     areas = [z.area_ha for z in zones]
@@ -382,8 +415,6 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
 
     n = result.get("n")
     cap = cap_pct / 100.0
-    # With zone Nmin the bounds are those of the gross share, net of the parcel's Nmin.
-    credit_p = nmin_p if n_credit else 0.0
     logger.info("zone doses tenant=%s plan=%s sheet=%s parcel=%s run=%s strategy=%s effective=%s "
                 "reason=%s zones=%d zone_soil=%d outside=%d", actor.tenant_id, plan.id, sheet_key,
                 parcel_urn, zoning_run_id, strategy, effective, reason, len(zones), len(own),
@@ -403,10 +434,8 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
                    "product": ({"name": product.name, "n_pct": product.n_pct}
                                if product else None)},
         "cap": {"pct": cap_pct,
-                "min_n_kg_ha": _round(None if base_n is None
-                                      else max(base_n * (1 - cap) - credit_p, 0.0), 2),
-                "max_n_kg_ha": _round(None if base_n is None
-                                      else max(base_n * (1 + cap) - credit_p, 0.0), 2)},
+                "min_n_kg_ha": _round(None if target_n is None else target_n * (1 - cap), 2),
+                "max_n_kg_ha": _round(None if target_n is None else target_n * (1 + cap), 2)},
         "zones": rows, "rest": rest, "totals": totals, "notices": notices,
         "units": {"n": "kg N/ha", "product": "kg/ha", "p2o5": "kg P2O5/ha",
                   "k2o": "kg K2O/ha"},

@@ -124,7 +124,7 @@ def test_nmin_without_bulk_density_is_none_and_incomplete():
     del a["horizons"][0]["bulkDensity"]
     z = zone_soil(ZA, [a], nmin_date="2026-02-01", class_bd=None)
     assert z.nmin_kg_ha is None
-    assert {"code": "zone_nmin_incomplete", "params": {"zone": ZA}} in z.notices
+    assert {"code": "zone_nmin_incomplete", "params": {"zone": ZA, "analyses": ["urn:lab:1"]}} in z.notices
 
 
 def test_nmin_class_bd_fallback():
@@ -144,3 +144,43 @@ def test_p_bray_converted_to_olsen():
 def test_k_unsupported_method_is_none():
     z = zone_soil(ZA, [an(1, **p_k(potassiumMethod="mehlich3"))], nmin_date=None, class_bd=None)
     assert z.k_mg_kg is None and z.p_olsen_mg_kg == 10.0
+
+
+def test_mixed_pk_dates_are_traced():
+    p_only = an(1, date="2025-03-01", phosphorusAvailable=12.0, phosphorusMethod="olsen")
+    k_only = an(2, date="2026-03-01", potassiumExchangeable=150.0, potassiumMethod="ammonium_acetate")
+    z = zone_soil(ZA, [p_only, k_only], nmin_date=None, class_bd=None)
+    assert (z.p_date, z.k_date, z.date) == ("2025-03-01", "2026-03-01", "2026-03-01")
+    assert {"code": "zone_soil_mixed_dates",
+            "params": {"zone": ZA, "p_date": "2025-03-01", "k_date": "2026-03-01"}} in z.notices
+
+
+def test_same_dates_no_mixed_notice():
+    z = zone_soil(ZA, [an(1, **p_k())], nmin_date=None, class_bd=None)
+    assert (z.p_date, z.k_date) == ("2026-03-01", "2026-03-01")
+    assert "zone_soil_mixed_dates" not in codes(z)
+
+
+def test_undated_analysis_is_dropped():
+    a = an(1, **p_k())
+    a["samplingDate"] = None
+    z = zone_soil(ZA, [a], nmin_date=None, class_bd=None)
+    assert z.p_olsen_mg_kg is None and z.analysis_ids == () and z.date is None
+
+
+def test_timestamp_date_matches_nmin_date():
+    z = zone_soil(ZA, [nmin(1, "2026-02-01T00:00:00Z")], nmin_date="2026-02-01", class_bd=None)
+    assert abs(z.nmin_kg_ha - 42.12) < 0.01
+
+
+def test_incomplete_names_the_analysis():
+    a = nmin(1, "2026-02-01")
+    del a["horizons"][0]["bulkDensity"]
+    z = zone_soil(ZA, [a], nmin_date="2026-02-01", class_bd=None)
+    assert {"code": "zone_nmin_incomplete",
+            "params": {"zone": ZA, "analyses": ["urn:lab:1"]}} in z.notices
+
+
+def test_assign_link_bare_string_and_object_agree():
+    a, b = an(1, link=ZB), an(2, link={"object": ZB})
+    assert assign_analyses([a, b], zoning())[0] == {ZB: [a, b]}

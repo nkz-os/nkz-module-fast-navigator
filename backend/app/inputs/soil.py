@@ -163,6 +163,26 @@ def _mineral_n(analysis: dict | None, class_bd: float | None
     return Sourced(soil_mineral_n(layers), MEASURED, src), notices
 
 
+def analysis_p_olsen(analysis: dict) -> float | None:
+    """Topsoil P of one analysis as Olsen-equivalent mg/kg; None if absent or method unusable."""
+    hz = analysis.get("horizons") or []
+    got = _lab_p(hz, None, analysis.get("id"), [])
+    return got.value if got is not None else None
+
+
+def analysis_k(analysis: dict) -> float | None:
+    """Topsoil ammonium-acetate K of one analysis (mg/kg); None if absent or method unusable."""
+    hz = analysis.get("horizons") or []
+    got = _lab_k(hz, None, analysis.get("id"), [])
+    return got.value if got is not None else None
+
+
+def analysis_mineral_n(analysis: dict, class_bd: float | None) -> float | None:
+    """Mineral N of one analysis (kg N/ha); None when it cannot be credited (no values, no DA)."""
+    got, _ = _mineral_n(analysis, class_bd)
+    return got.value if got.known else None
+
+
 def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | None,
                nmin_analysis_id: str | None, overrides: dict[str, Override]) -> SoilInputs:
     notices: list[Notice] = []

@@ -929,3 +929,49 @@ def test_the_depth_lookup_is_skipped_when_the_soil_is_unavailable(client, data, 
     res = ask(client, plan, strategy="potential").json()
     assert codes(res) == ["zone_soil_unavailable"]
     assert "depth of the parcel" not in caplog.text
+
+
+def test_with_a_zone_mean_parcel_soil_the_zone_samples_still_count_as_zone_samples(client, data):
+    from tests.zones.test_parcel_zone_mean import pk
+
+    data["analyses"][URN] += [pk("zp0", 4.0, 90.0, zone_id(0)), pk("zp1", 8.0, 110.0, zone_id(1))]
+    res = ask(client, calculated_plan(client), strategy="potential").json()
+    z = res["zones"]
+    assert [x["basis"] for x in z] == ["zone_soil", "zone_soil", "vigor", "vigor"]
+    assert [x["soil_analysis"]["id"] for x in z[:2]] == ["zp0", "zp1"]
+    assert z[0]["p2o5_kg_ha"] > res["rest"]["p2o5_kg_ha"] > z[1]["p2o5_kg_ha"]
+    assert {x["p2o5_kg_ha"] for x in z[2:]} == {res["rest"]["p2o5_kg_ha"]}
+    assert "zone_soil_inputs_changed" not in [n["code"] for n in res["notices"]]
+
+
+def _only_pk(a):
+    for k in ("sand", "clay", "ph", "organicMatter"):
+        a["horizons"][0].pop(k)
+    return a
+
+
+def test_the_zones_are_read_once_per_request(client, data, monkeypatch):
+    from tests.zones.test_parcel_zone_mean import pk
+    data["analyses"][URN] += [pk("zp0", 4.0, 90.0, zone_id(0)), pk("zp1", 8.0, 110.0, zone_id(1))]
+    plan = calculated_plan(client)
+    calls = []
+    original = FakeSources.zone_entities
+
+    async def counting(self, urn):
+        calls.append(urn)
+        return await original(self, urn)
+
+    monkeypatch.setattr(FakeSources, "zone_entities", counting)
+    assert ask(client, plan, strategy="potential").status_code == 200
+    assert calls == [URN]
+
+
+def test_the_fallback_analysis_of_the_parcel_soil_is_not_reported_as_outside(client, data):
+    from tests.zones.test_parcel_zone_mean import pk
+    par = pk("par", 14.0, 220.0, day=LATER)
+    par["location"] = {"lat": 5.0, "lon": 5.0}
+    data["analyses"][URN] += [_only_pk(pk("zp0", 4.0, 90.0, zone_id(0))),
+                              _only_pk(pk("zp1", 8.0, 110.0, zone_id(1))), par]
+    res = ask(client, calculated_plan(client), strategy="potential").json()
+    assert "zone_soil_outside" not in [n["code"] for n in res["notices"]]
+    assert [x["basis"] for x in res["zones"]][:2] == ["zone_soil", "zone_soil"]

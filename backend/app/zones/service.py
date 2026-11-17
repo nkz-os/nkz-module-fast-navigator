@@ -22,7 +22,7 @@ from app.plans.applications import ApplicationIn, nutrients
 from app.plans.service import Actor, Invalid, NotFound, _area, _load, _request
 from app.zones.doses import ZoneInput, distribute
 from app.zones.read import ZoneRead, ZoningRead, attr, select_zoning, zonings_of
-from app.zones.soil import ZoneSoil, assign_analyses, sampling_day, zone_soil
+from app.zones.soil import ZoneSoil, assign_analyses, post_zoning_analyses, sampling_day, zone_soil
 
 logger = logging.getLogger(__name__)
 
@@ -116,8 +116,15 @@ class _AnalysesOnce:
     """The sources of one request, with the parcel's lab analyses already fetched: `assemble`
     must not ask the soil service again for what the zone assignment just read."""
 
-    def __init__(self, sources, urn: str, analyses: list[dict]):
+    def __init__(self, sources, urn: str, analyses: list[dict],
+                 zone_entities: list[dict] | None = None):
         self._sources, self._urn, self._analyses = sources, urn, analyses
+        self._zone_entities = zone_entities     # already read by the caller: read once per request
+
+    async def zone_entities(self, urn: str) -> list[dict]:
+        if urn == self._urn and self._zone_entities is not None:
+            return self._zone_entities
+        return await self._sources.zone_entities(urn)
 
     async def lab_analyses(self, urn: str) -> list[dict]:
         if urn == self._urn:
@@ -218,7 +225,8 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
 
     target_n, target_source, product = _resolve_target(sheet, target)
 
-    zoning = select_zoning(await sources.zone_entities(parcel_urn), parcel_urn, zoning_run_id)
+    zone_entities = await sources.zone_entities(parcel_urn)
+    zoning = select_zoning(zone_entities, parcel_urn, zoning_run_id)
     if zoning is None:
         raise NotFound(f"zoning {zoning_run_id} of parcel {parcel_urn}")
     zones = _ordered(zoning.zones)
@@ -255,14 +263,14 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
                 soil_notices.append(_notice("zone_soil_no_zoning_date"))
             candidates: list[dict] = []
         else:
-            candidates = [a for a in analyses if (sampling_day(a) or "") >= zoned[:10]
-                          and sampling_day(a)]
+            candidates = post_zoning_analyses(analyses, zoning)
         by_zone, outside = assign_analyses(candidates, zoning)
         # The analyses the sheet itself was calculated from are the PARCEL's reading, not zone
         # samples, however they were georeferenced; unless another zone analysis shares their
         # sampling date: then it is a zone campaign and they are one of its samples.
         chosen = {i for i in (
             (inputs.get("soil.analysis_id") or {}).get("value"),
+            ((inputs.get("soil.analysis_id") or {}).get("parcel_fallback") or {}).get("id"),
             (inputs.get("soil.nmin_analysis") or {}).get("value"),
             sheet.inputs.get("soil_analysis_id"), sheet.inputs.get("nmin_analysis_id")) if i}
         campaign_days = {sampling_day(a) for rows_ in by_zone.values() for a in rows_
@@ -325,7 +333,8 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
                        for zs in own.values()):
         try:
             assembled = await assemble(_request(plan.campaign, sheet),
-                                       _AnalysesOnce(sources, parcel_urn, analyses), today)
+                                       _AnalysesOnce(sources, parcel_urn, analyses, zone_entities),
+                                       today)
         except Exception:
             logger.exception("zone soil unavailable (assembly) %s", where)
             soil_ok = False

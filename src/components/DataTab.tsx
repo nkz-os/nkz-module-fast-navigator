@@ -78,6 +78,15 @@ function AdjustControl({ plan, sheet, param, current, onSaved }: {
   );
 }
 
+/** Notice params as strings; a list of soil fields (`soil.ph`...) is written with the parameter names. */
+function noticeParams(params: Record<string, unknown>, t: (key: string) => string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(params ?? {})) {
+    out[k] = Array.isArray(v) ? v.map((x) => t(paramLabelKey(String(x)))).join(', ') : String(v);
+  }
+  return out;
+}
+
 export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onReload }: Props) {
   const { t, i18n } = useTranslation('fast-navigator');
   const lang = i18n.language;
@@ -218,7 +227,7 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
         <Stack gap="tight">
           {result.notices.map((n, i) => (
             <p key={`${n.code}-${i}`} className="text-nkz-sm text-nkz-warning">
-              ⚠ {t(`notice.${n.code}`, { ...(n.params as Record<string, string>), defaultValue: `${n.code} ${JSON.stringify(n.params)}` })}
+              ⚠ {t(`notice.${n.code}`, { ...noticeParams(n.params as Record<string, unknown>, t), defaultValue: `${n.code} ${JSON.stringify(n.params)}` })}
             </p>
           ))}
         </Stack>
@@ -336,12 +345,18 @@ export function DataTab({ plan, sheet, parcels, editable, roles, onSaved, onRelo
       <Surface variant="raised" padding="stack">
         <Stack gap="inline">
           <h3 id="field-soil" className="font-semibold text-nkz-text-primary">{t('data.section.soil')}</h3>
-          {inputs['soil.analysis_id'] && (
-            <p className="text-nkz-sm text-nkz-text-secondary">
-              {t('data.analysis', { id: String((inputs['soil.analysis_id'] as { value?: unknown }).value ?? '—'),
-                date: formatDate((inputs['soil.analysis_id'] as { sampling_date?: string | null }).sampling_date, lang) })}
-            </p>
-          )}
+          {inputs['soil.analysis_id'] && (() => {
+            const a = inputs['soil.analysis_id'] as { value?: unknown; sampling_date?: string | null };
+            const date = formatDate(a.sampling_date, lang);
+            // The mean of a zone campaign is not an analysis of the soil service: no raw id.
+            return (
+              <p className="text-nkz-sm text-nkz-text-secondary">
+                {String(a.value ?? '').startsWith('zone-mean:')
+                  ? t('data.analysisZoneMean', { date })
+                  : t('data.analysis', { id: String(a.value ?? '—'), date })}
+              </p>
+            );
+          })()}
           {SOIL_PARAMS.map(row)}
           {editable && (
             <FormGrid columns={2}>

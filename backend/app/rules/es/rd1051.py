@@ -71,6 +71,16 @@ def _soil_findings(ctx: PlanContext):
                 sampled = date.fromisoformat(str(raw)[:10])
             except ValueError:
                 sampled = None
+            # A zone campaign's mean may lean on another analysis for some values: the oldest
+            # date that feeds a checked value is the one that must be recent.
+            fallback = analysis.get("parcel_fallback") or {}
+            if set(fallback.get("fields") or ()) & set(SOIL_FIELDS):
+                try:
+                    older = date.fromisoformat(str(fallback.get("sampling_date"))[:10])
+                except ValueError:
+                    sampled = None
+                else:
+                    sampled = older if sampled is None else min(sampled, older)
             if sampled is None:
                 params["reasons"].append("no_sampling_date")
                 params["max_age_years"] = years

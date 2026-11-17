@@ -144,7 +144,11 @@
     "double_crop_campaign": "La campagne {{campaign}} a {{count}} cycles : cette fiche en utilise un.",
     "crop_differs_from_cycle": "La culture déclarée ({{declared}}) diffère du cycle ({{cycle}}) ; la déclarée prévaut.",
     "double_crop_first_cycle_unknown": "Le premier cycle de la campagne {{campaign}} est inconnu.",
-    "soil_om_estimated": "Matière organique estimée ({{om_pct}} %) à partir du carbone organique du module Sol ({{oc_pct}} % × 1,724). Ce n’est pas une analyse : téléversez-en une pour la remplacer."
+    "soil_om_estimated": "Matière organique estimée ({{om_pct}} %) à partir du carbone organique du module Sol ({{oc_pct}} % × 1,724). Ce n’est pas une analyse : téléversez-en une pour la remplacer.",
+    "parcel_soil_from_zones": "Le sol de la parcelle est la moyenne des échantillons de zone ({{zones_sampled}} zones sur {{zones_total}}, {{area_pct}} % de la surface). Choisissez une analyse pour en utiliser une autre.",
+    "parcel_soil_zones_unavailable": "Les zones n'ont pas pu être lues : le sol de la parcelle est l'analyse la plus récente.",
+    "parcel_soil_fields_from_parcel": "Repris de l'analyse de la parcelle car aucun échantillon de zone ne les a fournis : {{fields}}.",
+    "zone_soil_no_zoning_date": "Le zonage n'a pas de date : les échantillons de zone n'ont pas servi pour le sol de la parcelle."
   },
   "list": {
     "title": "Plans de fertilisation",
@@ -307,6 +311,7 @@
     "declaredYield": "Rendement déclaré {{year}}",
     "addYear": "+ Déclarer une année",
     "analysis": "Analyse {{id}} · {{date}}",
+    "analysisZoneMean": "Moyenne des zones · {{date}}",
     "soilAnalysis": "Analyse de sol",
     "nminAnalysis": "Analyse de N minéral",
     "rainfed": "Sec : il n'y a pas d'eau d'irrigation à compter.",

@@ -10,12 +10,16 @@ from statistics import fmean
 
 from nkz_platform_sdk.gis.zones import zone_of
 
+from app.inputs.provenance import Notice
 from app.inputs.soil import (
     analysis_k,
     analysis_mineral_n,
     analysis_n_depth,
     analysis_p_olsen,
     has_n_values,
+    topsoil_mean,
+    unusable_readings,
+    zone_mean_id,
 )
 
 from .read import ZoningRead, attr
@@ -152,3 +156,116 @@ def zone_soil(zone_id: str, analyses: list[dict], *, nmin_date: str | None,
                     tuple(str(a.get("id")) for a in p_used),
                     tuple(str(a.get("id")) for a in k_used),
                     tuple(str(a.get("id")) for a in nmin_used))
+
+
+def post_zoning_analyses(analyses: list[dict], zoning: ZoningRead) -> list[dict]:
+    """The analyses that may be zone samples of this zoning: taken on or after its date (owner
+    decision: older ones describe the parcel, not these zones). None when the zoning has no date."""
+    zoned = zoning.date or zoning.image_date
+    if zoned is None:
+        return []
+    return [a for a in analyses if sampling_day(a) and (sampling_day(a) or "") >= zoned[:10]]
+
+
+def located_without_zoning_date(analyses: list[dict], zoning: ZoningRead) -> bool:
+    """The zoning has no date, so no analysis can be told to be a zone sample, and some analysis
+    is located inside (or linked to) a zone of it: the zones' own soil is being left out."""
+    if (zoning.date or zoning.image_date) is not None:
+        return False
+    return bool(assign_analyses(analyses, zoning)[0])
+
+
+@dataclass(frozen=True)
+class ZoneMean:
+    """The parcel soil of a zone campaign: a synthetic analysis (the area-weighted mean of the
+    zones) and how much of the parcel the sampled zones cover."""
+    analysis: dict
+    zones_sampled: int
+    zones_total: int                       # zones with a usable area (the ones that can be weighted)
+    area_pct: float
+    sample_ids: frozenset = frozenset()    # the zone samples (assigned to a zone of the zoning)
+    notices: tuple[Notice, ...] = ()       # unusable P/K readings of the zones' newest samples
+
+
+def _horizon_reader(key: str, partner: str | None = None):
+    """Reads `key` of the topsoil; with `partner`, only from analyses that carry both (sand and
+    clay are one reading: a texture must not mix two sources)."""
+    def read(a: dict) -> float | None:
+        hz = a.get("horizons") or []
+        if partner is not None and topsoil_mean(hz, partner) is None:
+            return None
+        return topsoil_mean(hz, key)
+    return read
+
+
+# Synthetic-analysis key -> how one analysis yields it (the same readers the zone soil uses).
+_MEAN_FIELDS = {
+    "sand": _horizon_reader("sand", "clay"),
+    "clay": _horizon_reader("clay", "sand"),
+    "ph": _horizon_reader("ph"),
+    "organicMatter": _horizon_reader("organicMatter"),
+    "phosphorusAvailable": analysis_p_olsen,       # Olsen-equivalent mg/kg
+    "potassiumExchangeable": analysis_k,           # ammonium-acetate mg/kg
+}
+
+
+def parcel_zone_mean(analyses: list[dict], zoning: ZoningRead) -> ZoneMean | None:
+    """Area-weighted mean over the zones of `zoning` that have their own samples, or None when
+    there is no zone campaign: at least two DIFFERENT zones must have samples of the SAME
+    sampling day (owner decision; one located analysis is not a campaign).
+
+    Each zone contributes, per field, what `_newest_mean` gives (newest sampling date, mean of
+    that date), weighted by the zone entity's `area_ha` (not the outer ring: zones nest). A field
+    present in only some zones is the mean over those. ASSUMPTION: a zone without a usable
+    area cannot be weighted and is left out of the mean, of the coverage and of the campaign test.
+    """
+    by_zone, _ = assign_analyses(post_zoning_analyses(analyses, zoning), zoning)
+    weighted = [(z, z.area_ha) for z in zoning.zones if z.area_ha]
+    # Only analyses that give an averaged field count: an N-only sample is not a soil campaign.
+    days_by_zone = {z.id: {sampling_day(a) for a in by_zone.get(z.id) or []
+                           if any(read(a) is not None for read in _MEAN_FIELDS.values())}
+                    for z, _ in weighted}
+    if not any(sum(1 for days in days_by_zone.values() if day in days) >= 2
+               for day in set().union(*days_by_zone.values())):
+        return None
+    total_area = sum(a for _, a in weighted)
+    sums: dict[str, list[float]] = {k: [0.0, 0.0] for k in _MEAN_FIELDS}   # sum(v*a), sum(a)
+    dates: list[str] = []
+    covered = 0.0
+    sampled = 0
+    for zone, area in weighted:
+        rows = by_zone.get(zone.id) or []
+        got = False
+        for key, read in _MEAN_FIELDS.items():
+            value, _, day = _newest_mean(rows, read)
+            if value is None:
+                continue
+            sums[key][0] += value * area
+            sums[key][1] += area
+            dates.append(day)
+            got = True
+        if got:
+            sampled += 1
+            covered += area
+    if not sampled:
+        return None
+    horizon: dict = {"depthFrom": 0, "depthTo": 30}
+    for key, (acc, weight) in sums.items():
+        if weight > 0:
+            horizon[key] = acc / weight
+    if "phosphorusAvailable" in horizon:
+        horizon["phosphorusMethod"] = "olsen"
+    if "potassiumExchangeable" in horizon:
+        horizon["potassiumMethod"] = "ammonium_acetate"
+    notices: list[Notice] = []
+    for rows in by_zone.values():
+        dated = [a for a in rows if sampling_day(a)]
+        newest = max((sampling_day(a) for a in dated), default=None)
+        for a in dated:
+            if sampling_day(a) == newest:
+                notices.extend(n for n in unusable_readings(a)[1] if n not in notices)
+    sample_ids = frozenset(a.get("id") for rows in by_zone.values() for a in rows)
+    synthetic = {"id": zone_mean_id(zoning.run_id), "samplingDate": max(dates),
+                 "horizons": [horizon]}
+    return ZoneMean(synthetic, sampled, len(weighted), round(100 * covered / total_area, 1),
+                    sample_ids, tuple(notices))

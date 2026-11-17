@@ -26,6 +26,7 @@ TOPSOIL_CM = 30.0
 # Organic matter = organic carbon x 1.724 (van Bemmelen factor, the one the soil module uses).
 VAN_BEMMELEN = 1.724
 ESTIMATED_OM_SOURCE = "soil:estimated"
+ZONE_MEAN_PREFIX = "zone-mean:"
 # The FertiliCalc K thresholds are for ammonium-acetate K; other extractions are not comparable.
 K_METHODS_SUPPORTED = frozenset({"ammonium_acetate"})
 # Mineral N has its own selector (nmin_analysis_id), so an N-only analysis is not representative.
@@ -46,6 +47,16 @@ class SoilInputs:
     # zone doses credit a zone's own mineral N only if it was sampled on that same date.
     nmin_analysis_id: str | None = None
     nmin_sampling_date: str | None = None
+    # With a zone campaign: the soil.* values no zone sample gave, taken from this analysis
+    # (id, sampling date) instead. Empty when every value came from the zones or an override.
+    parcel_fallback_fields: tuple[str, ...] = ()
+    parcel_fallback_id: str | None = None
+    parcel_fallback_date: str | None = None
+
+
+def zone_mean_id(run_id: str) -> str:
+    """Id of the synthetic analysis that is the parcel soil of a zone campaign."""
+    return f"{ZONE_MEAN_PREFIX}{run_id}"
 
 
 def _num(value) -> float | None:
@@ -188,6 +199,25 @@ def analysis_k(analysis: dict) -> float | None:
     return got.value if got is not None else None
 
 
+def unusable_readings(analysis: dict) -> tuple[tuple[str, ...], list[Notice]]:
+    """The soil.* fields (P, K) the analysis carries but that cannot be used (unknown, mixed or
+    unsupported method...), with the notices that say why."""
+    hz = analysis.get("horizons") or []
+    fields: list[str] = []
+    notices: list[Notice] = []
+    for field, key, read in (("soil.p_olsen_mg_kg", "phosphorusAvailable", _lab_p),
+                             ("soil.k_mg_kg", "potassiumExchangeable", _lab_k)):
+        if topsoil_mean(hz, key) is None:
+            continue
+        try:
+            got = read(hz, None, analysis.get("id"), notices)
+        except ValueError:
+            got = None
+        if got is None:
+            fields.append(field)
+    return tuple(fields), notices
+
+
 def analysis_mineral_n(analysis: dict, class_bd: float | None) -> float | None:
     """Mineral N of one analysis (kg N/ha); None when it cannot be credited (no values, no DA,
     bad data such as a negative concentration)."""
@@ -223,19 +253,44 @@ def analysis_n_depth(analysis: dict) -> tuple[float, float] | None:
 
 
 def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | None,
-               nmin_analysis_id: str | None, overrides: dict[str, Override]) -> SoilInputs:
+               nmin_analysis_id: str | None, overrides: dict[str, Override],
+               zone_mean: dict | None = None,
+               parcel_candidates: list[dict] | None = None) -> SoilInputs:
+    """`zone_mean`: the synthetic analysis of a zone campaign; it is the parcel soil unless the
+    technician chose an analysis (`analysis_id`). The fields no zone sample has come from the
+    newest fertility analysis of `parcel_candidates` (the analyses that are not zone samples;
+    default `analyses`), then from the estimates."""
     notices: list[Notice] = []
     absent: list[MissingInput] = []
-    chosen = select_analysis(analyses, analysis_id)
+    use_zone = zone_mean is not None and not analysis_id
+    chosen = select_analysis(parcel_candidates if use_zone and parcel_candidates is not None
+                             else analyses, analysis_id)
+    zm_hz = ((zone_mean or {}).get("horizons") or []) if use_zone else []
+    zm_src = f"soil:{zone_mean['id']}" if use_zone else None
+    fallback_fields: list[str] = []
     if analysis_id and chosen is None:
         notices.append(Notice("soil_analysis_not_found", {"analysis": analysis_id}))
     hz = (chosen or {}).get("horizons") or []
     chosen_id = (chosen or {}).get("id")
     lab_src = f"soil:lab-analysis:{chosen_id}" if chosen else None
 
-    def lab(key: str) -> Sourced | None:
+    def peek(key: str) -> tuple[Sourced | None, bool]:
+        """(the lab value of `key`, whether it comes from the parcel analysis in a zone campaign)."""
+        if use_zone:
+            zone_value = topsoil_mean(zm_hz, key)
+            if zone_value is not None:
+                return Sourced(zone_value, MEASURED, zm_src), False
         value = topsoil_mean(hz, key)
-        return Sourced(value, MEASURED, lab_src) if value is not None else None
+        return (Sourced(value, MEASURED, lab_src) if value is not None else None), use_zone
+
+    def took(name: str, got: Sourced | None, from_parcel: bool) -> Sourced | None:
+        if got is not None and from_parcel:
+            fallback_fields.append(name)
+        return got
+
+    def lab(key: str, name: str) -> Sourced | None:
+        got, from_parcel = peek(key)
+        return took(name, got, from_parcel)
 
     def est(key: str, low: float, high: float) -> Sourced | None:
         value = topsoil_mean(estimated, key)
@@ -268,12 +323,18 @@ def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | N
         return missing()
 
     values: dict[str, Sourced] = {
-        "sand_pct": choose("sand_pct", lambda: lab("sand"), lambda: est("sand", 0, 100)),
-        "clay_pct": choose("clay_pct", lambda: lab("clay"), lambda: est("clay", 0, 100)),
-        "ph": choose("ph", lambda: lab("ph"), lambda: est("ph", 3, 10)),
-        "organic_matter_pct": choose("organic_matter_pct", lambda: lab("organicMatter"), est_om),
-        "p_olsen_mg_kg": choose("p_olsen_mg_kg", lambda: _lab_p(hz, lab_src, chosen_id, notices)),
-        "k_mg_kg": choose("k_mg_kg", lambda: _lab_k(hz, lab_src, chosen_id, notices)),
+        "sand_pct": choose("sand_pct", lambda: lab("sand", "soil.sand_pct"), lambda: est("sand", 0, 100)),
+        "clay_pct": choose("clay_pct", lambda: lab("clay", "soil.clay_pct"), lambda: est("clay", 0, 100)),
+        "ph": choose("ph", lambda: lab("ph", "soil.ph"), lambda: est("ph", 3, 10)),
+        "organic_matter_pct": choose("organic_matter_pct", lambda: lab("organicMatter", "soil.organic_matter_pct"), est_om),
+        "p_olsen_mg_kg": choose(
+            "p_olsen_mg_kg",
+            lambda: _lab_p(zm_hz, zm_src, None, notices) if use_zone else None,
+            lambda: took("soil.p_olsen_mg_kg", _lab_p(hz, lab_src, chosen_id, notices), use_zone)),
+        "k_mg_kg": choose(
+            "k_mg_kg",
+            lambda: _lab_k(zm_hz, zm_src, None, notices) if use_zone else None,
+            lambda: took("soil.k_mg_kg", _lab_k(hz, lab_src, chosen_id, notices), use_zone)),
     }
 
     if "soil.texture_class" in overrides:
@@ -291,11 +352,11 @@ def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | N
         values["texture_class"] = missing()
         absent.append(MissingInput("soil.texture_class", "soil", {}))
 
-    measured_bd = lab("bulkDensity")
+    measured_bd, bd_from_parcel = peek("bulkDensity")
     if "soil.bulk_density_g_cm3" in overrides:
         values["bulk_density_g_cm3"] = overrides["soil.bulk_density_g_cm3"].as_sourced()
     elif measured_bd is not None and 0.1 <= measured_bd.value <= 2.65:
-        values["bulk_density_g_cm3"] = measured_bd
+        values["bulk_density_g_cm3"] = took("soil.bulk_density_g_cm3", measured_bd, bd_from_parcel)
     elif values["texture_class"].known:
         values["bulk_density_g_cm3"] = Sourced(
             C.CLASS_BULK_DENSITY[int(values["texture_class"].value)], table("fertilicalc"),
@@ -323,6 +384,10 @@ def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | N
         notices.append(Notice(code, {"analysis": nmin_analysis_id}))
 
     provisional = any(v.provenance == ESTIMATED for v in values.values())
-    return SoilInputs(chosen_id, (chosen or {}).get("samplingDate"), values, provisional,
+    head = zone_mean if use_zone else chosen
+    return SoilInputs((head or {}).get("id"), (head or {}).get("samplingDate"), values, provisional,
                       tuple(notices), tuple(absent), tuple(nmin_missing),
-                      (nmin or {}).get("id"), (nmin or {}).get("samplingDate"))
+                      (nmin or {}).get("id"), (nmin or {}).get("samplingDate"),
+                      tuple(dict.fromkeys(fallback_fields)),
+                      chosen_id if fallback_fields else None,
+                      (chosen or {}).get("samplingDate") if fallback_fields else None)

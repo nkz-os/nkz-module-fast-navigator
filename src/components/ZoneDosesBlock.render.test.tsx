@@ -185,6 +185,12 @@ describe('ZoneDosesResult zone soil (es)', () => {
     expect(html).toContain('Análisis de la zona (15/09/2026, 2 muestras)');
     expect(html).toContain('Media de la parcela');
   });
+  it('adds the own Nmin to the mark of the zone that uses it', () => {
+    expect(html).toContain('Análisis de la zona (15/09/2026, 2 muestras) · Nmin 30 kg/ha');
+    const out = renderToStaticMarkup(<ZoneDosesResult res={{ ...soilRes, zones: [{ ...soilRes.zones[0], nmin_kg_ha: null, soil_analysis: { ...sa, n_samples: 0 } }, soilRes.zones[1]] }} />);
+    expect(out).toContain('Análisis de la zona (15/09/2026)');
+    expect(out).not.toContain('Nmin 30');
+  });
   it('outside the cap has its own label, never the cap one', () => {
     expect(html).toContain('fuera de los límites por su Nmin');
     expect(html.match(/>Tope</g)).toBeNull();

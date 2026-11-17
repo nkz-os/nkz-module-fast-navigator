@@ -1,5 +1,5 @@
 import type { ZoneBasis, ZoneDosesRequest, ZoneDosesResponse, ZoneDoseRow, ZoneStrategy, ZoningInfo } from '../api/types';
-import { DASH, formatDate, formatHa } from './format';
+import { DASH, formatDate, formatHa, formatKgHa } from './format';
 
 /** Text typed by the technician to a number: a decimal comma is accepted; anything else is null. */
 export function parseNumber(text: string): number | null {
@@ -95,14 +95,18 @@ export function noticeView(n: ZoneDosesResponse['notices'][number], lang: string
  * Where the zone's P, K and Nmin figures come from: its own analysis (with the date, or the two
  * dates when P and K differ, and the number of samples) or the parcel mean.
  */
-export function zoneMark(z: Pick<ZoneDoseRow, 'basis' | 'soil_analysis'>, lang: string): { key: string; params: Record<string, string | number> } {
+export function zoneMark(z: Pick<ZoneDoseRow, 'basis' | 'soil_analysis' | 'nmin_kg_ha'>, lang: string): { key: string; params: Record<string, string | number>; nmin?: string } {
   const a = z.soil_analysis;
   if (z.basis !== 'zone_soil' || !a) return { key: 'zoneDoses.mark.parcel', params: {} };
-  const count = a.n_samples ?? 1;
+  const count = a.n_samples && a.n_samples > 0 ? a.n_samples : null;
+  const sfx = count == null ? 'NoCount' : '';
+  const extra: Record<string, number> = count == null ? {} : { count };
+  const nmin = z.nmin_kg_ha != null ? formatKgHa(z.nmin_kg_ha, lang) : undefined;
+  const out = (key: string, params: Record<string, string | number>) => ({ key, params: { ...params, ...extra }, ...(nmin !== undefined ? { nmin } : {}) });
   if (a.p_date && a.k_date && a.p_date !== a.k_date) {
-    return { key: 'zoneDoses.mark.zoneSoilPK', params: { p: formatDate(a.p_date, lang), k: formatDate(a.k_date, lang), count } };
+    return out(`zoneDoses.mark.zoneSoilPK${sfx}`, { p: formatDate(a.p_date, lang), k: formatDate(a.k_date, lang) });
   }
-  return { key: 'zoneDoses.mark.zoneSoil', params: { date: formatDate(a.date ?? a.p_date ?? a.k_date, lang), count } };
+  return out(`zoneDoses.mark.zoneSoil${sfx}`, { date: formatDate(a.date ?? a.p_date ?? a.k_date, lang) });
 }
 
 /** The routing module reads at most this many zone rates from the link. */

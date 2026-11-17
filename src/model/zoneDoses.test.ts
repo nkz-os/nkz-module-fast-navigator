@@ -112,6 +112,18 @@ describe('zone soil notices and mark', () => {
       .toEqual({ key: 'zoneDoses.mark.zoneSoilPK', params: { p: '15/09/2026', k: '20/09/2026', count: 2 } });
     expect(zoneMark(row({}), 'es')).toEqual({ key: 'zoneDoses.mark.parcel', params: {} });
   });
+  it('hides the sample count when it is 0 or missing', () => {
+    const sa = { id: 'a', date: '2026-09-15', p_date: '2026-09-15', k_date: '2026-09-15' };
+    expect(zoneMark(row({ basis: 'zone_soil', soil_analysis: { ...sa, n_samples: 0 } }), 'es'))
+      .toEqual({ key: 'zoneDoses.mark.zoneSoilNoCount', params: { date: '15/09/2026' } });
+    expect(zoneMark(row({ basis: 'zone_soil', soil_analysis: { ...sa, k_date: '2026-09-20' } }), 'es').key).toBe('zoneDoses.mark.zoneSoilPKNoCount');
+  });
+  it('carries the zone own Nmin only for a zone-soil zone', () => {
+    const sa = { id: 'a', date: '2026-09-15', n_samples: 1, p_date: null, k_date: null };
+    expect(zoneMark(row({ basis: 'zone_soil', nmin_kg_ha: 29.7, soil_analysis: sa }), 'es').nmin).toBe('30');
+    expect(zoneMark(row({ basis: 'zone_soil', nmin_kg_ha: null, soil_analysis: sa }), 'es').nmin).toBeUndefined();
+    expect(zoneMark(row({ nmin_kg_ha: 29.7 }), 'es').nmin).toBeUndefined();
+  });
 });
 
 const RES: ZoneDosesResponse = {

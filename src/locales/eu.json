@@ -557,7 +557,10 @@
       "zoneSoil_one": "Zonaren analisia ({{date}}, {{count}} lagin)",
       "zoneSoil_other": "Zonaren analisia ({{date}}, {{count}} lagin)",
       "zoneSoilPK_one": "Zonaren analisia (P {{p}} · K {{k}}, {{count}} lagin)",
-      "zoneSoilPK_other": "Zonaren analisia (P {{p}} · K {{k}}, {{count}} lagin)"
+      "zoneSoilPK_other": "Zonaren analisia (P {{p}} · K {{k}}, {{count}} lagin)",
+      "zoneSoilNoCount": "Zonaren analisia ({{date}})",
+      "zoneSoilPKNoCount": "Zonaren analisia (P {{p}} · K {{k}})",
+      "nmin": "· Nmin {{value}} kg/ha"
     },
     "basis": {
       "vigor": "Satelite-indarraren araberako doikuntza",

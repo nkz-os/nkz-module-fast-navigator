@@ -557,7 +557,10 @@
       "zoneSoil_one": "Análisis de la zona ({{date}}, {{count}} muestra)",
       "zoneSoil_other": "Análisis de la zona ({{date}}, {{count}} muestras)",
       "zoneSoilPK_one": "Análisis de la zona (P {{p}} · K {{k}}, {{count}} muestra)",
-      "zoneSoilPK_other": "Análisis de la zona (P {{p}} · K {{k}}, {{count}} muestras)"
+      "zoneSoilPK_other": "Análisis de la zona (P {{p}} · K {{k}}, {{count}} muestras)",
+      "zoneSoilNoCount": "Análisis de la zona ({{date}})",
+      "zoneSoilPKNoCount": "Análisis de la zona (P {{p}} · K {{k}})",
+      "nmin": "· Nmin {{value}} kg/ha"
     },
     "basis": {
       "vigor": "Ajuste por vigor de satélite",

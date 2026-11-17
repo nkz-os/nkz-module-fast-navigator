@@ -64,7 +64,7 @@ const FAMILIES = [
   ...['plan_calculation_stale', 'cap_saturated', 'zoning_image_old', 'parcel_area_unknown', 'zones_do_not_cover_parcel', 'zones_exceed_parcel', 'total_above_planned',
     'zone_soil_missing', 'zone_soil_outside', 'zone_soil_aggregated', 'zone_soil_mixed_dates', 'zone_nmin_other_date', 'zone_nmin_incomplete', 'zone_nmin_needs_recalculation',
     'zone_nmin_first_pass_only_applied', 'zone_nmin_first_pass_only_not_applied', 'zone_soil_unavailable', 'zone_soil_calc_failed', 'zone_soil_inputs_changed', 'zone_dose_floored'].map((c) => `zoneDoses.notice.${c}`),
-  ...['parcel', 'zoneSoil', 'zoneSoilPK'].map((m) => `zoneDoses.mark.${m}`),
+  ...['parcel', 'zoneSoil', 'zoneSoilPK', 'zoneSoilNoCount', 'zoneSoilPKNoCount', 'nmin'].map((m) => `zoneDoses.mark.${m}`),
   ...ORGANIC_MATERIALS.map((m) => `data.organic.materials.${m}`),
   ...['year', 'future', 'duplicate'].map((k) => `data.declareYear.problem.${k}`),
   'data.missing.title', 'workspace.signedByAdvisor', 'workspace.signedByHolder', 'param.soil_texture_class',

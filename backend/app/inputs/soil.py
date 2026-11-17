@@ -41,6 +41,10 @@ class SoilInputs:
     missing: tuple[MissingInput, ...]
     # A chosen mineral-N analysis that cannot be credited: blocks N (silence would credit 0).
     nmin_missing: tuple[MissingInput, ...] = ()
+    # The analysis the mineral N was taken from (None when none was chosen), and its date: the
+    # zone doses credit a zone's own mineral N only if it was sampled on that same date.
+    nmin_analysis_id: str | None = None
+    nmin_sampling_date: str | None = None
 
 
 def _num(value) -> float | None:
@@ -285,4 +289,5 @@ def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | N
 
     provisional = any(v.provenance == ESTIMATED for v in values.values())
     return SoilInputs(chosen_id, (chosen or {}).get("samplingDate"), values, provisional,
-                      tuple(notices), tuple(absent), tuple(nmin_missing))
+                      tuple(notices), tuple(absent), tuple(nmin_missing),
+                      (nmin or {}).get("id"), (nmin or {}).get("samplingDate"))

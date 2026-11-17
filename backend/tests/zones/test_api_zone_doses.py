@@ -106,11 +106,13 @@ def test_uniform_is_the_default_and_carries_the_whole_response(client):
     assert {z["product_kg_ha"] for z in res["zones"]} == {222.22}
     assert {z["basis"] for z in res["zones"]} == {"sheet"}
     assert [z["rank"] for z in res["zones"]] == [1, 2, 3, 4]
-    assert res["rest"] == {"area_ha": 0.0, "n_kg_ha": 60.0, "product_kg_ha": 222.22}
+    assert res["rest"] == {"area_ha": 0.0, "n_kg_ha": 60.0, "product_kg_ha": 222.22,
+                           "p2o5_kg_ha": 50.3, "k2o_kg_ha": 83.76}
     assert res["totals"] == {"area_ha": 10.0, "n_kg": 600.0, "mean_n_kg_ha": 60.0,
                              "uniform_n_kg": 600.0}
-    assert res["notices"] == [] and res["units"] == {"n": "kg N/ha", "product": "kg/ha"}
-    assert res["versions"]["zone_doses"] == "1.0.0" and "calc" in res["versions"]
+    assert res["notices"] == [] and res["units"] == {
+        "n": "kg N/ha", "product": "kg/ha", "p2o5": "kg P2O5/ha", "k2o": "kg K2O/ha"}
+    assert res["versions"]["zone_doses"] == "1.1.0" and "calc" in res["versions"]
 
 
 def test_potential_and_compensate_share_the_dose_and_keep_the_mean(client):
@@ -413,3 +415,131 @@ def test_vegetation_index_and_manual_keep_their_behaviour(client, data):
     res = ask(client, calculated_plan(client), strategy="potential").json()
     assert {z["level"] for z in res["zones"]} == {None}
     assert res["zoning"]["image_date"] == res["zoning"]["date"]
+
+
+# ---- zone soil analyses -------------------------------------------------------------------
+
+def zone_id(i):
+    return f"urn:ngsi-ld:AgriManagementZone:p1:Z{i}"
+
+
+SOIL_SHEET = {**SHEET, "soil_analysis_id": "a1", "nmin_analysis_id": "n1"}
+NMIN_DATE = "2026-09-15"
+
+
+def nmin_analysis(id_, nitrate, ammonium, date=NMIN_DATE, **extra):
+    h = {"depthFrom": 0, "depthTo": 30, "nitrateN": nitrate, "ammoniumN": ammonium,
+         "bulkDensity": 1.0}
+    return {"id": id_, "samplingDate": date, "horizons": [h], **extra}
+
+
+def pk_analysis(id_, p, k, date=NMIN_DATE, **extra):
+    h = {"depthFrom": 0, "depthTo": 30, "phosphorusAvailable": p, "phosphorusMethod": "olsen",
+         "potassiumExchangeable": k, "potassiumMethod": "ammonium_acetate"}
+    return {"id": id_, "samplingDate": date, "horizons": [h], **extra}
+
+
+def with_analyses(data, *extra):
+    data["analyses"][URN] = [*data["analyses"][URN], nmin_analysis("n1", 5.0, 5.0), *extra]
+
+
+def test_without_zone_samples_the_response_is_what_it_was_plus_empty_soil_fields(client):
+    plan = calculated_plan(client)
+    res = ask(client, plan, strategy="potential").json()
+    assert doses(res) == [48.0, 72.0, 60.0, 60.0] and res["notices"] == []
+    assert [z["basis"] for z in res["zones"]] == ["vigor"] * 4
+    assert {z["soil_analysis"] for z in res["zones"]} == {None}
+    assert {z["nmin_kg_ha"] for z in res["zones"]} == {None}
+    p2o5, k2o = res["rest"]["p2o5_kg_ha"], res["rest"]["k2o_kg_ha"]
+    assert p2o5 is not None and k2o is not None
+    assert {z["p2o5_kg_ha"] for z in res["zones"]} == {p2o5}
+    assert {z["k2o_kg_ha"] for z in res["zones"]} == {k2o}
+    assert res["units"] == {"n": "kg N/ha", "product": "kg/ha", "p2o5": "kg P2O5/ha",
+                            "k2o": "kg K2O/ha"}
+    assert res["cap"] == {"pct": 20.0, "min_n_kg_ha": 48.0, "max_n_kg_ha": 72.0}
+
+
+def test_a_zone_nmin_replaces_the_parcel_one_in_that_zone_only(client, data):
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, hasAgriManagementZone=zone_id(0)))
+    plan = calculated_plan(client, SOIL_SHEET)
+    res = ask(client, plan, strategy="potential").json()
+    # parcel Nmin 27; gross 87 shared by vigor (0.8, 1.2, 1, 1); zone 0 Nmin 29.7
+    assert doses(res) == [39.9, 77.4, 60.0, 60.0]
+    z0 = res["zones"][0]
+    assert z0["nmin_kg_ha"] == 29.7 and z0["basis"] == "zone_soil"
+    assert z0["soil_analysis"] == {"id": "zn0", "date": NMIN_DATE, "n_samples": 0,
+                                   "p_date": None, "k_date": None}
+    assert res["zones"][1]["nmin_kg_ha"] is None and res["zones"][1]["basis"] == "vigor"
+    assert res["zones"][1]["soil_analysis"] is None
+    assert res["cap"]["min_n_kg_ha"] == 42.6 and res["cap"]["max_n_kg_ha"] == 77.4
+    codes = [n["code"] for n in res["notices"]]
+    assert "zone_soil_missing" in codes
+    missing = next(n for n in res["notices"] if n["code"] == "zone_soil_missing")
+    assert len(missing["params"]["zones"]) == 3
+
+
+def test_the_nmin_floor_is_zero(client, data):
+    with_analyses(data, nmin_analysis("zn0", 80.0, 30.0, hasAgriManagementZone=zone_id(0)))
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    assert res["zones"][0]["n_kg_ha"] == 0.0
+
+
+def test_uniform_subtracts_the_zone_nmin(client, data):
+    with_analyses(data, nmin_analysis("zn1", 8.0, 3.0, hasAgriManagementZone=zone_id(1)))
+    res = ask(client, calculated_plan(client, SOIL_SHEET)).json()
+    assert res["strategy"] == "uniform"
+    assert doses(res) == [60.0, 57.3, 60.0, 60.0]
+    assert res["totals"]["n_kg"] == 2.5 * (60 + 57.3 + 60 + 60)
+
+
+def test_a_zone_nmin_of_another_date_is_not_used(client, data):
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, date="2026-08-01",
+                                      hasAgriManagementZone=zone_id(0)))
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    assert doses(res) == [48.0, 72.0, 60.0, 60.0]
+    other = next(n for n in res["notices"] if n["code"] == "zone_nmin_other_date")
+    assert other["params"]["date"] == "2026-08-01"
+
+
+def test_zone_p_and_k_rerun_the_sheet_with_the_zone_soil(client, data):
+    with_analyses(data, pk_analysis("zp0", 4.0, 90.0, hasAgriManagementZone=zone_id(0)))
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    z = res["zones"]
+    assert z[0]["p2o5_kg_ha"] > res["rest"]["p2o5_kg_ha"]
+    assert z[0]["k2o_kg_ha"] > res["rest"]["k2o_kg_ha"]
+    assert {x["p2o5_kg_ha"] for x in z[1:]} == {res["rest"]["p2o5_kg_ha"]}
+    assert {x["k2o_kg_ha"] for x in z[1:]} == {res["rest"]["k2o_kg_ha"]}
+    assert z[0]["basis"] == "zone_soil" and z[0]["nmin_kg_ha"] is None
+    assert z[0]["soil_analysis"] == {"id": "zp0", "date": NMIN_DATE, "n_samples": 1,
+                                     "p_date": NMIN_DATE, "k_date": NMIN_DATE}
+    assert doses(res) == [48.0, 72.0, 60.0, 60.0]          # N untouched without zone Nmin
+
+
+def test_the_assembly_and_the_analyses_are_fetched_once(client, data, monkeypatch):
+    with_analyses(data, pk_analysis("zp0", 4.0, 90.0, hasAgriManagementZone=zone_id(0)))
+    plan = calculated_plan(client, SOIL_SHEET)
+    calls = []
+    original = FakeSources.lab_analyses
+
+    async def counting(self, urn):
+        calls.append(urn)
+        return await original(self, urn)
+
+    monkeypatch.setattr(FakeSources, "lab_analyses", counting)
+    assert ask(client, plan, strategy="potential").status_code == 200
+    assert calls == [URN]
+
+
+def test_an_analysis_outside_every_zone_is_reported(client, data):
+    with_analyses(data, pk_analysis("far", 4.0, 90.0, location={"lat": 5.0, "lon": 5.0}),
+                  pk_analysis("in0", 4.0, 90.0, location={"lat": 0.5, "lon": 0.5}))
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    out = next(n for n in res["notices"] if n["code"] == "zone_soil_outside")
+    assert out["params"] == {"n": 1}
+    assert [z["soil_analysis"]["id"] for z in res["zones"] if z["soil_analysis"]] == ["in0"]
+
+
+def test_unlocated_parcel_analyses_are_not_reported_as_outside(client, data):
+    with_analyses(data)
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    assert res["notices"] == []

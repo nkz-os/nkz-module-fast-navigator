@@ -278,6 +278,10 @@
       "source": null,
       "value": 0.0
     },
+    "soil.nmin_analysis": {
+      "sampling_date": null,
+      "value": null
+    },
     "soil.organic_matter_pct": {
       "note": null,
       "provenance": "measured",

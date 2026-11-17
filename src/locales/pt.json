@@ -146,7 +146,8 @@
     "double_crop_first_cycle_unknown": "O primeiro ciclo da campanha {{campaign}} é desconhecido.",
     "soil_om_estimated": "Matéria orgânica estimada ({{om_pct}} %) a partir do carbono orgânico do módulo Solo ({{oc_pct}} % × 1,724). Não é uma análise: carregue uma para a substituir.",
     "parcel_soil_from_zones": "O solo da parcela é a média das amostras de zona ({{zones_sampled}} de {{zones_total}} zonas, {{area_pct}} % da área). Escolha uma análise para usar outra.",
-    "parcel_soil_zones_unavailable": "Não foi possível ler as zonas: o solo da parcela é a análise mais recente."
+    "parcel_soil_zones_unavailable": "Não foi possível ler as zonas: o solo da parcela é a análise mais recente.",
+    "parcel_soil_fields_from_parcel": "Não medido em nenhuma zona, tomado da análise da parcela ou estimado: {{fields}}."
   },
   "list": {
     "title": "Planos de fertilização",

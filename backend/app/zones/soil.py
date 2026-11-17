@@ -173,6 +173,7 @@ class ZoneMean:
     zones_sampled: int
     zones_total: int
     area_pct: float
+    sample_ids: frozenset = frozenset()    # the zone samples (assigned to a zone of the zoning)
 
 
 def _horizon_reader(key: str):
@@ -232,4 +233,6 @@ def parcel_zone_mean(analyses: list[dict], zoning: ZoningRead) -> ZoneMean | Non
         horizon["potassiumMethod"] = "ammonium_acetate"
     synthetic = {"id": zone_mean_id(zoning.run_id), "samplingDate": max(dates),
                  "horizons": [horizon]}
-    return ZoneMean(synthetic, sampled, len(zoning.zones), round(100 * covered / total_area, 1))
+    sample_ids = frozenset(a.get("id") for rows in by_zone.values() for a in rows)
+    return ZoneMean(synthetic, sampled, len(zoning.zones), round(100 * covered / total_area, 1),
+                    sample_ids)

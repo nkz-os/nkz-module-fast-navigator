@@ -146,7 +146,8 @@
     "double_crop_first_cycle_unknown": "No se conoce el primer ciclo de la campaña {{campaign}}.",
     "soil_om_estimated": "Materia orgánica estimada ({{om_pct}} %) a partir del carbono orgánico del módulo Suelo ({{oc_pct}} % × 1,724). No es un análisis: sube uno para sustituirla.",
     "parcel_soil_from_zones": "El suelo de la parcela es la media de las muestras de zona ({{zones_sampled}} de {{zones_total}} zonas, {{area_pct}} % de la superficie). Elige un análisis para usar otro.",
-    "parcel_soil_zones_unavailable": "No se pudieron leer las zonas: el suelo de la parcela es el análisis más reciente."
+    "parcel_soil_zones_unavailable": "No se pudieron leer las zonas: el suelo de la parcela es el análisis más reciente.",
+    "parcel_soil_fields_from_parcel": "No medido en ninguna zona, tomado del análisis de la parcela o estimado: {{fields}}."
   },
   "list": {
     "title": "Planes de abonado",

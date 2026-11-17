@@ -5,6 +5,7 @@ from datetime import date
 import pytest
 
 from app.calc.assemble import SheetRequest, assemble
+from app.calc.sheet import COMPLETE, calculate
 from app.inputs.soil import build_soil
 from app.zones.read import ZoneRead, ZoningRead
 from app.zones.soil import parcel_zone_mean
@@ -188,3 +189,38 @@ async def test_unreadable_zones_keep_the_newest_analysis_and_say_so():
     assert a.soil.analysis_id != f"zone-mean:{RUN}"
     assert [n.code for n in a.notices if n.code.startswith("parcel_soil")] == [
         "parcel_soil_zones_unavailable"]
+
+
+def test_a_field_no_zone_has_comes_from_the_parcel_analysis():
+    only_pk = {"id": "zone-mean:r", "samplingDate": DAY, "horizons": [
+        {"depthFrom": 0, "depthTo": 30, "phosphorusAvailable": 7.0, "phosphorusMethod": "olsen",
+         "potassiumExchangeable": 105.0, "potassiumMethod": "ammonium_acetate"}]}
+    s = build_soil([LAB], [], None, None, {}, only_pk)
+    assert s.analysis_id == "zone-mean:r"
+    assert (s.values["p_olsen_mg_kg"].value, s.values["p_olsen_mg_kg"].source) == (7.0, "soil:zone-mean:r")
+    assert s.values["k_mg_kg"].value == 105.0
+    for name, v in (("sand_pct", 40.0), ("clay_pct", 25.0), ("ph", 7.8), ("organic_matter_pct", 1.9)):
+        assert s.values[name].value == v and s.values[name].source == "soil:lab-analysis:a1"
+    assert s.values["sand_pct"].provenance == "measured"
+    assert set(s.parcel_fallback_fields) == {"sand", "clay", "ph", "organicMatter"}
+
+
+def test_a_zone_mean_covering_everything_has_no_fallback():
+    assert build_soil([LAB], [], None, None, {}, MEAN).parcel_fallback_fields == ()
+
+
+async def test_assemble_takes_pk_from_the_zones_and_the_rest_from_the_parcel_analysis():
+    d = campaign_data()
+    for a in d["analyses"][URN]:
+        if a["id"] in ("z0", "z1"):
+            for k in ("sand", "clay", "ph", "organicMatter"):
+                del a["horizons"][0][k]
+    a = await assemble(REQ, FakeSources(**d), TODAY)
+    v = a.soil.values
+    assert v["p_olsen_mg_kg"].value == pytest.approx(7.0)
+    assert v["p_olsen_mg_kg"].source == f"soil:zone-mean:{RUN}"
+    assert v["sand_pct"].source == "soil:lab-analysis:a1" and v["sand_pct"].value == 40.0
+    codes = {n.code: n.params for n in a.notices}
+    assert set(codes["parcel_soil_fields_from_parcel"]["fields"].split(", ")) == {
+        "sand", "clay", "ph", "organicMatter"}
+    assert calculate(a).status == COMPLETE

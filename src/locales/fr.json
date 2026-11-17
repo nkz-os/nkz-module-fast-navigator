@@ -146,7 +146,8 @@
     "double_crop_first_cycle_unknown": "Le premier cycle de la campagne {{campaign}} est inconnu.",
     "soil_om_estimated": "Matière organique estimée ({{om_pct}} %) à partir du carbone organique du module Sol ({{oc_pct}} % × 1,724). Ce n’est pas une analyse : téléversez-en une pour la remplacer.",
     "parcel_soil_from_zones": "Le sol de la parcelle est la moyenne des échantillons de zone ({{zones_sampled}} zones sur {{zones_total}}, {{area_pct}} % de la surface). Choisissez une analyse pour en utiliser une autre.",
-    "parcel_soil_zones_unavailable": "Les zones n'ont pas pu être lues : le sol de la parcelle est l'analyse la plus récente."
+    "parcel_soil_zones_unavailable": "Les zones n'ont pas pu être lues : le sol de la parcelle est l'analyse la plus récente.",
+    "parcel_soil_fields_from_parcel": "Non mesuré dans aucune zone, repris de l'analyse de la parcelle ou estimé : {{fields}}."
   },
   "list": {
     "title": "Plans de fertilisation",

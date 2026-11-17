@@ -146,7 +146,8 @@
     "double_crop_first_cycle_unknown": "{{campaign}} kanpainako lehen zikloa ezezaguna da.",
     "soil_om_estimated": "Materia organikoa estimatua ({{om_pct}} %) Lurzoru moduluko karbono organikotik ({{oc_pct}} % × 1,724). Ez da analisia: igo bat ordezkatzeko.",
     "parcel_soil_from_zones": "Partzelaren lurzorua zona-laginen batez bestekoa da ({{zones_total}} zonatik {{zones_sampled}}, azaleraren % {{area_pct}}). Aukeratu analisi bat beste bat erabiltzeko.",
-    "parcel_soil_zones_unavailable": "Ezin izan dira zonak irakurri: partzelaren lurzorua analisi berriena da."
+    "parcel_soil_zones_unavailable": "Ezin izan dira zonak irakurri: partzelaren lurzorua analisi berriena da.",
+    "parcel_soil_fields_from_parcel": "Zonaren batean ere neurtu gabe, partzelaren analisitik hartua edo estimatua: {{fields}}."
   },
   "list": {
     "title": "Ongarritze-planak",

@@ -47,6 +47,8 @@ class SoilInputs:
     # zone doses credit a zone's own mineral N only if it was sampled on that same date.
     nmin_analysis_id: str | None = None
     nmin_sampling_date: str | None = None
+    # With a zone campaign: the fields no zone sample had, taken from the parcel analysis instead.
+    parcel_fallback_fields: tuple[str, ...] = ()
 
 
 def zone_mean_id(run_id: str) -> str:
@@ -230,26 +232,38 @@ def analysis_n_depth(analysis: dict) -> tuple[float, float] | None:
 
 def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | None,
                nmin_analysis_id: str | None, overrides: dict[str, Override],
-               zone_mean: dict | None = None) -> SoilInputs:
+               zone_mean: dict | None = None,
+               parcel_candidates: list[dict] | None = None) -> SoilInputs:
     """`zone_mean`: the synthetic analysis of a zone campaign; it is the parcel soil unless the
-    technician chose an analysis (`analysis_id`)."""
+    technician chose an analysis (`analysis_id`). The fields no zone sample has come from the
+    newest fertility analysis of `parcel_candidates` (the analyses that are not zone samples;
+    default `analyses`), then from the estimates."""
     notices: list[Notice] = []
     absent: list[MissingInput] = []
-    chosen = select_analysis(analyses, analysis_id)
-    if zone_mean is not None and not analysis_id:
-        chosen = zone_mean
+    use_zone = zone_mean is not None and not analysis_id
+    chosen = select_analysis(parcel_candidates if use_zone and parcel_candidates is not None
+                             else analyses, analysis_id)
+    zm_hz = (zone_mean or {}).get("horizons") or [] if use_zone else []
+    zm_src = f"soil:{zone_mean['id']}" if use_zone else None
+    fallback_fields: list[str] = []
     if analysis_id and chosen is None:
         notices.append(Notice("soil_analysis_not_found", {"analysis": analysis_id}))
     hz = (chosen or {}).get("horizons") or []
     chosen_id = (chosen or {}).get("id")
-    lab_src = None
-    if chosen:
-        lab_src = (f"soil:{chosen_id}" if str(chosen_id).startswith(ZONE_MEAN_PREFIX)
-                   else f"soil:lab-analysis:{chosen_id}")
+    lab_src = f"soil:lab-analysis:{chosen_id}" if chosen else None
+
+    def from_parcel(key: str, got: Sourced | None) -> Sourced | None:
+        if got is not None and use_zone:
+            fallback_fields.append(key)
+        return got
 
     def lab(key: str) -> Sourced | None:
+        if use_zone:
+            zone_value = topsoil_mean(zm_hz, key)
+            if zone_value is not None:
+                return Sourced(zone_value, MEASURED, zm_src)
         value = topsoil_mean(hz, key)
-        return Sourced(value, MEASURED, lab_src) if value is not None else None
+        return from_parcel(key, Sourced(value, MEASURED, lab_src) if value is not None else None)
 
     def est(key: str, low: float, high: float) -> Sourced | None:
         value = topsoil_mean(estimated, key)
@@ -286,8 +300,14 @@ def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | N
         "clay_pct": choose("clay_pct", lambda: lab("clay"), lambda: est("clay", 0, 100)),
         "ph": choose("ph", lambda: lab("ph"), lambda: est("ph", 3, 10)),
         "organic_matter_pct": choose("organic_matter_pct", lambda: lab("organicMatter"), est_om),
-        "p_olsen_mg_kg": choose("p_olsen_mg_kg", lambda: _lab_p(hz, lab_src, chosen_id, notices)),
-        "k_mg_kg": choose("k_mg_kg", lambda: _lab_k(hz, lab_src, chosen_id, notices)),
+        "p_olsen_mg_kg": choose(
+            "p_olsen_mg_kg",
+            lambda: _lab_p(zm_hz, zm_src, None, notices) if use_zone else None,
+            lambda: from_parcel("phosphorusAvailable", _lab_p(hz, lab_src, chosen_id, notices))),
+        "k_mg_kg": choose(
+            "k_mg_kg",
+            lambda: _lab_k(zm_hz, zm_src, None, notices) if use_zone else None,
+            lambda: from_parcel("potassiumExchangeable", _lab_k(hz, lab_src, chosen_id, notices))),
     }
 
     if "soil.texture_class" in overrides:
@@ -337,6 +357,8 @@ def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | N
         notices.append(Notice(code, {"analysis": nmin_analysis_id}))
 
     provisional = any(v.provenance == ESTIMATED for v in values.values())
-    return SoilInputs(chosen_id, (chosen or {}).get("samplingDate"), values, provisional,
+    head = zone_mean if use_zone else chosen
+    return SoilInputs((head or {}).get("id"), (head or {}).get("samplingDate"), values, provisional,
                       tuple(notices), tuple(absent), tuple(nmin_missing),
-                      (nmin or {}).get("id"), (nmin or {}).get("samplingDate"))
+                      (nmin or {}).get("id"), (nmin or {}).get("samplingDate"),
+                      tuple(dict.fromkeys(fallback_fields)))

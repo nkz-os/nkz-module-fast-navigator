@@ -146,7 +146,8 @@
     "double_crop_first_cycle_unknown": "No es coneix el primer cicle de la campanya {{campaign}}.",
     "soil_om_estimated": "Matèria orgànica estimada ({{om_pct}} %) a partir del carboni orgànic del mòdul Sòl ({{oc_pct}} % × 1,724). No és una anàlisi: puja’n una per substituir-la.",
     "parcel_soil_from_zones": "El sòl de la parcel·la és la mitjana de les mostres de zona ({{zones_sampled}} de {{zones_total}} zones, {{area_pct}} % de la superfície). Tria una anàlisi per fer-ne servir una altra.",
-    "parcel_soil_zones_unavailable": "No s'han pogut llegir les zones: el sòl de la parcel·la és l'anàlisi més recent."
+    "parcel_soil_zones_unavailable": "No s'han pogut llegir les zones: el sòl de la parcel·la és l'anàlisi més recent.",
+    "parcel_soil_fields_from_parcel": "No mesurat en cap zona, pres de l'anàlisi de la parcel·la o estimat: {{fields}}."
   },
   "list": {
     "title": "Plans d'adobat",

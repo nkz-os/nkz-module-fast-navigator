@@ -285,11 +285,16 @@ async def assemble(req: SheetRequest, sources, today: date) -> AssembledInputs:
         zone_mean = await _zone_mean(sources, first, merged_analyses, notices)
     soil_inputs = build_soil(merged_analyses, list(estimated), req.soil_analysis_id,
                              req.nmin_analysis_id, overrides,
-                             zone_mean.analysis if zone_mean else None)
+                             zone_mean.analysis if zone_mean else None,
+                             [a for a in merged_analyses if a.get("id") not in zone_mean.sample_ids]
+                             if zone_mean else None)
     if zone_mean is not None:
         notices.append(Notice("parcel_soil_from_zones", {
             "zones_sampled": zone_mean.zones_sampled, "zones_total": zone_mean.zones_total,
             "area_pct": zone_mean.area_pct}))
+        if soil_inputs.parcel_fallback_fields:
+            notices.append(Notice("parcel_soil_fields_from_parcel", {
+                "fields": ", ".join(soil_inputs.parcel_fallback_fields)}))
     water = await sources.water_quality(req.water_quality_id) if req.water_quality_id else None
     irrigation = irrigation_credit(req.irrigated, req.water_m3_ha, _no3(req, water, notices),
                                    overrides)

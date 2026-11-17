@@ -16,6 +16,8 @@ from app.inputs.soil import (
     analysis_n_depth,
     analysis_p_olsen,
     has_n_values,
+    topsoil_mean,
+    zone_mean_id,
 )
 
 from .read import ZoningRead, attr
@@ -152,3 +154,82 @@ def zone_soil(zone_id: str, analyses: list[dict], *, nmin_date: str | None,
                     tuple(str(a.get("id")) for a in p_used),
                     tuple(str(a.get("id")) for a in k_used),
                     tuple(str(a.get("id")) for a in nmin_used))
+
+
+def post_zoning_analyses(analyses: list[dict], zoning: ZoningRead) -> list[dict]:
+    """The analyses that may be zone samples of this zoning: taken on or after its date (owner
+    decision: older ones describe the parcel, not these zones). None when the zoning has no date."""
+    zoned = zoning.date or zoning.image_date
+    if zoned is None:
+        return []
+    return [a for a in analyses if sampling_day(a) and (sampling_day(a) or "") >= zoned[:10]]
+
+
+@dataclass(frozen=True)
+class ZoneMean:
+    """The parcel soil of a zone campaign: a synthetic analysis (the area-weighted mean of the
+    zones) and how much of the parcel the sampled zones cover."""
+    analysis: dict
+    zones_sampled: int
+    zones_total: int
+    area_pct: float
+
+
+def _horizon_reader(key: str):
+    return lambda a: topsoil_mean(a.get("horizons") or [], key)
+
+
+# Synthetic-analysis key -> how one analysis yields it (the same readers the zone soil uses).
+_MEAN_FIELDS = {
+    "sand": _horizon_reader("sand"),
+    "clay": _horizon_reader("clay"),
+    "ph": _horizon_reader("ph"),
+    "organicMatter": _horizon_reader("organicMatter"),
+    "phosphorusAvailable": analysis_p_olsen,       # Olsen-equivalent mg/kg
+    "potassiumExchangeable": analysis_k,           # ammonium-acetate mg/kg
+}
+
+
+def parcel_zone_mean(analyses: list[dict], zoning: ZoningRead) -> ZoneMean | None:
+    """Area-weighted mean over the zones of `zoning` that have their own samples, or None when
+    no zone with a usable area has any (no zone campaign).
+
+    Each zone contributes, per field, what `_newest_mean` gives (newest sampling date, mean of
+    that date), weighted by the zone entity's `area_ha` (not the outer ring: zones nest). A field
+    present in only some zones is the mean over those. ASSUMPTION: a zone without a usable
+    area cannot be weighted and is left out of the mean and of the coverage.
+    """
+    by_zone, _ = assign_analyses(post_zoning_analyses(analyses, zoning), zoning)
+    weighted = [(z, z.area_ha) for z in zoning.zones if z.area_ha]
+    total_area = sum(a for _, a in weighted)
+    sums: dict[str, list[float]] = {k: [0.0, 0.0] for k in _MEAN_FIELDS}   # sum(v*a), sum(a)
+    dates: list[str] = []
+    covered = 0.0
+    sampled = 0
+    for zone, area in weighted:
+        rows = by_zone.get(zone.id) or []
+        got = False
+        for key, read in _MEAN_FIELDS.items():
+            value, _, day = _newest_mean(rows, read)
+            if value is None:
+                continue
+            sums[key][0] += value * area
+            sums[key][1] += area
+            dates.append(day)
+            got = True
+        if got:
+            sampled += 1
+            covered += area
+    if not sampled:
+        return None
+    horizon: dict = {"depthFrom": 0, "depthTo": 30}
+    for key, (acc, weight) in sums.items():
+        if weight > 0:
+            horizon[key] = acc / weight
+    if "phosphorusAvailable" in horizon:
+        horizon["phosphorusMethod"] = "olsen"
+    if "potassiumExchangeable" in horizon:
+        horizon["potassiumMethod"] = "ammonium_acetate"
+    synthetic = {"id": zone_mean_id(zoning.run_id), "samplingDate": max(dates),
+                 "horizons": [horizon]}
+    return ZoneMean(synthetic, sampled, len(zoning.zones), round(100 * covered / total_area, 1))

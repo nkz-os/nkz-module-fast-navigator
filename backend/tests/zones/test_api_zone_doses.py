@@ -929,3 +929,16 @@ def test_the_depth_lookup_is_skipped_when_the_soil_is_unavailable(client, data, 
     res = ask(client, plan, strategy="potential").json()
     assert codes(res) == ["zone_soil_unavailable"]
     assert "depth of the parcel" not in caplog.text
+
+
+def test_with_a_zone_mean_parcel_soil_the_zone_samples_still_count_as_zone_samples(client, data):
+    from tests.zones.test_parcel_zone_mean import pk
+
+    data["analyses"][URN] += [pk("zp0", 4.0, 90.0, zone_id(0)), pk("zp1", 8.0, 110.0, zone_id(1))]
+    res = ask(client, calculated_plan(client), strategy="potential").json()
+    z = res["zones"]
+    assert [x["basis"] for x in z] == ["zone_soil", "zone_soil", "vigor", "vigor"]
+    assert [x["soil_analysis"]["id"] for x in z[:2]] == ["zp0", "zp1"]
+    assert z[0]["p2o5_kg_ha"] > res["rest"]["p2o5_kg_ha"] > z[1]["p2o5_kg_ha"]
+    assert {x["p2o5_kg_ha"] for x in z[2:]} == {res["rest"]["p2o5_kg_ha"]}
+    assert "zone_soil_inputs_changed" not in [n["code"] for n in res["notices"]]

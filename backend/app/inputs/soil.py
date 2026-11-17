@@ -26,6 +26,7 @@ TOPSOIL_CM = 30.0
 # Organic matter = organic carbon x 1.724 (van Bemmelen factor, the one the soil module uses).
 VAN_BEMMELEN = 1.724
 ESTIMATED_OM_SOURCE = "soil:estimated"
+ZONE_MEAN_PREFIX = "zone-mean:"
 # The FertiliCalc K thresholds are for ammonium-acetate K; other extractions are not comparable.
 K_METHODS_SUPPORTED = frozenset({"ammonium_acetate"})
 # Mineral N has its own selector (nmin_analysis_id), so an N-only analysis is not representative.
@@ -46,6 +47,11 @@ class SoilInputs:
     # zone doses credit a zone's own mineral N only if it was sampled on that same date.
     nmin_analysis_id: str | None = None
     nmin_sampling_date: str | None = None
+
+
+def zone_mean_id(run_id: str) -> str:
+    """Id of the synthetic analysis that is the parcel soil of a zone campaign."""
+    return f"{ZONE_MEAN_PREFIX}{run_id}"
 
 
 def _num(value) -> float | None:
@@ -223,15 +229,23 @@ def analysis_n_depth(analysis: dict) -> tuple[float, float] | None:
 
 
 def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | None,
-               nmin_analysis_id: str | None, overrides: dict[str, Override]) -> SoilInputs:
+               nmin_analysis_id: str | None, overrides: dict[str, Override],
+               zone_mean: dict | None = None) -> SoilInputs:
+    """`zone_mean`: the synthetic analysis of a zone campaign; it is the parcel soil unless the
+    technician chose an analysis (`analysis_id`)."""
     notices: list[Notice] = []
     absent: list[MissingInput] = []
     chosen = select_analysis(analyses, analysis_id)
+    if zone_mean is not None and not analysis_id:
+        chosen = zone_mean
     if analysis_id and chosen is None:
         notices.append(Notice("soil_analysis_not_found", {"analysis": analysis_id}))
     hz = (chosen or {}).get("horizons") or []
     chosen_id = (chosen or {}).get("id")
-    lab_src = f"soil:lab-analysis:{chosen_id}" if chosen else None
+    lab_src = None
+    if chosen:
+        lab_src = (f"soil:{chosen_id}" if str(chosen_id).startswith(ZONE_MEAN_PREFIX)
+                   else f"soil:lab-analysis:{chosen_id}")
 
     def lab(key: str) -> Sourced | None:
         value = topsoil_mean(hz, key)

@@ -22,7 +22,7 @@ from app.plans.applications import ApplicationIn, nutrients
 from app.plans.service import Actor, Invalid, NotFound, _area, _load, _request
 from app.zones.doses import ZoneInput, distribute
 from app.zones.read import ZoneRead, ZoningRead, attr, select_zoning, zonings_of
-from app.zones.soil import ZoneSoil, assign_analyses, sampling_day, zone_soil
+from app.zones.soil import ZoneSoil, assign_analyses, post_zoning_analyses, sampling_day, zone_soil
 
 logger = logging.getLogger(__name__)
 
@@ -255,8 +255,7 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
                 soil_notices.append(_notice("zone_soil_no_zoning_date"))
             candidates: list[dict] = []
         else:
-            candidates = [a for a in analyses if (sampling_day(a) or "") >= zoned[:10]
-                          and sampling_day(a)]
+            candidates = post_zoning_analyses(analyses, zoning)
         by_zone, outside = assign_analyses(candidates, zoning)
         # The analyses the sheet itself was calculated from are the PARCEL's reading, not zone
         # samples, however they were georeferenced; unless another zone analysis shares their

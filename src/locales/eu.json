@@ -560,7 +560,9 @@
       "zoneSoilPK_other": "Zonaren analisia (P {{p}} · K {{k}}, {{count}} lagin)",
       "zoneSoilNoCount": "Zonaren analisia ({{date}})",
       "zoneSoilPKNoCount": "Zonaren analisia (P {{p}} · K {{k}})",
-      "nmin": "· Nmin {{value}} kg/ha"
+      "nmin": "· Nmin {{value}} kg/ha",
+      "pParcel": "· P: partzelaren batezbestekoa",
+      "kParcel": "· K: partzelaren batezbestekoa"
     },
     "basis": {
       "vigor": "Satelite-indarraren araberako doikuntza",
@@ -594,7 +596,10 @@
       "zone_soil_unavailable": "Ezin izan dira zonen analisiak irakurri: partzelaren batez bestekoa erabiltzen da.",
       "zone_soil_calc_failed": "{{zone}}: ezin izan da bere analisiarekin kalkulatu; partzelaren batez bestekoa erabiltzen da.",
       "zone_soil_inputs_changed": "Lur-datuak aldatu dira planaren azken kalkulutik: birkalkulatu.",
-      "zone_dose_floored": "{{zone}}: bere Nmin dosia baino handiagoa da eta dosia 0 da."
+      "zone_dose_floored": "{{zone}}: bere Nmin dosia baino handiagoa da eta dosia 0 da.",
+      "zone_nmin_depth_differs": "{{zone}}: bere Nmin partzelarenaren sakonera desberdinean neurtu da eta ez da erabiltzen.",
+      "zone_soil_unusable": "{{zone}}: bere analisiak ezin dira erabili (metodo onartugabea, daturik edo datarik ez): {{analyses}}.",
+      "zone_soil_no_zoning_date": "Zonifikazioak ez du datarik: ezin da jakin zein analisi diren berriagoak, beraz, ez da bat ere erabiltzen zonaka."
     },
     "toPrescription": "Errezetara eraman",
     "toPrescriptionHint": "Bideratze modulua dosi hauek beteta irekitzen da; teknikariak makina eta eredua aukeratzen ditu eta pasaldia sortzen du.",

@@ -184,3 +184,36 @@ def test_incomplete_names_the_analysis():
 def test_assign_link_bare_string_and_object_agree():
     a, b = an(1, link=ZB), an(2, link={"object": ZB})
     assert assign_analyses([a, b], zoning())[0] == {ZB: [a, b]}
+
+
+def n_an(i, bottoms, date="2026-03-01", **kw):
+    top, hzs = 0, []
+    for b in bottoms:
+        hzs.append({"depthFrom": top, "depthTo": b, "nitrateN": 5.0, "ammoniumN": 5.0,
+                    "bulkDensity": 1.0})
+        top = b
+    return {"id": f"urn:lab:{i}", "samplingDate": date, "horizons": hzs, **kw}
+
+
+def test_nmin_is_only_averaged_over_the_parcels_depth():
+    shallow, deep = n_an(1, [30]), n_an(2, [30, 90])
+    zs = zone_soil(ZA, [shallow, deep], nmin_date="2026-03-01", class_bd=1.3,
+                   nmin_depth=(0, 30))
+    assert zs.nmin_kg_ha == 27.0 and zs.nmin_ids == ("urn:lab:1",)
+    assert {"code": "zone_nmin_depth_differs", "params": {"zone": ZA}} in zs.notices
+    none = zone_soil(ZA, [deep], nmin_date="2026-03-01", class_bd=1.3, nmin_depth=(0, 30))
+    assert none.nmin_kg_ha is None
+
+
+def test_negative_nitrate_is_incomplete_not_an_error():
+    bad = n_an(1, [30])
+    bad["horizons"][0]["nitrateN"] = -1.0
+    zs = zone_soil(ZA, [bad], nmin_date="2026-03-01", class_bd=1.3, nmin_depth=(0, 30))
+    assert zs.nmin_kg_ha is None and zs.notices[0]["code"] == "zone_nmin_incomplete"
+
+
+def test_analysis_depth_of_non_contiguous_layers_is_none():
+    from app.inputs.soil import analysis_n_depth
+    a = n_an(1, [30])
+    a["horizons"].append({"depthFrom": 60, "depthTo": 90, "nitrateN": 1.0})
+    assert analysis_n_depth(a) is None and analysis_n_depth(n_an(2, [30, 90])) == (0, 90)

@@ -118,6 +118,12 @@ describe('zone soil notices and mark', () => {
       .toEqual({ key: 'zoneDoses.mark.zoneSoilNoCount', params: { date: '15/09/2026' } });
     expect(zoneMark(row({ basis: 'zone_soil', soil_analysis: { ...sa, k_date: '2026-09-20' } }), 'es').key).toBe('zoneDoses.mark.zoneSoilPKNoCount');
   });
+  it('says which nutrient is the parcel mean when the zone has no analysis of it', () => {
+    const sa = { id: 'a', date: '2026-09-15', n_samples: 1, p_date: '2026-09-15', k_date: null };
+    expect(zoneMark(row({ basis: 'zone_soil', soil_analysis: sa }), 'es').parcelFor).toEqual(['zoneDoses.mark.kParcel']);
+    expect(zoneMark(row({ basis: 'zone_soil', soil_analysis: { ...sa, p_date: null } }), 'es').parcelFor).toEqual(['zoneDoses.mark.pParcel', 'zoneDoses.mark.kParcel']);
+    expect(zoneMark(row({ basis: 'zone_soil', soil_analysis: { ...sa, k_date: '2026-09-15' } }), 'es').parcelFor).toBeUndefined();
+  });
   it('carries the zone own Nmin only for a zone-soil zone', () => {
     const sa = { id: 'a', date: '2026-09-15', n_samples: 1, p_date: null, k_date: null };
     expect(zoneMark(row({ basis: 'zone_soil', nmin_kg_ha: 29.7, soil_analysis: sa }), 'es').nmin).toBe('30');

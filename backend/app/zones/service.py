@@ -16,12 +16,13 @@ from app.calc.assemble import assemble
 from app.calc.sheet import calculate
 from app.inputs.organic import OrganicApplication
 from app.inputs.provenance import MEASURED, Sourced
+from app.inputs.soil import analysis_n_depth, has_n_values
 from app.plans import repo
 from app.plans.applications import ApplicationIn, nutrients
 from app.plans.service import Actor, Invalid, NotFound, _area, _load, _request
 from app.zones.doses import ZoneInput, distribute
 from app.zones.read import ZoneRead, ZoningRead, attr, select_zoning, zonings_of
-from app.zones.soil import ZoneSoil, assign_analyses, zone_soil
+from app.zones.soil import ZoneSoil, assign_analyses, sampling_day, zone_soil
 
 logger = logging.getLogger(__name__)
 
@@ -131,21 +132,20 @@ def _num(value) -> float | None:
     return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
 
 
-def _has_n_values(analysis: dict) -> bool:
-    return any(h.get("nitrateN") is not None or h.get("ammoniumN") is not None
-               for h in analysis.get("horizons") or [])
-
-
-def _soil_view(zs: ZoneSoil, analyses: list[dict], nmin_used: bool) -> dict:
-    """Which sample backs the zone. `id` is the first analysis behind P/K (the newest of those
-    averaged), else the first one carrying the zone's mineral N on the sheet's date;
-    `n_samples` also counts the mineral-N analyses when that is what the zone uses."""
-    on_date = [a for a in analyses if nmin_used and zs.nmin_date
-               and str(a.get("samplingDate") or "")[:10] == zs.nmin_date and _has_n_values(a)]
-    first = zs.analysis_ids[0] if zs.analysis_ids else (on_date[0].get("id") if on_date else None)
-    return {"id": first, "date": zs.date or (zs.nmin_date if nmin_used else None),
-            "n_samples": max(zs.n_samples, len(on_date)),
-            "p_date": zs.p_date, "k_date": zs.k_date}
+def _soil_view(zs: ZoneSoil, used_p: bool, used_k: bool, used_n: bool) -> dict:
+    """Which samples back the zone, from what the response actually uses of them: `id` is the
+    first analysis of those, `n_samples` the largest count averaged for one of them, `date` the
+    newest date; `p_date`/`k_date` are null when that nutrient is the parcel's."""
+    ids: list[str] = []
+    for used, found in ((used_p, zs.p_ids), (used_k, zs.k_ids), (used_n, zs.nmin_ids)):
+        ids.extend(i for i in (found if used else ()) if i not in ids)
+    counts = [len(found) for used, found in ((used_p, zs.p_ids), (used_k, zs.k_ids),
+                                              (used_n, zs.nmin_ids)) if used]
+    dates = [d for used, d in ((used_p, zs.p_date), (used_k, zs.k_date), (used_n, zs.nmin_date))
+             if used and d]
+    return {"id": ids[0] if ids else None, "date": max(dates, default=None),
+            "n_samples": max(counts, default=0),
+            "p_date": zs.p_date if used_p else None, "k_date": zs.k_date if used_k else None}
 
 
 def _zone_oxides(assembled, zone_soils: dict[str, ZoneSoil], protected: set[str],
@@ -243,30 +243,64 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
     soil_ok = True
     try:
         analyses = await sources.lab_analyses(parcel_urn)
-        # The analyses the sheet itself was calculated from are the PARCEL's reading: they are
-        # not zone samples, however they were georeferenced.
+    except Exception:
+        logger.exception("zone soil unavailable (lab analyses) %s", where)
+        soil_ok = False
+    if soil_ok:
+        # A located analysis is a zone sample only if it was taken on or after the date of the
+        # zoning (owner decision): older ones describe the parcel, not these zones.
+        zoned = zoning.date or zoning.image_date
+        if zoned is None:
+            if any(a.get("location") or attr(a, "hasAgriManagementZone") for a in analyses):
+                soil_notices.append(_notice("zone_soil_no_zoning_date"))
+            candidates: list[dict] = []
+        else:
+            candidates = [a for a in analyses if (sampling_day(a) or "") >= zoned[:10]
+                          and sampling_day(a)]
+        by_zone, outside = assign_analyses(candidates, zoning)
+        # The analyses the sheet itself was calculated from are the PARCEL's reading, not zone
+        # samples, however they were georeferenced; unless another zone analysis shares their
+        # sampling date: then it is a zone campaign and they are one of its samples.
         chosen = {i for i in (
             (inputs.get("soil.analysis_id") or {}).get("value"),
             (inputs.get("soil.nmin_analysis") or {}).get("value"),
             sheet.inputs.get("soil_analysis_id"), sheet.inputs.get("nmin_analysis_id")) if i}
-        by_zone, outside = assign_analyses(
-            [a for a in analyses if a.get("id") not in chosen], zoning)
-    except Exception:
-        logger.exception("zone soil unavailable (lab analyses) %s", where)
-        soil_ok = False
+        campaign_days = {sampling_day(a) for rows_ in by_zone.values() for a in rows_
+                         if a.get("id") not in chosen}
+
+        def parcel_reading(a: dict) -> bool:
+            return a.get("id") in chosen and sampling_day(a) not in campaign_days
+        by_zone = {zid: [a for a in rows_ if not parcel_reading(a)]
+                   for zid, rows_ in by_zone.items()}
+        outside = [a for a in outside if not parcel_reading(a)]
     nmin_input = inputs.get("soil.nmin_analysis")
     nmin_date = (nmin_input or {}).get("sampling_date") if isinstance(nmin_input, dict) else None
     class_bd = _num((inputs.get("soil.bulk_density_g_cm3") or {}).get("value"))
-    zone_soils: dict[str, ZoneSoil] = {z.id: zone_soil(z.id, by_zone[z.id], nmin_date=nmin_date,
-                                                       class_bd=class_bd)
-                                       for z in zones if z.id in by_zone}
+    nmin_depth = None
+    if nmin_date:
+        chosen_nmin = next((a for a in analyses if a.get("id") == nmin_input.get("value")), None)
+        nmin_depth = analysis_n_depth(chosen_nmin) if chosen_nmin else None
+        if nmin_depth is None:
+            logger.warning("zone Nmin skipped: depth of the parcel's Nmin analysis unknown %s",
+                           where)
+            nmin_date = None
+    zone_soils: dict[str, ZoneSoil] = {}
+    for z in zones:
+        if z.id not in by_zone:
+            continue
+        try:
+            zone_soils[z.id] = zone_soil(z.id, by_zone[z.id], nmin_date=nmin_date,
+                                         class_bd=class_bd, nmin_depth=nmin_depth)
+        except Exception:
+            logger.exception("zone soil calculation failed zone=%s %s", z.id, where)
+            soil_notices.append(_notice("zone_soil_calc_failed", zone=z.id))
     for zs in zone_soils.values():
         soil_notices.extend(zs.notices)
     own = {zid: zs for zid, zs in zone_soils.items()
            if zs.p_olsen_mg_kg is not None or zs.k_mg_kg is not None or zs.nmin_kg_ha is not None}
     mineral_source = str((inputs.get("soil.mineral_n_kg_ha") or {}).get("source") or "")
     if (nmin_input is None and mineral_source.startswith("soil:lab-analysis:")
-            and any(_has_n_values(a) for rows_ in by_zone.values() for a in rows_)):
+            and any(has_n_values(a) for rows_ in by_zone.values() for a in rows_)):
         # A result stored (with an Nmin analysis chosen) before that analysis' date was recorded.
         soil_notices.append(_notice("zone_nmin_needs_recalculation"))
     n_outside = sum(1 for a in outside if a.get("location") or attr(a, "hasAgriManagementZone"))
@@ -316,14 +350,23 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
     # says nothing of later top-dressings).
     nmin_p = _num(((result.get("n") or {}).get("credits_kg_ha") or {}).get("soil_mineral_n"))
     zone_nmin = {zid: zs.nmin_kg_ha for zid, zs in own.items() if zs.nmin_kg_ha is not None}
-    if zone_nmin and target.application_seq is not None:
+    could_apply = bool(zone_nmin) and target_n is not None and nmin_p is not None
+    if could_apply and target.application_seq is not None:
         organic = [OrganicApplication(**o) for o in sheet.inputs.get("organic") or []]
-        first_n = next((i for i, a in enumerate(sheet.applications)
-                        if nutrients(ApplicationIn.model_validate(a), organic).n_kg_ha > 0), None)
+        # An application counts as an N pass only if it carries N > 0 (so an organic one with
+        # no N is not the first pass). ASSUMPTION: the first pass is the earliest planned_date
+        # when every N application has one, else the first in the sheet's list order.
+        n_apps = [(i, ApplicationIn.model_validate(a)) for i, a in enumerate(sheet.applications)]
+        n_apps = [(i, a) for i, a in n_apps if nutrients(a, organic).n_kg_ha > 0]
+        if n_apps and all(a.planned_date for _, a in n_apps):
+            first_n = min(n_apps, key=lambda t: (t[1].planned_date, t[0]))[0]
+        else:
+            first_n = n_apps[0][0] if n_apps else None
         if target.application_seq != first_n:
             notices.append(_notice("zone_nmin_first_pass_only", applied=False))
             zone_nmin = {}
-    n_credit = bool(zone_nmin) and target_n is not None and nmin_p is not None
+            could_apply = False
+    n_credit = could_apply
     if not n_credit:
         zone_nmin = {}
     elif target.application_seq is None:
@@ -382,7 +425,7 @@ async def zone_doses(pool: asyncpg.Pool, sources, actor: Actor, plan_id: uuid.UU
             "nmin_kg_ha": _round(zone_nmin.get(z.id), 2),
             "p2o5_kg_ha": _round(parcel_p if z_p is None else z_p, 2),
             "k2o_kg_ha": _round(parcel_k if z_k is None else z_k, 2),
-            "soil_analysis": (_soil_view(zs, by_zone.get(z.id, []), z.id in zone_nmin)
+            "soil_analysis": (_soil_view(zs, z_p is not None, z_k is not None, z.id in zone_nmin)
                               if uses else None),
             "missing": missing})
 

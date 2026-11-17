@@ -10,7 +10,13 @@ from statistics import fmean
 
 from nkz_platform_sdk.gis.zones import zone_of
 
-from app.inputs.soil import analysis_k, analysis_mineral_n, analysis_p_olsen
+from app.inputs.soil import (
+    analysis_k,
+    analysis_mineral_n,
+    analysis_n_depth,
+    analysis_p_olsen,
+    has_n_values,
+)
 
 from .read import ZoningRead, attr
 
@@ -28,6 +34,9 @@ class ZoneSoil:
     p_olsen_mg_kg: float | None
     k_mg_kg: float | None
     notices: tuple[dict, ...]
+    p_ids: tuple[str, ...] = ()        # analyses averaged into P
+    k_ids: tuple[str, ...] = ()        # analyses averaged into K
+    nmin_ids: tuple[str, ...] = ()     # analyses averaged into the mineral N
 
 
 def _notice(code: str, **params) -> dict:
@@ -65,7 +74,7 @@ def _is_num(v) -> bool:
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
-def _day(analysis: dict) -> str | None:
+def sampling_day(analysis: dict) -> str | None:
     """Sampling day as YYYY-MM-DD (a longer timestamp is cut), None if absent."""
     raw = analysis.get("samplingDate")
     return raw[:10] if isinstance(raw, str) and len(raw) >= 10 else None
@@ -77,21 +86,19 @@ def _newest_mean(analyses: list[dict], read) -> tuple[float | None, list[dict], 
     ASSUMPTION: an analysis without a usable sampling date is dropped: without a date it cannot
     be ranked against the others, so it must not be averaged in silently.
     """
-    valued = [(a, v) for a in analyses if (v := read(a)) is not None and _day(a)]
+    valued = [(a, v) for a in analyses if (v := read(a)) is not None and sampling_day(a)]
     if not valued:
         return None, [], None
-    newest = max(_day(a) for a, _ in valued)
-    used = [(a, v) for a, v in valued if _day(a) == newest]
+    newest = max(sampling_day(a) for a, _ in valued)
+    used = [(a, v) for a, v in valued if sampling_day(a) == newest]
     return fmean(v for _, v in used), [a for a, _ in used], newest
 
 
-def _has_nmin(a: dict) -> bool:
-    return any(h.get("nitrateN") is not None or h.get("ammoniumN") is not None
-               for h in a.get("horizons") or [])
-
-
 def zone_soil(zone_id: str, analyses: list[dict], *, nmin_date: str | None,
-              class_bd: float | None) -> ZoneSoil:
+              class_bd: float | None, nmin_depth: tuple[float, float] | None = None) -> ZoneSoil:
+    """`nmin_depth`: the depth range of the parcel's mineral-N analysis. A zone's mineral N is
+    only credited over that same range (a 0-90 cm N is not comparable with a 0-30 cm one);
+    None = not checked."""
     notices: list[dict] = []
     p, p_used, p_date = _newest_mean(analyses, analysis_p_olsen)
     k, k_used, k_date = _newest_mean(analyses, analysis_k)
@@ -107,20 +114,33 @@ def zone_soil(zone_id: str, analyses: list[dict], *, nmin_date: str | None,
 
     nmin_value: float | None = None
     used_nmin_date: str | None = None
+    nmin_used: list[dict] = []
     if nmin_date:
-        on_date = [a for a in analyses if _day(a) == nmin_date[:10] and _has_nmin(a)]
+        on_date = [a for a in analyses if sampling_day(a) == nmin_date[:10] and has_n_values(a)]
         if on_date:
-            values = [analysis_mineral_n(a, class_bd) for a in on_date]
-            bad = [str(a.get("id")) for a, v in zip(on_date, values) if v is None]
+            same_depth = [a for a in on_date
+                          if nmin_depth is None or analysis_n_depth(a) == nmin_depth]
+            if len(same_depth) < len(on_date):
+                notices.append(_notice("zone_nmin_depth_differs", zone=zone_id))
+            values = [analysis_mineral_n(a, class_bd) for a in same_depth]
+            bad = [str(a.get("id")) for a, v in zip(same_depth, values) if v is None]
             if bad:
                 # Crediting a partial mean would understate N: leave it blank and say so.
                 notices.append(_notice("zone_nmin_incomplete", zone=zone_id, analyses=bad))
-            else:
+            elif same_depth:
                 nmin_value, used_nmin_date = fmean(values), nmin_date[:10]
+                nmin_used = same_depth
         else:
-            other = sorted({_day(a) for a in analyses if _has_nmin(a) and _day(a)})
+            other = sorted({sampling_day(a) for a in analyses
+                            if has_n_values(a) and sampling_day(a)})
             if other:
                 notices.append(_notice("zone_nmin_other_date", zone=zone_id, date=other[-1]))
 
+    if analyses and p is None and k is None and nmin_value is None:
+        notices.append(_notice("zone_soil_unusable", zone=zone_id,
+                               analyses=[str(a.get("id")) for a in analyses]))
     return ZoneSoil(zone_id, tuple(used), date, n_samples, p_date, k_date,
-                    nmin_value, used_nmin_date, p, k, tuple(notices))
+                    nmin_value, used_nmin_date, p, k, tuple(notices),
+                    tuple(str(a.get("id")) for a in p_used),
+                    tuple(str(a.get("id")) for a in k_used),
+                    tuple(str(a.get("id")) for a in nmin_used))

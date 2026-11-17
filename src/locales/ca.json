@@ -560,7 +560,9 @@
       "zoneSoilPK_other": "Anàlisi de la zona (P {{p}} · K {{k}}, {{count}} mostres)",
       "zoneSoilNoCount": "Anàlisi de la zona ({{date}})",
       "zoneSoilPKNoCount": "Anàlisi de la zona (P {{p}} · K {{k}})",
-      "nmin": "· Nmin {{value}} kg/ha"
+      "nmin": "· Nmin {{value}} kg/ha",
+      "pParcel": "· P: mitjana de la parcel·la",
+      "kParcel": "· K: mitjana de la parcel·la"
     },
     "basis": {
       "vigor": "Ajust per vigor de satèl·lit",
@@ -594,7 +596,10 @@
       "zone_soil_unavailable": "No s'han pogut llegir les anàlisis de les zones: s'usa la mitjana de la parcel·la.",
       "zone_soil_calc_failed": "{{zone}}: no s'ha pogut calcular amb la seva anàlisi; s'usa la mitjana de la parcel·la.",
       "zone_soil_inputs_changed": "Les dades de sòl han canviat des de l'últim càlcul del pla: recalcula.",
-      "zone_dose_floored": "{{zone}}: el seu Nmin supera la dosi i la dosi queda en 0."
+      "zone_dose_floored": "{{zone}}: el seu Nmin supera la dosi i la dosi queda en 0.",
+      "zone_nmin_depth_differs": "{{zone}}: el seu Nmin està mesurat a una altra profunditat que el de la parcel·la i no s'usa.",
+      "zone_soil_unusable": "{{zone}}: les seves anàlisis no es poden usar (mètode no admès, falten dades o data): {{analyses}}.",
+      "zone_soil_no_zoning_date": "La zonificació no té data: no es pot saber quines anàlisis són posteriors i no se n'usa cap per zones."
     },
     "toPrescription": "Porta a recepta",
     "toPrescriptionHint": "El mòdul de rutes s'obre amb aquestes dosis ja omplertes; el tècnic tria la màquina i el patró i genera la passada.",

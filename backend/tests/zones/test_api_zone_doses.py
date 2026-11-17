@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import asynccontextmanager
+from datetime import timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -424,7 +425,8 @@ def zone_id(i):
 
 
 SOIL_SHEET = {**SHEET, "soil_analysis_id": "a1", "nmin_analysis_id": "n1"}
-NMIN_DATE = "2026-09-15"
+NMIN_DATE = legal_today().isoformat()      # on the day of the zoning (samples must not be older)
+LATER = (legal_today() + timedelta(days=1)).isoformat()
 
 
 def nmin_analysis(id_, nitrate, ammonium, date=NMIN_DATE, **extra):
@@ -497,12 +499,12 @@ def test_uniform_subtracts_the_zone_nmin(client, data):
 
 
 def test_a_zone_nmin_of_another_date_is_not_used(client, data):
-    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, date="2026-08-01",
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, date=LATER,
                                       hasAgriManagementZone=zone_id(0)))
     res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
     assert doses(res) == [48.0, 72.0, 60.0, 60.0]
     other = next(n for n in res["notices"] if n["code"] == "zone_nmin_other_date")
-    assert other["params"]["date"] == "2026-08-01"
+    assert other["params"]["date"] == LATER
 
 
 def test_zone_p_and_k_rerun_the_sheet_with_the_zone_soil(client, data):
@@ -634,8 +636,8 @@ def test_the_sheets_own_located_analyses_are_not_zone_samples(client, data):
     plan = calculated_plan(client, SOIL_SHEET)
     plain = {s: ask(client, plan, strategy=s).json() for s in ("uniform", "potential")}
     inside = {"location": {"lat": 0.5, "lon": 0.5}}
-    data["analyses"][URN] = [{**data["analyses"][URN][0], **inside}, nmin_analysis(
-        "n1", 5.0, 5.0, **inside)]
+    data["analyses"][URN] = [{**data["analyses"][URN][0], "samplingDate": NMIN_DATE, **inside},
+                             nmin_analysis("n1", 5.0, 5.0, **inside)]
     for s_, before in plain.items():
         res = ask(client, plan, strategy=s_).json()
         assert res == before
@@ -646,7 +648,7 @@ def test_the_sheets_own_located_analyses_are_not_zone_samples(client, data):
 def test_the_default_analysis_of_the_sheet_is_not_a_zone_sample_either(client, data):
     plan = calculated_plan(client)                 # no ids chosen: the newest is picked
     before = ask(client, plan, strategy="potential").json()
-    data["analyses"][URN][0]["location"] = {"lat": 0.5, "lon": 0.5}
+    data["analyses"][URN][0].update(location={"lat": 0.5, "lon": 0.5}, samplingDate=NMIN_DATE)
     res = ask(client, plan, strategy="potential").json()
     assert res == before and res["notices"] == []
     assert {z["soil_analysis"] for z in res["zones"]} == {None}
@@ -777,7 +779,116 @@ def test_the_parcel_rerun_failing_falls_back_to_the_parcel_values(client, data, 
 
 
 def test_the_free_dose_notice_is_only_given_when_the_correction_was_applied(client, data):
-    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, date="2026-08-01",
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, date=LATER,
                                       hasAgriManagementZone=zone_id(0)))
     res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    assert "zone_nmin_first_pass_only" not in codes(res)
+
+
+def test_a_zone_nmin_of_another_depth_is_not_credited(client, data):
+    deep = nmin_analysis("zn0", 8.0, 3.0, hasAgriManagementZone=zone_id(0))
+    deep["horizons"] = [{"depthFrom": 0, "depthTo": 30, "nitrateN": 8.0, "ammoniumN": 3.0,
+                         "bulkDensity": 1.0},
+                        {"depthFrom": 30, "depthTo": 90, "nitrateN": 8.0, "ammoniumN": 3.0,
+                         "bulkDensity": 1.0}]
+    with_analyses(data, deep)
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    assert doses(res) == [48.0, 72.0, 60.0, 60.0] and res["zones"][0]["nmin_kg_ha"] is None
+    assert {"code": "zone_nmin_depth_differs", "params": {"zone": zone_id(0)}} in res["notices"]
+    assert {"code": "zone_soil_unusable", "params": {"zone": zone_id(0), "analyses": ["zn0"]}
+            } in res["notices"]
+
+
+def test_bad_zone_data_is_unusable_not_a_500(client, data):
+    with_analyses(data, nmin_analysis("zn0", -1.0, 3.0, hasAgriManagementZone=zone_id(0)))
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    assert doses(res) == [48.0, 72.0, 60.0, 60.0]
+    assert "zone_nmin_incomplete" in codes(res)
+
+
+def test_a_zone_soil_function_raising_is_flagged_for_that_zone(client, data, monkeypatch):
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, hasAgriManagementZone=zone_id(0)))
+    plan = calculated_plan(client, SOIL_SHEET)
+    import app.zones.service as svc
+
+    def boom(*a, **k):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(svc, "zone_soil", boom)
+    res = ask(client, plan, strategy="potential").json()
+    assert doses(res) == [48.0, 72.0, 60.0, 60.0]
+    assert {"code": "zone_soil_calc_failed", "params": {"zone": zone_id(0)}} in res["notices"]
+
+
+def test_a_sample_with_an_unusable_method_is_reported(client, data):
+    odd = pk_analysis("zp0", 4.0, 90.0, hasAgriManagementZone=zone_id(0))
+    odd["horizons"][0]["phosphorusMethod"] = "unknown_method"
+    odd["horizons"][0]["potassiumMethod"] = "mehlich3"
+    with_analyses(data, odd)
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    assert {"code": "zone_soil_unusable", "params": {"zone": zone_id(0), "analyses": ["zp0"]}
+            } in res["notices"]
+    assert res["zones"][0]["basis"] == "vigor"
+
+
+def test_samples_older_than_the_zoning_are_not_zone_samples(client, data):
+    plan = calculated_plan(client, SOIL_SHEET)
+    before = ask(client, plan, strategy="potential").json()
+    with_analyses(data, pk_analysis("old", 4.0, 90.0, date="2020-03-01",
+                                    location={"lat": 0.5, "lon": 0.5}),
+                  pk_analysis("old2", 4.0, 90.0, date="2020-03-01",
+                              hasAgriManagementZone=zone_id(0)))
+    data["analyses"][URN] = [a for a in data["analyses"][URN] if a["id"] != "n1"]
+    data["analyses"][URN].append(nmin_analysis("n1", 5.0, 5.0))
+    assert ask(client, plan, strategy="potential").json() == before
+
+
+def test_a_zoning_without_a_date_has_no_zone_samples(client, data):
+    for e in data["zones"][URN]:
+        e.pop("dateZoned")
+    with_analyses(data, pk_analysis("zp0", 4.0, 90.0, hasAgriManagementZone=zone_id(0)))
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    assert "zone_soil_no_zoning_date" in codes(res)
+    assert {z["soil_analysis"] for z in res["zones"]} == {None}
+
+
+def test_a_same_date_campaign_makes_the_sheets_analysis_a_zone_sample(client, data):
+    chosen = {**data["analyses"][URN][0], "samplingDate": NMIN_DATE,
+              "location": {"lat": 0.5, "lon": 0.5}}
+    chosen["hasAgriManagementZone"] = zone_id(0)
+    data["analyses"][URN] = [chosen, nmin_analysis("n1", 5.0, 5.0),
+                             pk_analysis("zp1", 4.0, 90.0, hasAgriManagementZone=zone_id(1))]
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    z = res["zones"]
+    assert z[0]["basis"] == "zone_soil" and z[0]["soil_analysis"]["id"] == "a1"
+    assert z[0]["p2o5_kg_ha"] == res["rest"]["p2o5_kg_ha"]       # same numbers as the parcel
+    assert z[1]["basis"] == "zone_soil" and z[1]["p2o5_kg_ha"] > res["rest"]["p2o5_kg_ha"]
+
+
+def test_a_partly_measured_zone_nulls_the_date_it_does_not_use(client, data):
+    only_p = pk_analysis("zp0", 4.0, 90.0, hasAgriManagementZone=zone_id(0))
+    only_p["horizons"][0]["potassiumMethod"] = "mehlich3"
+    with_analyses(data, only_p)
+    res = ask(client, calculated_plan(client, SOIL_SHEET), strategy="potential").json()
+    assert res["zones"][0]["soil_analysis"] == {"id": "zp0", "date": NMIN_DATE, "n_samples": 1,
+                                                "p_date": NMIN_DATE, "k_date": None}
+    assert res["zones"][0]["k2o_kg_ha"] == res["rest"]["k2o_kg_ha"]
+
+
+def test_the_first_pass_is_the_earliest_planned_date(client, data):
+    sheet = {**SOIL_SHEET, "applications": [
+        {**FERT, "stage": "top_dressing", "planned_date": "2027-03-10"},
+        {**FERT, "planned_date": "2027-01-10"}]}
+    with_analyses(data, nmin_analysis("zn0", 8.0, 3.0, hasAgriManagementZone=zone_id(0)))
+    plan = calculated_plan(client, sheet)
+    first = ask(client, plan, strategy="potential", target={"application_seq": 1}).json()
+    assert first["zones"][0]["n_kg_ha"] == 45.3
+    later = ask(client, plan, strategy="potential", target={"application_seq": 0}).json()
+    assert later["zones"][0]["n_kg_ha"] == 48.0 and "zone_nmin_first_pass_only" in codes(later)
+
+
+def test_the_first_pass_warning_needs_a_correction_that_could_apply(client, data):
+    sheet = {**SOIL_SHEET, "applications": [FERT, {**FERT, "stage": "top_dressing"}]}
+    plan = calculated_plan(client, sheet)             # no zone samples at all
+    res = ask(client, plan, strategy="potential", target={"application_seq": 1}).json()
     assert "zone_nmin_first_pass_only" not in codes(res)

@@ -67,7 +67,7 @@ export function ZoneDosesResult({ res }: { res: ZoneDosesResponse }) {
                     {z.missing.length > 0 && (
                       <span className="block text-nkz-xs text-nkz-warning">{z.missing.map((m) => t(`zoneDoses.missing.${m}`, { defaultValue: m })).join(', ')}</span>
                     )}
-                    {anyZoneSoil && (() => { const m = zoneMark(z, lang); return <span className="block text-nkz-xs text-nkz-text-muted">{t(m.key, m.params)}{m.nmin !== undefined && ` ${t('zoneDoses.mark.nmin', { value: m.nmin })}`}</span>; })()}
+                    {anyZoneSoil && (() => { const m = zoneMark(z, lang); return <span className="block text-nkz-xs text-nkz-text-muted">{t(m.key, m.params)}{m.nmin !== undefined && ` ${t('zoneDoses.mark.nmin', { value: m.nmin })}`}{(m.parcelFor ?? []).map((k) => ` ${t(k)}`).join('')}</span>; })()}
                   </td>
                   <td className="py-nkz-tight pr-nkz-inline font-medium">
                     {k1(z.n_kg_ha)} {z.capped && <Badge intent="info">{t('zoneDoses.capped')}</Badge>}

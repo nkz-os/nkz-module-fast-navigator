@@ -560,7 +560,9 @@
       "zoneSoilPK_other": "Análisis de la zona (P {{p}} · K {{k}}, {{count}} muestras)",
       "zoneSoilNoCount": "Análisis de la zona ({{date}})",
       "zoneSoilPKNoCount": "Análisis de la zona (P {{p}} · K {{k}})",
-      "nmin": "· Nmin {{value}} kg/ha"
+      "nmin": "· Nmin {{value}} kg/ha",
+      "pParcel": "· P: media de la parcela",
+      "kParcel": "· K: media de la parcela"
     },
     "basis": {
       "vigor": "Ajuste por vigor de satélite",
@@ -594,7 +596,10 @@
       "zone_soil_unavailable": "No se han podido leer los análisis de las zonas: se usa la media de la parcela.",
       "zone_soil_calc_failed": "{{zone}}: no se pudo calcular con su análisis; se usa la media de la parcela.",
       "zone_soil_inputs_changed": "Los datos de suelo han cambiado desde el último cálculo del plan: recalcula.",
-      "zone_dose_floored": "{{zone}}: su Nmin supera la dosis y la dosis queda en 0."
+      "zone_dose_floored": "{{zone}}: su Nmin supera la dosis y la dosis queda en 0.",
+      "zone_nmin_depth_differs": "{{zone}}: su Nmin está medido a otra profundidad que el de la parcela y no se usa.",
+      "zone_soil_unusable": "{{zone}}: sus análisis no se pueden usar (método no admitido, faltan datos o fecha): {{analyses}}.",
+      "zone_soil_no_zoning_date": "La zonificación no tiene fecha: no se puede saber qué análisis son posteriores y no se usa ninguno por zonas."
     },
     "toPrescription": "Llevar a receta",
     "toPrescriptionHint": "El módulo de rutas se abre con estas dosis ya rellenas; el técnico elige la máquina y el patrón y genera la pasada.",

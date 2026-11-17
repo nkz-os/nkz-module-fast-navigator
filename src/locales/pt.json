@@ -560,7 +560,9 @@
       "zoneSoilPK_other": "Análise da zona (P {{p}} · K {{k}}, {{count}} amostras)",
       "zoneSoilNoCount": "Análise da zona ({{date}})",
       "zoneSoilPKNoCount": "Análise da zona (P {{p}} · K {{k}})",
-      "nmin": "· Nmin {{value}} kg/ha"
+      "nmin": "· Nmin {{value}} kg/ha",
+      "pParcel": "· P: média da parcela",
+      "kParcel": "· K: média da parcela"
     },
     "basis": {
       "vigor": "Ajuste por vigor de satélite",
@@ -594,7 +596,10 @@
       "zone_soil_unavailable": "Não foi possível ler as análises das zonas: usa-se a média da parcela.",
       "zone_soil_calc_failed": "{{zone}}: não foi possível calcular com a sua análise; usa-se a média da parcela.",
       "zone_soil_inputs_changed": "Os dados de solo mudaram desde o último cálculo do plano: recalcule.",
-      "zone_dose_floored": "{{zone}}: o seu Nmin supera a dose e a dose fica em 0."
+      "zone_dose_floored": "{{zone}}: o seu Nmin supera a dose e a dose fica em 0.",
+      "zone_nmin_depth_differs": "{{zone}}: o seu Nmin foi medido a outra profundidade que o da parcela e não é usado.",
+      "zone_soil_unusable": "{{zone}}: as suas análises não podem ser usadas (método não admitido, faltam dados ou data): {{analyses}}.",
+      "zone_soil_no_zoning_date": "A zonagem não tem data: não se sabe quais análises são posteriores, por isso nenhuma é usada por zona."
     },
     "toPrescription": "Levar para a receita",
     "toPrescriptionHint": "O módulo de rotas abre com estas doses já preenchidas; o técnico escolhe a máquina e o padrão e gera a passagem.",

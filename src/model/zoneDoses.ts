@@ -95,14 +95,16 @@ export function noticeView(n: ZoneDosesResponse['notices'][number], lang: string
  * Where the zone's P, K and Nmin figures come from: its own analysis (with the date, or the two
  * dates when P and K differ, and the number of samples) or the parcel mean.
  */
-export function zoneMark(z: Pick<ZoneDoseRow, 'basis' | 'soil_analysis' | 'nmin_kg_ha'>, lang: string): { key: string; params: Record<string, string | number>; nmin?: string } {
+export function zoneMark(z: Pick<ZoneDoseRow, 'basis' | 'soil_analysis' | 'nmin_kg_ha'>, lang: string): { key: string; params: Record<string, string | number>; nmin?: string; parcelFor?: string[] } {
   const a = z.soil_analysis;
   if (z.basis !== 'zone_soil' || !a) return { key: 'zoneDoses.mark.parcel', params: {} };
   const count = a.n_samples && a.n_samples > 0 ? a.n_samples : null;
   const sfx = count == null ? 'NoCount' : '';
   const extra: Record<string, number> = count == null ? {} : { count };
   const nmin = z.nmin_kg_ha != null ? formatKgHa(z.nmin_kg_ha, lang) : undefined;
-  const out = (key: string, params: Record<string, string | number>) => ({ key, params: { ...params, ...extra }, ...(nmin !== undefined ? { nmin } : {}) });
+  // A nutrient the zone has no analysis of is the parcel's: say so instead of looking fully measured.
+  const parcelFor = [...(a.p_date ? [] : ['zoneDoses.mark.pParcel']), ...(a.k_date ? [] : ['zoneDoses.mark.kParcel'])];
+  const out = (key: string, params: Record<string, string | number>) => ({ key, params: { ...params, ...extra }, ...(nmin !== undefined ? { nmin } : {}), ...(parcelFor.length > 0 ? { parcelFor } : {}) });
   if (a.p_date && a.k_date && a.p_date !== a.k_date) {
     return out(`zoneDoses.mark.zoneSoilPK${sfx}`, { p: formatDate(a.p_date, lang), k: formatDate(a.k_date, lang) });
   }

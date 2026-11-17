@@ -560,7 +560,9 @@
       "zoneSoilPK_other": "Zone analysis (P {{p}} · K {{k}}, {{count}} samples)",
       "zoneSoilNoCount": "Zone analysis ({{date}})",
       "zoneSoilPKNoCount": "Zone analysis (P {{p}} · K {{k}})",
-      "nmin": "· Nmin {{value}} kg/ha"
+      "nmin": "· Nmin {{value}} kg/ha",
+      "pParcel": "· P: parcel mean",
+      "kParcel": "· K: parcel mean"
     },
     "basis": {
       "vigor": "Satellite vigor adjustment",
@@ -594,7 +596,10 @@
       "zone_soil_unavailable": "The zone analyses could not be read: the parcel mean is used.",
       "zone_soil_calc_failed": "{{zone}}: it could not be calculated with its analysis; the parcel mean is used.",
       "zone_soil_inputs_changed": "The soil data changed since the plan was last calculated: recalculate.",
-      "zone_dose_floored": "{{zone}}: its Nmin exceeds the dose, so the dose is 0."
+      "zone_dose_floored": "{{zone}}: its Nmin exceeds the dose, so the dose is 0.",
+      "zone_nmin_depth_differs": "{{zone}}: its Nmin was measured at a different depth than the parcel's and is not used.",
+      "zone_soil_unusable": "{{zone}}: its analyses cannot be used (unsupported method, missing data or date): {{analyses}}.",
+      "zone_soil_no_zoning_date": "The zoning has no date: it cannot be told which analyses are newer, so none is used by zone."
     },
     "toPrescription": "Take to prescription",
     "toPrescriptionHint": "The routing module opens with these doses filled in; the technician still chooses the machine and pattern and generates the pass.",

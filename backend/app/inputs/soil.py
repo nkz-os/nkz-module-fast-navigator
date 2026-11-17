@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from itertools import pairwise
 
 from app.engine import constants as C
 from app.engine.corrections import MineralNLayer, soil_mineral_n
@@ -168,23 +169,57 @@ def _mineral_n(analysis: dict | None, class_bd: float | None
 
 
 def analysis_p_olsen(analysis: dict) -> float | None:
-    """Topsoil P of one analysis as Olsen-equivalent mg/kg; None if absent or method unusable."""
+    """Topsoil P of one analysis as Olsen-equivalent mg/kg; None if absent or unusable."""
     hz = analysis.get("horizons") or []
-    got = _lab_p(hz, None, analysis.get("id"), [])
+    try:
+        got = _lab_p(hz, None, analysis.get("id"), [])
+    except ValueError:
+        return None
     return got.value if got is not None else None
 
 
 def analysis_k(analysis: dict) -> float | None:
-    """Topsoil ammonium-acetate K of one analysis (mg/kg); None if absent or method unusable."""
+    """Topsoil ammonium-acetate K of one analysis (mg/kg); None if absent or unusable."""
     hz = analysis.get("horizons") or []
-    got = _lab_k(hz, None, analysis.get("id"), [])
+    try:
+        got = _lab_k(hz, None, analysis.get("id"), [])
+    except ValueError:
+        return None
     return got.value if got is not None else None
 
 
 def analysis_mineral_n(analysis: dict, class_bd: float | None) -> float | None:
-    """Mineral N of one analysis (kg N/ha); None when it cannot be credited (no values, no DA)."""
-    got, _ = _mineral_n(analysis, class_bd)
+    """Mineral N of one analysis (kg N/ha); None when it cannot be credited (no values, no DA,
+    bad data such as a negative concentration)."""
+    try:
+        got, _ = _mineral_n(analysis, class_bd)
+    except ValueError:
+        return None
     return got.value if got.known else None
+
+
+def has_n_values(analysis: dict) -> bool:
+    """Whether any horizon of the analysis carries nitrate or ammonium N."""
+    return any(h.get("nitrateN") is not None or h.get("ammoniumN") is not None
+               for h in analysis.get("horizons") or [])
+
+
+def analysis_n_depth(analysis: dict) -> tuple[float, float] | None:
+    """Depth range (cm) the analysis' mineral N covers: from the top of the first to the bottom
+    of the last N horizon. None when it has no usable N horizon or they are not contiguous."""
+    layers = []
+    for h in analysis.get("horizons") or []:
+        top, bottom = _num(h.get("depthFrom")), _num(h.get("depthTo"))
+        if top is None or bottom is None or bottom <= top or not (
+                h.get("nitrateN") is not None or h.get("ammoniumN") is not None):
+            continue
+        layers.append((top, bottom))
+    if not layers:
+        return None
+    layers.sort()
+    if any(nxt[0] != prev[1] for prev, nxt in pairwise(layers)):
+        return None
+    return layers[0][0], layers[-1][1]
 
 
 def build_soil(analyses: list[dict], estimated: list[dict], analysis_id: str | None,

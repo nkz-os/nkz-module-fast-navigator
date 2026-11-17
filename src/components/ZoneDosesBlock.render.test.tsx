@@ -156,6 +156,58 @@ describe('ZoneDosesResult (es)', () => {
   });
 });
 
+describe('ZoneDosesResult zone soil (es)', () => {
+  const sa = { id: 'zp0', date: '2026-09-15', n_samples: 2, p_date: '2026-09-15', k_date: '2026-09-15' };
+  const soilRes: ZoneDosesResponse = {
+    ...RES,
+    zones: [
+      { ...RES.zones[0], basis: 'zone_soil', outside_cap: true, capped: false, nmin_kg_ha: 29.7, p2o5_kg_ha: 71.2, k2o_kg_ha: 95, soil_analysis: sa },
+      { ...RES.zones[1], p2o5_kg_ha: 50.3, k2o_kg_ha: 83.76 },
+    ],
+    rest: { ...RES.rest, p2o5_kg_ha: 50.3, k2o_kg_ha: 83.76 },
+    notices: [
+      { code: 'zone_soil_missing', params: { zones: ['Zona 2', 'Zona 3'] } },
+      { code: 'zone_nmin_first_pass_only', params: { applied: true } },
+      { code: 'zone_nmin_first_pass_only', params: { applied: false } },
+      { code: 'zone_soil_unavailable', params: {} },
+      { code: 'zone_dose_floored', params: { zone: 'Zona 1' } },
+    ],
+  };
+  const html = renderToStaticMarkup(<ZoneDosesResult res={soilRes} />);
+  it('has the P2O5 and K2O columns with the zone and rest values', () => {
+    expect(html).toContain('kg P₂O₅/ha');
+    expect(html).toContain('kg K₂O/ha');
+    expect(html).toContain('71');
+    expect(html).toContain('84');
+    expect(html.match(/>50</g)).toHaveLength(2);
+  });
+  it('marks the zone analysis with date and samples, the others with the parcel mean', () => {
+    expect(html).toContain('Análisis de la zona (15/09/2026, 2 muestras)');
+    expect(html).toContain('Media de la parcela');
+  });
+  it('adds the own Nmin to the mark of the zone that uses it', () => {
+    expect(html).toContain('Análisis de la zona (15/09/2026, 2 muestras) · Nmin 30 kg/ha');
+    const out = renderToStaticMarkup(<ZoneDosesResult res={{ ...soilRes, zones: [{ ...soilRes.zones[0], nmin_kg_ha: null, soil_analysis: { ...sa, n_samples: 0 } }, soilRes.zones[1]] }} />);
+    expect(out).toContain('Análisis de la zona (15/09/2026)');
+    expect(out).not.toContain('Nmin 30');
+  });
+  it('outside the cap has its own label, never the cap one', () => {
+    expect(html).toContain('fuera de los límites por su Nmin');
+    expect(html.match(/>Tope</g)).toBeNull();
+  });
+  it('translates the new notices', () => {
+    expect(html).not.toContain('zoneDoses.notice');
+    expect(html).not.toContain('>zone_');
+    expect(html).toContain('Zona 2, Zona 3');
+  });
+  it('without zone samples the rows carry no mark and show the two columns', () => {
+    const plain = renderToStaticMarkup(<ZoneDosesResult res={RES} />);
+    expect(plain).not.toContain('Media de la parcela');
+    expect(plain).not.toContain('Análisis de la zona');
+    expect(plain).toContain('kg P₂O₅/ha');
+  });
+});
+
 describe('PrescriptionButton (es)', () => {
   const U = 'urn:ngsi-ld:AgriParcel:parcel-1';
   it('is enabled with the hint when the answer is current and has product rates', () => {

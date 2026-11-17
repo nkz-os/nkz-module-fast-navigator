@@ -538,7 +538,9 @@
       "vigor": "Indar erlatiboa",
       "origin": "Zifraren jatorria",
       "n": "kg N/ha",
-      "product": "kg produktu/ha"
+      "product": "kg produktu/ha",
+      "p2o5": "kg P₂O₅/ha",
+      "k2o": "kg K₂O/ha"
     },
     "level": {
       "high": "Bigor handia",
@@ -549,6 +551,19 @@
     "zoneN": "{{n}}. zona",
     "rest": "Partzelaren gainerakoa",
     "capped": "Muga",
+    "outsideCap": "Nmin dela eta, mugetatik kanpo",
+    "mark": {
+      "parcel": "Partzelaren batez bestekoa",
+      "zoneSoil_one": "Zonaren analisia ({{date}}, {{count}} lagin)",
+      "zoneSoil_other": "Zonaren analisia ({{date}}, {{count}} lagin)",
+      "zoneSoilPK_one": "Zonaren analisia (P {{p}} · K {{k}}, {{count}} lagin)",
+      "zoneSoilPK_other": "Zonaren analisia (P {{p}} · K {{k}}, {{count}} lagin)",
+      "zoneSoilNoCount": "Zonaren analisia ({{date}})",
+      "zoneSoilPKNoCount": "Zonaren analisia (P {{p}} · K {{k}})",
+      "nmin": "· Nmin {{value}} kg/ha",
+      "pParcel": "· P: partzelaren batezbestekoa",
+      "kParcel": "· K: partzelaren batezbestekoa"
+    },
     "basis": {
       "vigor": "Satelite-indarraren araberako doikuntza",
       "sheet": "Partzelaren dosia",
@@ -559,7 +574,7 @@
       "mean_value": "indar-baliorik gabe",
       "mean_value_invalid": "indar-balio baliogabea"
     },
-    "units": "Dosia kg N/ha-tan; produktua kg/ha-tan.",
+    "units": "Dosia kg N/ha-tan; produktua, P₂O₅ eta K₂O kg/ha-tan.",
     "totals": "Guztira {{n}} kg N · batez bestekoa {{mean}} kg N/ha · dosi uniformearekin {{uniform}} kg N",
     "notice": {
       "plan_calculation_stale": "Planak aldatu da azken kalkuluaren ondoren: birkalkulatu N beharra eguneratuta ikusteko.",
@@ -568,7 +583,25 @@
       "parcel_area_unknown": "Partzelaren azalera ez da ezagutzen: ezin da egiaztatu zonek estaltzen duten.",
       "zones_do_not_cover_parcel": "Zonek ez dute partzela osoa estaltzen: {{rest_ha}} ha geratzen dira {{parcel_ha}} ha-tik, adierazitako dosiarekin.",
       "zones_exceed_parcel": "Zonek {{zones_ha}} ha batzen dituzte, partzelak baino gehiago ({{parcel_ha}} ha).",
-      "total_above_planned": "Banatutako guztizkoa dosi uniformeak emango lukeena baino handiagoa da."
+      "total_above_planned": "Banatutako guztizkoa dosi uniformeak emango lukeena baino handiagoa da.",
+      "zone_soil_missing": "Zona hauek ez dute analisi propiorik eta partzelaren batez bestekoa erabiltzen dute: {{zones}}.",
+      "zone_soil_outside": "Zonetatik kanpo dauden lur-analisiak, erabiltzen ez direnak: {{n}}.",
+      "zone_soil_aggregated": "{{zone}}: {{n}} analisiren batez bestekoa egin da.",
+      "zone_soil_mixed_dates": "{{zone}}: fosforoa {{p_date}} datakoa da eta potasioa {{k_date}} datakoa.",
+      "zone_nmin_other_date": "{{zone}}: bere Nmin analisia {{date}} datakoa da, ez planaren datakoa, eta ez da erabiltzen.",
+      "zone_nmin_incomplete": "{{zone}}: bere Nmin analisia osatu gabe dago eta ez da erabiltzen.",
+      "zone_nmin_needs_recalculation": "Plana Nmin analisiaren data gorde aurretik kalkulatu zen: birkalkulatu zona bakoitzarena erabiltzeko.",
+      "zone_nmin_first_pass_only_applied": "Zona bakoitzaren Nmin N-ren lehen pasaldian bakarrik kentzen da; dosi hau lehentzat hartzen da.",
+      "zone_nmin_first_pass_only_not_applied": "Hau ez da N-ren lehen pasaldia: ez da zona bakoitzaren Nmin kentzen.",
+      "zone_soil_unavailable": "Ezin izan dira zonen analisiak irakurri: partzelaren batez bestekoa erabiltzen da.",
+      "zone_soil_calc_failed": "{{zone}}: ezin izan da bere analisiarekin kalkulatu; partzelaren batez bestekoa erabiltzen da.",
+      "zone_soil_inputs_changed": "Lur-datuak aldatu dira planaren azken kalkulutik: birkalkulatu.",
+      "zone_dose_floored": "{{zone}}: bere Nmin dosia baino handiagoa da eta dosia 0 da.",
+      "zone_nmin_depth_differs": "{{zone}}: bere Nmin partzelarenaren sakonera desberdinean neurtu da eta ez da erabiltzen.",
+      "zone_soil_unusable": "{{zone}}: bere analisiak ezin dira erabili (metodo onartugabea, daturik edo datarik ez).",
+      "zone_soil_no_zoning_date": "Zonifikazioak ez du datarik: ezin da jakin zein analisi diren berriagoak, beraz, ez da bat ere erabiltzen zonaka.",
+      "zone_nmin_parcel_unusable_no_nmin_analysis": "Zonek Nmin analisiak dituzte, baina planak ez du Nmin analisirik aukeratuta: ez da zona bakoitzaren Nmin kentzen.",
+      "zone_nmin_parcel_unusable_depth_unknown": "Zonek Nmin analisiak dituzte, baina ez da ezagutzen partzelaren Nminaren sakonera: ez da zona bakoitzaren Nmin kentzen."
     },
     "toPrescription": "Errezetara eraman",
     "toPrescriptionHint": "Bideratze modulua dosi hauek beteta irekitzen da; teknikariak makina eta eredua aukeratzen ditu eta pasaldia sortzen du.",

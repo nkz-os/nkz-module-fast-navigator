@@ -6,7 +6,7 @@ import type { CampaignParcel, PlanSheet, ZoneDosesResponse, ZoneStrategy } from 
 import { useLoad } from '../hooks/useLoad';
 import { DASH, formatDecimal1, formatDecimal2, formatHa, formatKgHa } from '../model/format';
 import { navigateTo } from '../model/navigate';
-import { basisKey, buildPrescriptionLink, buildZoneDosesRequest, noticeView, unavailableKey, zoneLabel, zoningLabel } from '../model/zoneDoses';
+import { basisKey, buildPrescriptionLink, buildZoneDosesRequest, noticeView, unavailableKey, zoneLabel, zoneMark, zoningLabel } from '../model/zoneDoses';
 import { ErrorBanner } from './ErrorBanner';
 
 const STRATEGIES: ZoneStrategy[] = ['uniform', 'potential', 'compensate'];
@@ -22,6 +22,17 @@ export function ZoneDosesResult({ res }: { res: ZoneDosesResponse }) {
   const { t, i18n } = useTranslation('fast-navigator');
   const lang = i18n.language;
   const k1 = (v: number | null | undefined) => formatDecimal1(v, lang);
+  // The mark per zone only appears when some zone has its own samples: without them the table reads as before.
+  // Notices name a zone by id (or stored label): say it as the table does.
+  const names = new Map<string, string>();
+  res.zones.forEach((z, i) => {
+    const l = zoneLabel(z, i);
+    const name = 'text' in l ? l.text : t(l.key, l.params);
+    names.set(z.zone_id, name);
+    if (z.label) names.set(z.label, name);
+  });
+  const zoneName = (x: string) => names.get(x) ?? x;
+  const anyZoneSoil = res.zones.some((z) => z.soil_analysis != null);
   return (
     <Stack gap="inline">
       {res.strategy_unavailable && (
@@ -39,6 +50,8 @@ export function ZoneDosesResult({ res }: { res: ZoneDosesResponse }) {
               <th className="py-nkz-tight pr-nkz-inline font-medium">{t('zoneDoses.col.origin')}</th>
               <th className="py-nkz-tight pr-nkz-inline font-medium">{t('zoneDoses.col.n')}</th>
               <th className="py-nkz-tight pr-nkz-inline font-medium">{t('zoneDoses.col.product')}</th>
+              <th className="py-nkz-tight pr-nkz-inline font-medium">{t('zoneDoses.col.p2o5')}</th>
+              <th className="py-nkz-tight pr-nkz-inline font-medium">{t('zoneDoses.col.k2o')}</th>
             </tr>
           </thead>
           <tbody>
@@ -54,11 +67,15 @@ export function ZoneDosesResult({ res }: { res: ZoneDosesResponse }) {
                     {z.missing.length > 0 && (
                       <span className="block text-nkz-xs text-nkz-warning">{z.missing.map((m) => t(`zoneDoses.missing.${m}`, { defaultValue: m })).join(', ')}</span>
                     )}
+                    {anyZoneSoil && (() => { const m = zoneMark(z, lang); return <span className="block text-nkz-xs text-nkz-text-muted">{t(m.key, m.params)}{m.nmin !== undefined && ` ${t('zoneDoses.mark.nmin', { value: m.nmin })}`}{(m.parcelFor ?? []).map((k) => ` ${t(k)}`).join('')}</span>; })()}
                   </td>
                   <td className="py-nkz-tight pr-nkz-inline font-medium">
                     {k1(z.n_kg_ha)} {z.capped && <Badge intent="info">{t('zoneDoses.capped')}</Badge>}
+                    {z.outside_cap && <Badge intent="info">{t('zoneDoses.outsideCap')}</Badge>}
                   </td>
                   <td className="py-nkz-tight pr-nkz-inline">{z.product_kg_ha == null ? DASH : formatKgHa(z.product_kg_ha, lang)}</td>
+                  <td className="py-nkz-tight pr-nkz-inline">{formatKgHa(z.p2o5_kg_ha, lang)}</td>
+                  <td className="py-nkz-tight pr-nkz-inline">{formatKgHa(z.k2o_kg_ha, lang)}</td>
                 </tr>
               );
             })}
@@ -70,6 +87,8 @@ export function ZoneDosesResult({ res }: { res: ZoneDosesResponse }) {
                 <td className="py-nkz-tight pr-nkz-inline">{t(basisKey('sheet'))}</td>
                 <td className="py-nkz-tight pr-nkz-inline font-medium">{k1(res.rest.n_kg_ha)}</td>
                 <td className="py-nkz-tight pr-nkz-inline">{res.rest.product_kg_ha == null ? DASH : formatKgHa(res.rest.product_kg_ha, lang)}</td>
+                <td className="py-nkz-tight pr-nkz-inline">{formatKgHa(res.rest.p2o5_kg_ha, lang)}</td>
+                <td className="py-nkz-tight pr-nkz-inline">{formatKgHa(res.rest.k2o_kg_ha, lang)}</td>
               </tr>
             )}
           </tbody>
@@ -82,7 +101,7 @@ export function ZoneDosesResult({ res }: { res: ZoneDosesResponse }) {
       {res.notices.length > 0 && (
         <ul className="list-disc pl-nkz-stack text-nkz-sm text-nkz-warning">
           {res.notices.map((nt, i) => {
-            const v = noticeView(nt, lang);
+            const v = noticeView(nt, lang, zoneName);
             return <li key={`${nt.code}-${i}`}>{t(v.key, { ...v.params, defaultValue: nt.code })}</li>;
           })}
         </ul>

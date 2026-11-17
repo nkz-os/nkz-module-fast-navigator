@@ -1,5 +1,5 @@
 import type { ZoneBasis, ZoneDosesRequest, ZoneDosesResponse, ZoneDoseRow, ZoneStrategy, ZoningInfo } from '../api/types';
-import { DASH, formatDate, formatHa } from './format';
+import { DASH, formatDate, formatHa, formatKgHa } from './format';
 
 /** Text typed by the technician to a number: a decimal comma is accepted; anything else is null. */
 export function parseNumber(text: string): number | null {
@@ -69,17 +69,46 @@ export const basisKey = (b: ZoneBasis) => `zoneDoses.basis.${b}`;
 export const unavailableKey = (reason: string) => `zoneDoses.unavailable.${reason}`;
 
 const HA_PARAMS = new Set(['rest_ha', 'parcel_ha', 'zones_ha']);
+const DATE_PARAMS = new Set(['date', 'p_date', 'k_date']);
+const ZONE_NOTICES_WITH_APPLIED = new Set(['zone_nmin_first_pass_only']);
 
-/** A notice of the API as a key with its params written for the language. */
-export function noticeView(n: ZoneDosesResponse['notices'][number], lang: string): { key: string; params: Record<string, string> } {
+/**
+ * A notice of the API as a key with its params written for the language. `zoneName` turns a zone
+ * id (or stored label) of the notice into the name the table shows for it.
+ */
+export function noticeView(n: ZoneDosesResponse['notices'][number], lang: string, zoneName?: (idOrLabel: string) => string): { key: string; params: Record<string, string> } {
   const params: Record<string, string> = {};
   for (const [k, v] of Object.entries(n.params ?? {})) {
     if (v == null) params[k] = DASH;
-    else if (k === 'date') params[k] = formatDate(String(v), lang);
+    else if (DATE_PARAMS.has(k)) params[k] = formatDate(String(v), lang);
     else if (HA_PARAMS.has(k) && typeof v === 'number') params[k] = formatHa(v, lang);
+    else if (Array.isArray(v)) params[k] = v.map((x) => (zoneName ? zoneName(String(x)) : String(x))).join(', ');
+    else if (k === 'zone' && zoneName) params[k] = zoneName(String(v));
     else params[k] = String(v);
   }
-  return { key: `zoneDoses.notice.${n.code}`, params };
+  // A notice that reads differently by a flag has one text per value.
+  const suffix = ZONE_NOTICES_WITH_APPLIED.has(n.code) ? (n.params?.applied === true ? '_applied' : '_not_applied') : n.code === 'zone_nmin_parcel_unusable' ? `_${String(n.params?.reason)}` : '';
+  return { key: `zoneDoses.notice.${n.code}${suffix}`, params };
+}
+
+/**
+ * Where the zone's P, K and Nmin figures come from: its own analysis (with the date, or the two
+ * dates when P and K differ, and the number of samples) or the parcel mean.
+ */
+export function zoneMark(z: Pick<ZoneDoseRow, 'basis' | 'soil_analysis' | 'nmin_kg_ha'>, lang: string): { key: string; params: Record<string, string | number>; nmin?: string; parcelFor?: string[] } {
+  const a = z.soil_analysis;
+  if (z.basis !== 'zone_soil' || !a) return { key: 'zoneDoses.mark.parcel', params: {} };
+  const count = a.n_samples && a.n_samples > 0 ? a.n_samples : null;
+  const sfx = count == null ? 'NoCount' : '';
+  const extra: Record<string, number> = count == null ? {} : { count };
+  const nmin = z.nmin_kg_ha != null ? formatKgHa(z.nmin_kg_ha, lang) : undefined;
+  // A nutrient the zone has no analysis of is the parcel's: say so instead of looking fully measured.
+  const parcelFor = [...(a.p_date ? [] : ['zoneDoses.mark.pParcel']), ...(a.k_date ? [] : ['zoneDoses.mark.kParcel'])];
+  const out = (key: string, params: Record<string, string | number>) => ({ key, params: { ...params, ...extra }, ...(nmin !== undefined ? { nmin } : {}), ...(parcelFor.length > 0 ? { parcelFor } : {}) });
+  if (a.p_date && a.k_date && a.p_date !== a.k_date) {
+    return out(`zoneDoses.mark.zoneSoilPK${sfx}`, { p: formatDate(a.p_date, lang), k: formatDate(a.k_date, lang) });
+  }
+  return out(`zoneDoses.mark.zoneSoil${sfx}`, { date: formatDate(a.date ?? a.p_date ?? a.k_date, lang) });
 }
 
 /** The routing module reads at most this many zone rates from the link. */

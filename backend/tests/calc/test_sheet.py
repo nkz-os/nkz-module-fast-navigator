@@ -243,3 +243,11 @@ def test_sheet_records_every_enclosure_of_a_parcel():
     assert [e["reference"] for e in enc["value"]] == ["31:97:0:0:4:228:1", "31:97:0:0:4:229:1"]
     assert enc["provenance"] == "measured"
     assert r.inputs[f"parcel.{urn}.identifier"]["value"] == "31:97:0:0:4:228:1, 31:97:0:0:4:229:1"
+
+
+def test_the_date_of_the_nmin_analysis_is_stored_with_the_inputs():
+    a = assembled()
+    assert calculate(a).inputs["soil.nmin_analysis"] == {"value": None, "sampling_date": None}
+    soil = replace(a.soil, nmin_analysis_id="n1", nmin_sampling_date="2026-09-15")
+    got = calculate(replace(a, soil=soil)).inputs["soil.nmin_analysis"]
+    assert got == {"value": "n1", "sampling_date": "2026-09-15"}

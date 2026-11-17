@@ -257,10 +257,18 @@ export interface ZoneDoseRow {
   basis: ZoneBasis;
   relative_vigor: number | null;
   factor: number | null;
+  /** Clipped by the variation cap. */
   capped: boolean;
+  /** The zone's own Nmin takes the dose outside the cap range. */
+  outside_cap?: boolean;
   n_kg_ha: number | null;
   product_kg_ha: number | null;
-  soil_analysis: { id: string; date: string | null } | null;
+  /** The zone's own Nmin applied in this answer; null when none. */
+  nmin_kg_ha?: number | null;
+  p2o5_kg_ha?: number | null;
+  k2o_kg_ha?: number | null;
+  /** Set only when the zone really uses its own analyses (basis zone_soil). */
+  soil_analysis: { id: string; date: string | null; n_samples?: number; p_date?: string | null; k_date?: string | null } | null;
   missing: string[];
 }
 
@@ -273,9 +281,9 @@ export interface ZoneDosesResponse {
   target: { n_kg_ha: number | null; source: 'application' | 'given'; product: { name: string; n_pct: number } | null };
   cap: { pct: number; min_n_kg_ha: number | null; max_n_kg_ha: number | null };
   zones: ZoneDoseRow[];
-  rest: { area_ha: number | null; n_kg_ha: number | null; product_kg_ha: number | null };
+  rest: { area_ha: number | null; n_kg_ha: number | null; product_kg_ha: number | null; p2o5_kg_ha?: number | null; k2o_kg_ha?: number | null };
   totals: { area_ha: number | null; n_kg: number | null; mean_n_kg_ha: number | null; uniform_n_kg: number | null };
-  notices: { code: string; params?: Record<string, string | number | null> }[];
-  units: { n: string; product: string };
+  notices: { code: string; params?: Record<string, string | number | boolean | null | string[]> }[];
+  units: { n: string; product: string; p2o5?: string; k2o?: string };
   versions: Record<string, string>;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ZoneDosesResponse } from '../api/types';
-import { base64UrlEncode, basisKey, buildPrescriptionLink, buildZoneDosesRequest, noticeView, parseNumber, unavailableKey, zoneLabel, zoningLabel } from './zoneDoses';
+import { base64UrlEncode, basisKey, buildPrescriptionLink, buildZoneDosesRequest, noticeView, parseNumber, zoneMark, unavailableKey, zoneLabel, zoningLabel } from './zoneDoses';
 
 const BASE = { parcelUrn: 'urn:ngsi-ld:AgriParcel:parcel-1', runId: 'run-1', strategy: 'uniform' as const, capText: '20', targetText: '60', productName: '', nPctText: '' };
 
@@ -11,6 +11,13 @@ describe('parseNumber', () => {
     expect(parseNumber('')).toBeNull();
     expect(parseNumber('abc')).toBeNull();
     expect(parseNumber('1e999')).toBeNull();
+  });
+});
+
+describe('noticeView of the parcel Nmin', () => {
+  it('has one text per reason', () => {
+    expect(noticeView({ code: 'zone_nmin_parcel_unusable', params: { reason: 'depth_unknown' } }, 'es').key).toBe('zoneDoses.notice.zone_nmin_parcel_unusable_depth_unknown');
+    expect(noticeView({ code: 'zone_nmin_parcel_unusable', params: { reason: 'no_nmin_analysis' } }, 'es').key).toBe('zoneDoses.notice.zone_nmin_parcel_unusable_no_nmin_analysis');
   });
 });
 
@@ -84,6 +91,51 @@ describe('labels', () => {
     expect(noticeView({ code: 'zones_do_not_cover_parcel', params: { rest_ha: 2.5, parcel_ha: 10 } }, 'en'))
       .toEqual({ key: 'zoneDoses.notice.zones_do_not_cover_parcel', params: { rest_ha: '2.5', parcel_ha: '10.0' } });
     expect(noticeView({ code: 'total_above_planned' }, 'es')).toEqual({ key: 'zoneDoses.notice.total_above_planned', params: {} });
+  });
+});
+
+describe('zone soil notices and mark', () => {
+  it('writes the zone-soil notice params for the language', () => {
+    expect(noticeView({ code: 'zone_soil_mixed_dates', params: { zone: 'Z1', p_date: '2026-09-15', k_date: '2026-09-20' } }, 'es'))
+      .toEqual({ key: 'zoneDoses.notice.zone_soil_mixed_dates', params: { zone: 'Z1', p_date: '15/09/2026', k_date: '20/09/2026' } });
+    expect(noticeView({ code: 'zone_nmin_other_date', params: { zone: 'Z1', date: '2026-09-15' } }, 'es').params.date).toBe('15/09/2026');
+    expect(noticeView({ code: 'zone_soil_missing', params: { zones: ['Z1', 'Z2'] } }, 'es').params.zones).toBe('Z1, Z2');
+  });
+  it('names the zones of a notice as the table does', () => {
+    const name = (x: string) => (x === 'urn:z1' ? 'Vigor alto' : x);
+    expect(noticeView({ code: 'zone_dose_floored', params: { zone: 'urn:z1' } }, 'es', name).params.zone).toBe('Vigor alto');
+    expect(noticeView({ code: 'zone_soil_missing', params: { zones: ['urn:z1', 'Zona 3'] } }, 'es', name).params.zones).toBe('Vigor alto, Zona 3');
+  });
+  it('first-pass-only picks one of two texts from applied', () => {
+    expect(noticeView({ code: 'zone_nmin_first_pass_only', params: { applied: true } }, 'es').key).toBe('zoneDoses.notice.zone_nmin_first_pass_only_applied');
+    expect(noticeView({ code: 'zone_nmin_first_pass_only', params: { applied: false } }, 'es').key).toBe('zoneDoses.notice.zone_nmin_first_pass_only_not_applied');
+  });
+  const row = (o: object) => ({ basis: 'vigor' as const, soil_analysis: null, ...o });
+  it('the mark: zone analysis with date and samples, both dates when P and K differ, else the parcel mean', () => {
+    const sa = { id: 'a', date: '2026-09-20', n_samples: 2, p_date: '2026-09-15', k_date: '2026-09-15' };
+    expect(zoneMark(row({ basis: 'zone_soil', soil_analysis: { ...sa, date: '2026-09-15' } }), 'es'))
+      .toEqual({ key: 'zoneDoses.mark.zoneSoil', params: { date: '15/09/2026', count: 2 } });
+    expect(zoneMark(row({ basis: 'zone_soil', soil_analysis: { ...sa, k_date: '2026-09-20' } }), 'es'))
+      .toEqual({ key: 'zoneDoses.mark.zoneSoilPK', params: { p: '15/09/2026', k: '20/09/2026', count: 2 } });
+    expect(zoneMark(row({}), 'es')).toEqual({ key: 'zoneDoses.mark.parcel', params: {} });
+  });
+  it('hides the sample count when it is 0 or missing', () => {
+    const sa = { id: 'a', date: '2026-09-15', p_date: '2026-09-15', k_date: '2026-09-15' };
+    expect(zoneMark(row({ basis: 'zone_soil', soil_analysis: { ...sa, n_samples: 0 } }), 'es'))
+      .toEqual({ key: 'zoneDoses.mark.zoneSoilNoCount', params: { date: '15/09/2026' } });
+    expect(zoneMark(row({ basis: 'zone_soil', soil_analysis: { ...sa, k_date: '2026-09-20' } }), 'es').key).toBe('zoneDoses.mark.zoneSoilPKNoCount');
+  });
+  it('says which nutrient is the parcel mean when the zone has no analysis of it', () => {
+    const sa = { id: 'a', date: '2026-09-15', n_samples: 1, p_date: '2026-09-15', k_date: null };
+    expect(zoneMark(row({ basis: 'zone_soil', soil_analysis: sa }), 'es').parcelFor).toEqual(['zoneDoses.mark.kParcel']);
+    expect(zoneMark(row({ basis: 'zone_soil', soil_analysis: { ...sa, p_date: null } }), 'es').parcelFor).toEqual(['zoneDoses.mark.pParcel', 'zoneDoses.mark.kParcel']);
+    expect(zoneMark(row({ basis: 'zone_soil', soil_analysis: { ...sa, k_date: '2026-09-15' } }), 'es').parcelFor).toBeUndefined();
+  });
+  it('carries the zone own Nmin only for a zone-soil zone', () => {
+    const sa = { id: 'a', date: '2026-09-15', n_samples: 1, p_date: null, k_date: null };
+    expect(zoneMark(row({ basis: 'zone_soil', nmin_kg_ha: 29.7, soil_analysis: sa }), 'es').nmin).toBe('30');
+    expect(zoneMark(row({ basis: 'zone_soil', nmin_kg_ha: null, soil_analysis: sa }), 'es').nmin).toBeUndefined();
+    expect(zoneMark(row({ nmin_kg_ha: 29.7 }), 'es').nmin).toBeUndefined();
   });
 });
 

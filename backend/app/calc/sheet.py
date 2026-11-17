@@ -186,6 +186,8 @@ def _inputs(a: AssembledInputs) -> dict[str, dict]:
         out[f"management.{name}"] = Sourced(value, DECLARED, "plan").to_dict()
     out.update({f"soil.{k}": v.to_dict() for k, v in a.soil.values.items()})
     out["soil.analysis_id"] = {"value": a.soil.analysis_id, "sampling_date": a.soil.sampling_date}
+    out["soil.nmin_analysis"] = {"value": a.soil.nmin_analysis_id,
+                                 "sampling_date": a.soil.nmin_sampling_date}
     for name in ("n_kg_ha", "uptake", "water_m3_ha", "no3_mg_l"):
         out[f"irrigation.{name}"] = getattr(a.irrigation, name).to_dict()
     for i, share in enumerate(a.organic.availability):

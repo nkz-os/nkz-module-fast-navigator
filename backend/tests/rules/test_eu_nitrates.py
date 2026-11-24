@@ -3,7 +3,7 @@ from datetime import date
 
 from app.rules import BLOCK, WARN, evaluate
 from app.rules.context import PlanContext, SheetContext
-from app.rules.eu import RULES
+from app.rules.eu import RULES  # hygiene:allow (Python module path, not a hostname)
 
 
 def _ctx(vulnerable_zone, organic_n_kg_ha):

@@ -1,5 +1,7 @@
 import type {
-  CampaignParcels, PdfEnvelope, Plan, PlanListItem, PlanSheetIn, ZoneDosesRequest, ZoneDosesResponse, ZoningInfo,
+  AdvisorProfile, AuditEntry, CampaignParcels, ComplianceReport, HolderQualification, NAdjustment,
+  PdfEnvelope, Plan, PlanDeclarationsIn, PlanListItem, PlanSheetIn, ZoneDosesRequest,
+  ZoneDosesResponse, ZoningInfo,
 } from './types';
 import type { SourceCrop } from '../model/crops';
 import type { OrganicProducts } from '../model/organic';
@@ -33,6 +35,57 @@ export const putOverride = (id: string, key: string, param: string, rowVersion: 
 
 export const deleteOverride = (id: string, key: string, param: string, rowVersion: number) =>
   request<Plan>('DELETE', `${overridePath(id, key, param)}?row_version=${rowVersion}`);
+
+export const putNAdjustment = (id: string, key: string, rowVersion: number, adj: NAdjustment) =>
+  request<Plan>('PUT', `${sheetPath(id, key)}/n-adjustment`, { row_version: rowVersion, ...adj });
+
+export const deleteNAdjustment = (id: string, key: string, rowVersion: number) =>
+  request<Plan>('DELETE', `${sheetPath(id, key)}/n-adjustment?row_version=${rowVersion}`);
+
+export const putDeclarations = (id: string, rowVersion: number, body: PlanDeclarationsIn) =>
+  request<Plan>('PUT', `/plans/${encodeURIComponent(id)}/declarations`, { row_version: rowVersion, ...body });
+
+export const submitPlan = (id: string, rowVersion: number) =>
+  request<Plan>('POST', `/plans/${encodeURIComponent(id)}/submit`, { row_version: rowVersion });
+
+export const returnPlan = (id: string, rowVersion: number, comment: string) =>
+  request<Plan>('POST', `/plans/${encodeURIComponent(id)}/return`, { row_version: rowVersion, comment });
+
+export const signPlan = (id: string, rowVersion: number) =>
+  request<Plan>('POST', `/plans/${encodeURIComponent(id)}/sign`, { row_version: rowVersion });
+
+export const closePlan = (
+  id: string,
+  rowVersion: number,
+  closureBasis: 'titular_cualificado' | 'titular_sin_obligacion',
+  signerName: string,
+) =>
+  request<Plan>('POST', `/plans/${encodeURIComponent(id)}/close`, {
+    row_version: rowVersion,
+    closure_basis: closureBasis,
+    signer_name: signerName,
+  });
+
+export const revisePlan = (id: string, rowVersion: number) =>
+  request<Plan>('POST', `/plans/${encodeURIComponent(id)}/revise`, { row_version: rowVersion });
+
+export const planAudit = (id: string, signal?: AbortSignal) =>
+  request<AuditEntry[]>('GET', `/plans/${encodeURIComponent(id)}/audit`, undefined, signal);
+
+export const getPlanCompliance = (id: string, signal?: AbortSignal) =>
+  request<ComplianceReport>('GET', `/plans/${encodeURIComponent(id)}/compliance`, undefined, signal);
+
+export const getMyAdvisor = (signal?: AbortSignal) =>
+  request<AdvisorProfile>('GET', '/advisors/me', undefined, signal);
+
+export const putMyAdvisor = (body: AdvisorProfile) =>
+  request<AdvisorProfile>('PUT', '/advisors/me', body);
+
+export const getHolderQualification = (signal?: AbortSignal) =>
+  request<HolderQualification>('GET', '/holder-qualification', undefined, signal);
+
+export const putHolderQualification = (body: HolderQualification) =>
+  request<HolderQualification>('PUT', '/holder-qualification', body);
 
 const sheetPath = (id: string, key: string) => `/plans/${encodeURIComponent(id)}/sheets/${encodeURIComponent(key)}`;
 

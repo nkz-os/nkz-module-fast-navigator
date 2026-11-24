@@ -91,12 +91,13 @@ describe('PlanWorkspace (es)', () => {
     expect(html).not.toContain('abcdef0123456');
   });
 
-  it('has the Data and Needs tabs only', () => {
+  it('has the Data, Needs, Applications, and Review tabs', () => {
     roles = ['TenantAdmin'];
     const html = render(makePlan());
     expect(html).toContain('>Datos<');
     expect(html).toContain('>Necesidades<');
-    expect(html).not.toContain('Calendario');
+    expect(html).toContain('>Aplicaciones<');
+    expect(html).toContain('>Revisión y firma<');
   });
 
   it('a plan that does not exist sends back to the list', () => {

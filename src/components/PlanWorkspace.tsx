@@ -8,11 +8,14 @@ import { useLoad } from '../hooks/useLoad';
 import { errorView } from '../model/errors';
 import { formatDate, pdfLang } from '../model/format';
 import { canEdit, rolesFrom } from '../model/roles';
-import { closePlanParams, openSheetParams, readPlanView, type Tab } from '../model/urlState';
+import { closePlanParams, openPlanParams, openSheetParams, readPlanView, type Tab } from '../model/urlState';
+import { ApplicationsTab } from './ApplicationsTab';
+import { ComplianceTab } from './ComplianceTab';
 import { DataTab } from './DataTab';
 import { ErrorBanner } from './ErrorBanner';
 import { NeedsTab } from './NeedsTab';
 import { PdfButton } from './PdfButton';
+import { ReviewTab } from './ReviewTab';
 import { SheetCard } from './SheetCard';
 import { StateBadge } from './StateBadge';
 import { Wizard } from './Wizard';
@@ -74,7 +77,14 @@ export function PlanWorkspace({ planId, campaign, initial }: { planId: string; c
     setCalculating(true); setCalcError(null);
     try { setLocal(await calculatePlan(plan.id, plan.row_version)); } catch (e) { setCalcError(e); } finally { setCalculating(false); }
   };
-  const saved = (p: Plan) => { setLocal(p); setAdding(false); setCalcError(null); };
+  const saved = (p: Plan) => {
+    setLocal(p);
+    setAdding(false);
+    setCalcError(null);
+    if (p.id !== plan.id) {
+      setParams(openPlanParams(params, p.id, p.campaign));
+    }
+  };
 
   return (
     <Stack gap="stack">
@@ -129,11 +139,23 @@ export function PlanWorkspace({ planId, campaign, initial }: { planId: string; c
               <Tabs.List>
                 <Tabs.Trigger value="data">{t('workspace.tabs.data')}</Tabs.Trigger>
                 <Tabs.Trigger value="needs">{t('workspace.tabs.needs')}</Tabs.Trigger>
+                <Tabs.Trigger value="applications">{t('workspace.tabs.applications')}</Tabs.Trigger>
+                <Tabs.Trigger value="review">{t('workspace.tabs.review')}</Tabs.Trigger>
+                <Tabs.Trigger value="compliance">{t('workspace.tabs.compliance')}</Tabs.Trigger>
               </Tabs.List>
               <Tabs.Content value="data">
                 <DataTab plan={plan} sheet={sheet} parcels={parcels} editable={editable} roles={roles} onSaved={saved} onReload={() => { loaded.retry(); }} />
               </Tabs.Content>
               <Tabs.Content value="needs"><NeedsTab result={sheet.result} zoneDoses={{ planId: plan.id, sheet, parcels }} /></Tabs.Content>
+              <Tabs.Content value="applications">
+                <ApplicationsTab key={sheet.key} plan={plan} sheet={sheet} editable={editable} roles={roles} onSaved={saved} />
+              </Tabs.Content>
+              <Tabs.Content value="review">
+                <ReviewTab key={`${plan.id}-${plan.row_version}`} plan={plan} editable={editable} roles={roles} onSaved={saved} />
+              </Tabs.Content>
+              <Tabs.Content value="compliance">
+                <ComplianceTab key={`${plan.id}-${sheet.key}`} planId={plan.id} sheetKey={sheet.key} />
+              </Tabs.Content>
             </Tabs>
           </div>
         </div>

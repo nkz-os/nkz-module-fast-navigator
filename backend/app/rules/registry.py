@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from app.rules import Rule
 
-RULES_VERSION = "es-2026.10.4"
+RULES_VERSION = "es-2026.11.1"
 
 
 def all_rules() -> list[Rule]:
-    from app.rules import es, es_na
+    from app.rules import es, es_na, eu
 
-    return [*es.RULES, *es_na.RULES]
+    return [*eu.RULES, *es.RULES, *es_na.RULES]

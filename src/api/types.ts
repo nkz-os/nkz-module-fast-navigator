@@ -149,8 +149,107 @@ export interface SheetInputs {
 
 export interface Override { param: string; value: number | string | boolean; reason: string; user_id: string; at: string }
 
-/** An application (calendar) is opaque to S1: it travels back unchanged. */
-export type ApplicationData = Record<string, unknown>;
+export type ApplicationKind = 'mineral' | 'urea' | 'urea_solution' | 'ammonium_carbonate' | 'organo_mineral' | 'organic';
+export type NitrogenForm = 'ureic' | 'ammoniacal' | 'nitric' | 'organic' | 'mixed';
+export type ApplicationMethod = 'broadcast' | 'localized' | 'band' | 'injection' | 'incorporated' | 'fertigation' | 'foliar' | 'other';
+export type AnnexVCode =
+  | 'A.a' | 'A.b' | 'A.c' | 'A.d' | 'A.e' | 'A.f' | 'A.g' | 'A.h' | 'A.i'
+  | 'B.a' | 'B.b' | 'B.c' | 'B.d' | 'B.e' | 'B.f' | 'B.g' | 'B.h' | 'B.i';
+
+/** Planned application of a crop sheet (art. 6.4 + annex V). */
+export interface ApplicationData {
+  stage?: string;
+  planned_date?: string | null;
+  kind: ApplicationKind;
+  product_name?: string;
+  registry_ref?: string | null;
+  organic_index?: number | null;
+  n_pct?: number | null;
+  n_ureic_pct?: number | null;
+  p2o5_pct?: number | null;
+  k2o_pct?: number | null;
+  n_form?: NitrogenForm | null;
+  product_rate_kg_ha?: number | null;
+  method?: ApplicationMethod;
+  method_detail?: string | null;
+  machine?: string;
+  annex_v?: AnnexVCode[];
+  other_measure?: string | null;
+  [extra: string]: unknown;
+}
+
+export type NAdjustmentBasis = 'foliar_analysis' | 'other_technique' | 'year_evolution';
+
+export interface NAdjustment {
+  basis: NAdjustmentBasis;
+  date: string;
+  reference?: string | null;
+  description: string;
+  justified_n_kg_ha: number;
+  scope?: { parcels: string[]; crop_eppo: string | null };
+}
+
+export interface AdvisorProfile {
+  name: string;
+  registration_number: string;
+}
+
+export interface HolderQualification {
+  holder_name: string;
+  qualification: string;
+  reference: string;
+}
+
+export interface AuditEntry {
+  id?: string | number;
+  action: string;
+  user_id?: string;
+  at: string;
+  detail?: Record<string, unknown> | null;
+}
+
+export interface PlanDeclarationsIn {
+  vulnerable_zone: boolean | null;
+  vulnerable_zone_source: string | null;
+  voluntary_digital_notebook: boolean;
+  irrigated_spring_2026: boolean | null;
+}
+
+export interface ComplianceOperation {
+  operation: string;
+  parcel: string;
+  status: string;
+  date: string | null;
+  product: string | null;
+  rate_kg_ha: number | null;
+  area_ha: number | null;
+  n_kg_ha: number | null;
+  p2o5_kg_ha: number | null;
+  k2o_kg_ha: number | null;
+  organic: boolean;
+  composition: string | null;
+  notices: string[];
+}
+
+export interface ComplianceSheet {
+  key: string;
+  status: 'ok' | 'at_risk' | 'exceeded' | 'incomplete';
+  applications: ComplianceOperation[];
+  realized: Record<string, number | null>;
+  planned: Record<string, number | null>;
+  difference: Record<string, number | null>;
+  findings: Finding[];
+  notices: string[];
+}
+
+export interface ComplianceReport {
+  campaign: number;
+  live: boolean;
+  judged_at: string;
+  window: { from: string; until: string };
+  sheets: ComplianceSheet[];
+  unattributed: { operation: string; parcel: string; date: string | null; reason: string }[];
+}
 
 export interface PlanSheet {
   key: string;

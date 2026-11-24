@@ -57,7 +57,7 @@ def found(c, rule_id):
 
 
 def test_version():
-    assert RULES_VERSION == "es-2026.10.4"
+    assert RULES_VERSION == "es-2026.11.1"
 
 
 # 1. soil data: transitional warning until the MAPA guides + 1 year
